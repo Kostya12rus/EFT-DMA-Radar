@@ -619,19 +619,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        public float FOV
-        {
-            get => App.Config.UI.FOV;
-            set
-            {
-                if (App.Config.UI.FOV != value)
-                {
-                    App.Config.UI.FOV = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
         public int EspTargetScreen
         {
             get => App.Config.UI.EspTargetScreen;

@@ -166,13 +166,6 @@
                                    VerticalAlignment="Center"
                                    MinWidth="50"/>
                      </WrapPanel>
-                     <WrapPanel Margin="0,8,0,0">
-                        <TextBlock Text="Label Position:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <ComboBox Width="140"
-                                  ItemsSource="{Binding LabelPositions}"
-                                  SelectedItem="{Binding EspLabelPosition, Mode=TwoWay}"
-                                  ToolTip="Choose where the name/distance label is drawn relative to the bounding box."/>
-                     </WrapPanel>
                 </StackPanel>
             </GroupBox>
             
