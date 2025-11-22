@@ -435,10 +435,28 @@ namespace LoneEftDmaRadar.UI.ESP
 
                      if (item.Important || inCone)
                      {
-                         var text = item.ShortName;
-                         if (App.Config.UI.EspLootPrice)
+                         string text;
+                         if (isCorpse && item is LootCorpse corpse)
                          {
-                             text = item.Important ? item.ShortName : $"{item.ShortName} ({LoneEftDmaRadar.Misc.Utilities.FormatNumberKM(item.Price)})";
+                             var corpseName = corpse.Player?.Name;
+                             text = string.IsNullOrWhiteSpace(corpseName) ? corpse.Name : corpseName;
+                             if (App.Config.UI.EspLootPrice)
+                             {
+                                 var corpseValue = corpse.Loot?.Values?.Sum(x => x.Price) ?? 0;
+                                 if (corpseValue > 0)
+                                     text = $"{text} ({LoneEftDmaRadar.Misc.Utilities.FormatNumberKM(corpseValue)})";
+                             }
+                         }
+                         else
+                         {
+                             var shortName = string.IsNullOrWhiteSpace(item.ShortName) ? item.Name : item.ShortName;
+                             text = shortName;
+                             if (App.Config.UI.EspLootPrice)
+                             {
+                                 text = item.Important
+                                     ? shortName
+                                     : $"{shortName} ({LoneEftDmaRadar.Misc.Utilities.FormatNumberKM(item.Price)})";
+                             }
                          }
                          ctx.DrawText(text, screen.X + 4, screen.Y + 4, ToColor(textPaint), DxTextSize.Small);
                      }

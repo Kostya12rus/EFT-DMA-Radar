@@ -48,14 +48,18 @@ namespace LoneEftDmaRadar.UI.Loot
         {
             var search = SearchString?.Trim();
             bool usePrices = string.IsNullOrEmpty(search);
+            var uiConfig = App.Config.UI;
+            bool showMeds = ShowMeds || uiConfig.EspMeds;
+            bool showFood = ShowFood || uiConfig.EspFood;
+            bool showBackpacks = ShowBackpacks || uiConfig.EspBackpacks;
             if (usePrices)
             {
                 Predicate<LootItem> p = x => // Default Predicate
                 {
                     return (x.IsRegularLoot || x.IsValuableLoot || x.IsImportant || x.IsWishlisted) ||
-                                (ShowBackpacks && x.IsBackpack) ||
-                                (ShowMeds && x.IsMeds) ||
-                                (ShowFood && x.IsFood);
+                                (showBackpacks && x.IsBackpack) ||
+                                (showMeds && x.IsMeds) ||
+                                (showFood && x.IsFood);
                 };
                 return item =>
                 {
