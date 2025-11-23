@@ -538,14 +538,25 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 var head = player.GetBonePos(Bones.HumanHead);
                 var headTop = head;
-                headTop.Y += 4f; // approximate head height in world space
+                headTop.Y += 0.18f; // small offset to estimate head height
 
                 if (TryProject(head, screenWidth, screenHeight, out var headScreen) &&
                     TryProject(headTop, screenWidth, screenHeight, out var headTopScreen))
                 {
-                    var dx = headTopScreen.X - headScreen.X;
-                    var dy = headTopScreen.Y - headScreen.Y;
-                    float radius = MathF.Max(2f, MathF.Sqrt(dx * dx + dy * dy));
+                    float radius;
+                    if (hasBox)
+                    {
+                        // scale with on-screen box to stay proportional to the model
+                        radius = MathF.Min(bbox.Width, bbox.Height) * 0.1f;
+                    }
+                    else
+                    {
+                        // fallback: use projected head height
+                        var dy = MathF.Abs(headTopScreen.Y - headScreen.Y);
+                        radius = dy * 0.65f;
+                    }
+
+                    radius = Math.Clamp(radius, 2f, 12f);
                     ctx.DrawCircle(ToRaw(headScreen), radius, color, filled: false);
                 }
             }
@@ -570,14 +581,30 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private bool TryGetBoundingBox(AbstractPlayer player, float w, float h, out RectangleF rect)
+            private bool TryGetBoundingBox(AbstractPlayer player, float w, float h, out RectangleF rect)
         {
             rect = default;
             var projectedPoints = new List<SKPoint>();
+            var mins = new Vector3((float)-0.4, 0, (float)-0.4);
+            var maxs = new Vector3((float)0.4, (float)1.75, (float)0.4);
 
-            foreach (var boneKvp in player.PlayerBones)
+            mins = player.Position + mins;
+            maxs = player.Position + maxs;
+
+            var points = new List<Vector3> {
+                new Vector3(mins.X, mins.Y, mins.Z),
+                new Vector3(mins.X, maxs.Y, mins.Z),
+                new Vector3(maxs.X, maxs.Y, mins.Z),
+                new Vector3(maxs.X, mins.Y, mins.Z),
+                new Vector3(maxs.X, maxs.Y, maxs.Z),
+                new Vector3(mins.X, maxs.Y, maxs.Z),
+                new Vector3(mins.X, mins.Y, maxs.Z),
+                new Vector3(maxs.X, mins.Y, maxs.Z)
+            };
+
+            foreach (var position in points)
             {
-                if (TryProject(boneKvp.Value.Position, w, h, out var s))
+                if (TryProject(position, w, h, out var s))
                     projectedPoints.Add(s);
             }
 

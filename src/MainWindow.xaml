@@ -41,6 +41,12 @@
             <TabItem Header="Debug">
                 <tabs:DebugTab x:Name="DebugTab" />
             </TabItem>
+            <TabItem Header="MakcuAimbot">
+                <tabs:MakcuTab x:Name="Makcu" />
+            </TabItem>
+            <TabItem Header="MemWrites">
+                <tabs:MemWritesTab x:Name="MemWrites" />
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

@@ -217,6 +217,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// Dictionary of Player Bones.
         /// </summary>
         public ConcurrentDictionary<Bones, UnityTransform> PlayerBones { get; } = new();
+        /// <summary>
+        /// Lightweight wrapper for skeleton access (used by Makcu/silent aim features).
+        /// </summary>
+        public PlayerSkeleton Skeleton { get; protected set; }
         protected int _verticesCount;
         private bool _skeletonErrorLogged;
 
@@ -1081,5 +1085,20 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// Simple wrapper exposing skeleton root and bone transforms for aim helpers.
+    /// </summary>
+    public sealed class PlayerSkeleton
+    {
+        public PlayerSkeleton(UnityTransform root, ConcurrentDictionary<Bones, UnityTransform> bones)
+        {
+            Root = root;
+            BoneTransforms = bones;
+        }
+
+        public UnityTransform Root { get; }
+        public ConcurrentDictionary<Bones, UnityTransform> BoneTransforms { get; }
     }
 }

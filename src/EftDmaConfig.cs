@@ -32,6 +32,8 @@ using LoneEftDmaRadar.Misc.JSON;
 using LoneEftDmaRadar.UI.ColorPicker;
 using LoneEftDmaRadar.UI.Data;
 using LoneEftDmaRadar.UI.Loot;
+using LoneEftDmaRadar.Tarkov.Unity.Structures;
+using Size = System.Windows.Size;
 using System.Collections.ObjectModel;
 using VmmSharpEx.Extensions.Input;
 
@@ -129,6 +131,18 @@ namespace LoneEftDmaRadar
         [JsonInclude]
         [JsonPropertyName("infoWidget")]
         public InfoWidgetConfig InfoWidget { get; private set; } = new();
+
+        /// <summary>
+        /// Settings for Makcu Aim.
+        /// </summary>
+        [JsonPropertyName("makcu")]
+        public MakcuConfig Makcu { get; private set; } = new();
+
+        /// <summary>
+        /// Settings for memory write based features.
+        /// </summary>
+        [JsonPropertyName("memWrites")]
+        public MemWritesConfig MemWrites { get; private set; } = new();
 
         /// <summary>
         /// Player Watchlist Collection.
@@ -481,6 +495,11 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("windowSize")]
         public Size WindowSize { get; set; } = new(1280, 720);
+        /// <summary>
+        /// Preferred rendering resolution for ESP/aim helpers.
+        /// </summary>
+        [JsonPropertyName("resolution")]
+        public Size Resolution { get; set; } = new(1920, 1080);
 
         /// <summary>
         /// Window is maximized.
@@ -877,6 +896,53 @@ namespace LoneEftDmaRadar
         [JsonInclude]
         [JsonConverter(typeof(CaseInsensitiveConcurrentDictionaryConverter<byte>))]
         public ConcurrentDictionary<string, byte> Selected { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Settings for Makcu/Kmbox aimbot integration.
+    /// </summary>
+    public sealed class MakcuConfig
+    {
+        public bool Enabled { get; set; }
+        public bool AutoConnect { get; set; }
+        public string LastComPort { get; set; }
+
+        // Debug
+        public bool ShowDebug { get; set; } = true;
+
+        // Targeting
+        public Bones TargetBone { get; set; } = Bones.HumanHead;
+        public float FOV { get; set; } = 90f;
+        public float MaxDistance { get; set; } = 300f;
+        public TargetingMode Targeting { get; set; } = TargetingMode.ClosestToCrosshair;
+        public bool EnablePrediction { get; set; } = true;
+
+        // Target Filters
+        public bool TargetPMC { get; set; } = true;
+        public bool TargetPlayerScav { get; set; } = true;
+        public bool TargetAIScav { get; set; } = true;
+        public bool TargetBoss { get; set; } = true;
+        public bool TargetRaider { get; set; } = true;
+
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public enum TargetingMode
+        {
+            ClosestToCrosshair,
+            ClosestDistance
+        }
+    }
+
+    /// <summary>
+    /// Settings for memory write based features.
+    /// </summary>
+    public sealed class MemWritesConfig
+    {
+        public bool Enabled { get; set; }
+        public bool NoRecoilEnabled { get; set; }
+        public float NoRecoilAmount { get; set; } = 80f;
+        public float NoSwayAmount { get; set; } = 80f;
+        public bool InfiniteStaminaEnabled { get; set; }
+        public bool MemoryAimEnabled { get; set; }
     }
 
     /// <summary>

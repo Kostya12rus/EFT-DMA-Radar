@@ -30,6 +30,7 @@ using Collections.Pooled;
 using LoneEftDmaRadar.Common.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld;
+using CameraManagerNew = LoneEftDmaRadar.Tarkov.GameWorld.Camera.CameraManager;
 using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot.Helpers;
@@ -50,6 +51,9 @@ namespace LoneEftDmaRadar.DMA
     public sealed class MemDMA : IDisposable
     {
         #region Init
+
+        private MakcuAimbot _makcuAimbot;
+        public static MakcuAimbot MakcuAimbot { get; private set; }
 
         private const string GAME_PROCESS_NAME = "EscapeFromTarkov.exe";
         internal const uint MAX_READ_SIZE = 0x1000u * 1500u;
@@ -87,6 +91,7 @@ namespace LoneEftDmaRadar.DMA
         public bool Starting { get; private set; }
         public bool Ready { get; private set; }
         public bool InRaid => Game?.InRaid ?? false;
+        public static CameraManagerNew CameraManager { get; internal set; }
 
         public IReadOnlyCollection<AbstractPlayer> Players => Game?.Players;
         public IReadOnlyCollection<IExplosiveItem> Explosives => Game?.Explosives;
@@ -122,7 +127,7 @@ namespace LoneEftDmaRadar.DMA
                         DebugLogger.LogDebug("[DMA] No MemMap, attempting to generate...");
                         _vmm = new Vmm(args: initArgs)
                         {
-                            EnableMemoryWriting = false
+                            EnableMemoryWriting = true
                         };
                         _ = _vmm.GetMemoryMap(
                             applyMap: true,
@@ -136,7 +141,7 @@ namespace LoneEftDmaRadar.DMA
                 }
                 _vmm ??= new Vmm(args: initArgs)
                 {
-                    EnableMemoryWriting = false
+                    EnableMemoryWriting = true
                 };
                 _vmm.RegisterAutoRefresh(RefreshOption.MemoryPartial, TimeSpan.FromMilliseconds(300));
                 _vmm.RegisterAutoRefresh(RefreshOption.TlbPartial, TimeSpan.FromSeconds(2));
@@ -193,6 +198,15 @@ namespace LoneEftDmaRadar.DMA
                     {
                         RunStartupLoop();
                         OnProcessStarted();
+                        try
+                        {
+                            _makcuAimbot = new MakcuAimbot(this);
+                            MakcuAimbot = _makcuAimbot;
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugLogger.LogDebug($"Failed to start MakcuAimbot: {ex}");
+                        }
                         RunGameLoop();
                         OnProcessStopped();
                     }
@@ -225,6 +239,15 @@ namespace LoneEftDmaRadar.DMA
                     ResourceJanitor.Run();
                     LoadProcess();
                     LoadModules();
+                    try
+                    {
+                        CameraManager = new CameraManagerNew();
+                        CameraManagerNew.UpdateViewportRes();
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugLogger.LogDebug($"Process Startup [WARN]: failed to init CameraManager - {ex}");
+                    }
                     this.Starting = true;
                     OnProcessStarting();
                     this.Ready = true;
@@ -298,12 +321,17 @@ namespace LoneEftDmaRadar.DMA
             UnityBase = default;
             GOM = default;
             _pid = default;
+            _makcuAimbot?.Dispose();
+            _makcuAimbot = null;
+            MakcuAimbot = null;
+            CameraManager = null;
         }
 
 
         private void MemDMA_RaidStopped(object sender, EventArgs e)
         {
             Game = null;
+            _makcuAimbot?.OnRaidEnd();
         }
 
         /// <summary>
@@ -566,6 +594,17 @@ namespace LoneEftDmaRadar.DMA
                 throw new VmmException("Memory Read Failed!");
         }
 
+        /// <summary>
+        /// Write a value type to memory.
+        /// </summary>
+        public void WriteValue<T>(ulong addr, in T value, bool useCache = false)
+            where T : unmanaged
+        {
+            // VmmSharpEx write calls do not expose cache flags; writes are always uncached.
+            if (!_vmm.MemWriteValue(_pid, addr, value))
+                throw new VmmException("Memory Write Failed!");
+        }
+
         #endregion
 
         #region Misc
@@ -698,6 +737,7 @@ namespace LoneEftDmaRadar.DMA
         {
             if (Interlocked.Exchange(ref _disposed, true) == false)
             {
+                _makcuAimbot?.Dispose();
                 _vmm.Dispose();
             }
         }

@@ -26,7 +26,9 @@ SOFTWARE.
  *
 */
 
+using System.Diagnostics;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
+using LoneEftDmaRadar.UI.Misc;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 {
@@ -34,10 +36,24 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
     {
         public static ulong HandsController { get; private set; }
         /// <summary>
+        /// Firearm Manager for tracking weapon/ammo/ballistics.
+        /// </summary>
+        public FirearmManager FirearmManager { get; private set; }
+        /// <summary>
         /// All Items on the Player's WishList.
         /// </summary>
         public static IReadOnlySet<string> WishlistItems => _wishlistItems;
         private static readonly HashSet<string> _wishlistItems = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Spawn Point.
+        /// </summary>
+        public string EntryPoint { get; }
+
+        /// <summary>
+        /// Profile ID (if Player Scav). Used for Exfils.
+        /// </summary>
+        public string ProfileId { get; }
 
         /// <summary>
         /// Spawn Point.
@@ -58,6 +74,49 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (!(classType == "LocalPlayer" || classType == "ClientPlayer"))
                 throw new ArgumentOutOfRangeException(nameof(classType));
             IsHuman = true;
+            FirearmManager = new FirearmManager(this);
+
+            if (IsPmc)
+            {
+                var entryPtr = Memory.ReadPtr(Info + Offsets.PlayerInfo.EntryPoint);
+                EntryPoint = Memory.ReadUnicodeString(entryPtr);
+            }
+            else if (IsScav)
+            {
+                var profileIdPtr = Memory.ReadPtr(Profile + Offsets.Profile.Id);
+                ProfileId = Memory.ReadUnicodeString(profileIdPtr);
+            }
+        }
+
+        /// <summary>
+        /// Update FirearmManager (call this before using weapon data).
+        /// </summary>
+        public void UpdateFirearmManager()
+        {
+            try
+            {
+                HandsController = Memory.ReadPtr(Base + Offsets.Player.HandsController, false);
+                FirearmManager?.Update();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LocalPlayer] FirearmManager update failed: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Checks if LocalPlayer is Aiming (ADS).
+        /// </summary>
+        public bool CheckIfADS()
+        {
+            try
+            {
+                return Memory.ReadValue<bool>(PWA + Offsets.ProceduralWeaponAnimation._isAiming, false);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

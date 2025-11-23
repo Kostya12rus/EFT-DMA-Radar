@@ -91,6 +91,8 @@ namespace LoneEftDmaRadar
             toggleShowFood.HotkeyStateChanged += ToggleShowFood_HotkeyStateChanged;
             var toggleShowMeds = new HotkeyActionController("Toggle Show Meds");
             toggleShowMeds.HotkeyStateChanged += ToggleShowMeds_HotkeyStateChanged;
+            var engageAimbotMakcu = new HotkeyActionController("Engage Makcu Aim");
+            engageAimbotMakcu.HotkeyStateChanged += EngageAimbotMakcu_HotkeyStateChanged;
             
             var toggleESP = new HotkeyActionController("Toggle ESP Overlay");
             toggleESP.HotkeyStateChanged += ToggleESP_HotkeyStateChanged;
@@ -117,6 +119,7 @@ namespace LoneEftDmaRadar
             HotkeyAction.RegisterController(toggleESPScavs);
             HotkeyAction.RegisterController(toggleESPLoot);
             HotkeyAction.RegisterController(toggleESPExfils);
+            HotkeyAction.RegisterController(engageAimbotMakcu);
         }
 
         private void ToggleAimviewWidget_HotkeyStateChanged(object sender, HotkeyEventArgs e)
@@ -130,6 +133,14 @@ namespace LoneEftDmaRadar
             if (e.State && _parent.Radar?.Overlay?.ViewModel is RadarOverlayViewModel vm)
             {
                 vm.ShowMeds = !vm.ShowMeds;
+            }
+        }
+
+        private void EngageAimbotMakcu_HotkeyStateChanged(object sender, HotkeyEventArgs e)
+        {
+            if (_parent.Makcu?.ViewModel is MakcuViewModel makcuAim)
+            {
+                makcuAim.IsEngaged = e.State;
             }
         }
 

@@ -35,20 +35,29 @@ namespace LoneEftDmaRadar.Tarkov.Unity
         public readonly struct UnityOffsets
         {
             public const uint GameObjectManager = 0x1A1F0B8;
+            public const uint AllCameras = 0x19EE040;
             public const uint CameraObjectManager = 0x19EE040;
+            public const uint PhysiX = 0x1ACD770;
 
             public const uint GameObject_ObjectClassOffset = 0x80;
             public const uint GameObject_ComponentsOffset = 0x50;
             public const uint GameObject_NameOffset = 0x80;
 
+            public const uint MonoBehaviour_ObjectClassOffset = 0x38;
+            public const uint MonoBehaviour_GameObjectOffset = 0x48;
+            public const uint MonoBehaviour_EnabledOffset = 0x38;
+            public const uint MonoBehaviour_IsAddedOffset = 0x39;
+
             public const uint Component_ObjectClassOffset = 0x38;
             public const uint Component_GameObjectOffset = 0x50;
 
+            public const uint TransformInternal_TransformAccessOffset = 0x90;
             public const uint TransformAccess_IndexOffset = 0x70;
             public const uint TransformAccess_HierarchyOffset = 0x68;
 
             public const uint Hierarchy_VerticesOffset = 0x38;
             public const uint Hierarchy_IndicesOffset = 0x40;
+            public const uint Hierarchy_RootPositionOffset = 0x40;
 
             public readonly struct Camera
             {
@@ -57,6 +66,11 @@ namespace LoneEftDmaRadar.Tarkov.Unity
                 public const uint AspectRatio = 0x510;
                 public const uint ZoomLevel = 0xE0;
             }
+
+            public const uint Camera_ViewMatrixOffset = 0x120;
+            public const uint Camera_FOVOffset = 0x1A0;
+            public const uint Camera_AspectRatioOffset = 0x510;
+            public const uint Camera_ZoomLevelOffset = 0xE0;
 
             public static readonly uint[] GameWorldChain =
             [

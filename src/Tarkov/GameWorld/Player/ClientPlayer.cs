@@ -209,6 +209,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                  _verticesCount = PlayerBones.Values.Max(x => x.Count);
                  _verticesCount = Math.Max(_verticesCount, SkeletonRoot.Count);
             }
+            Skeleton = new PlayerSkeleton(SkeletonRoot, PlayerBones);
         }
 
         /// <summary>
