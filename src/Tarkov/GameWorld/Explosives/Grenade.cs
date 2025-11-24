@@ -63,8 +63,17 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
                 _isSmoke = true;
                 return;
             }
-            var ti = Memory.ReadPtrChain(baseAddr, false, UnitySDK.UnityOffsets.TransformChain);
-            _transform = new UnityTransform(ti);
+
+            // Transform chain can be invalid if the grenade is already destroyed/invalid; fail fast.
+            try
+            {
+                var ti = Memory.ReadPtrChain(baseAddr, false, UnitySDK.UnityOffsets.TransformChain);
+                _transform = new UnityTransform(ti);
+            }
+            catch
+            {
+                throw; // bubble to caller to drop this grenade instance
+            }
         }
 
         /// <summary>

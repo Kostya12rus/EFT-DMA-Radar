@@ -314,6 +314,11 @@ namespace LoneEftDmaRadar.UI.ESP
                             DrawTripwires(ctx, screenWidth, screenHeight);
                         }
 
+                        if (Explosives is not null && App.Config.UI.EspGrenades)
+                        {
+                            DrawGrenades(ctx, screenWidth, screenHeight);
+                        }
+
                         // Render players
                         foreach (var player in allPlayers)
                         {
@@ -491,6 +496,22 @@ namespace LoneEftDmaRadar.UI.ESP
                 var color = GetTripwireColorForRender();
                 ctx.DrawCircle(ToRaw(screen), 5f, color, true);
                 ctx.DrawText("Tripwire", screen.X + 6, screen.Y, color, DxTextSize.Small);
+            }
+        }
+
+        private void DrawGrenades(Dx9RenderContext ctx, float screenWidth, float screenHeight)
+        {
+            foreach (var explosive in Explosives)
+            {
+                if (explosive is not Grenade grenade)
+                    continue;
+
+                if (!WorldToScreen2(grenade.Position, out var screen, screenWidth, screenHeight))
+                    continue;
+
+                var color = GetGrenadeColorForRender();
+                ctx.DrawCircle(ToRaw(screen), 5f, color, true);
+                ctx.DrawText("Grenade", screen.X + 6, screen.Y, color, DxTextSize.Small);
             }
         }
 
@@ -929,6 +950,7 @@ namespace LoneEftDmaRadar.UI.ESP
         private DxColor GetLootColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorLoot));
         private DxColor GetExfilColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorExfil));
         private DxColor GetTripwireColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorTripwire));
+        private DxColor GetGrenadeColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorGrenade));
         private DxColor GetCrosshairColor() => ToColor(ColorFromHex(App.Config.UI.EspColorCrosshair));
 
         private static SKColor ColorFromHex(string hex)

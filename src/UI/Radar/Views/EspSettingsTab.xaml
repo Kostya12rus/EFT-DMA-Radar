@@ -200,13 +200,14 @@
                 </StackPanel>
             </GroupBox>
             
-            <GroupBox Header="Loot, Exfils &amp; Tripwires" Margin="0,0,0,12">
+            <GroupBox Header="Loot, Exfils &amp; Explosives" Margin="0,0,0,12">
                 <StackPanel>
                      <WrapPanel>
                         <CheckBox Content="Show Loot" IsChecked="{Binding EspLoot, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Show Prices" IsChecked="{Binding EspLootPrice, Mode=TwoWay}" Margin="0,0,16,8" IsEnabled="{Binding EspLoot}" />
                         <CheckBox Content="Show Exfils" IsChecked="{Binding EspExfils, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Show Tripwires" IsChecked="{Binding EspTripwires, Mode=TwoWay}" Margin="0,0,16,8" />
+                        <CheckBox Content="Show Grenades" IsChecked="{Binding EspGrenades, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Loot Cone Filter"
                                   IsChecked="{Binding EspLootConeEnabled, Mode=TwoWay}"
                                   Margin="0,0,16,8" />
@@ -265,6 +266,13 @@
                             <TextBlock Text="Tripwire Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <xctk:ColorPicker Width="42" Height="26"
                                               SelectedColor="{Binding EspColorTripwire, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                              UsingAlphaChannel="True"
+                                              ShowRecentColors="False"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="Grenade Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <xctk:ColorPicker Width="42" Height="26"
+                                              SelectedColor="{Binding EspColorGrenade, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
                                               UsingAlphaChannel="True"
                                               ShowRecentColors="False"/>
                         </StackPanel>

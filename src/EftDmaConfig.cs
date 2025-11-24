@@ -665,6 +665,9 @@ namespace LoneEftDmaRadar
         [JsonPropertyName("espTripwires")]
         public bool EspTripwires { get; set; } = true;
 
+        [JsonPropertyName("espGrenades")]
+        public bool EspGrenades { get; set; } = true;
+
         /// <summary>
         /// Show Loot on ESP.
         /// </summary>
@@ -794,6 +797,9 @@ namespace LoneEftDmaRadar
 
         [JsonPropertyName("espColorTripwire")]
         public string EspColorTripwire { get; set; } = "#FFFF4500";
+
+        [JsonPropertyName("espColorGrenade")]
+        public string EspColorGrenade { get; set; } = "#FFFF5500";
 
         [JsonPropertyName("espColorCrosshair")]
         public string EspColorCrosshair { get; set; } = "#FFFFFFFF";
@@ -982,7 +988,7 @@ namespace LoneEftDmaRadar
         public bool TargetBoss { get; set; } = true;
         public bool TargetRaider { get; set; } = true;
 
-        // KMBox NET (LAN) device support
+        // KMBox NET
         public bool UseKmBoxNet { get; set; } = false;
         public string KmBoxNetIp { get; set; } = "192.168.2.4";
         public int KmBoxNetPort { get; set; } = 8888;

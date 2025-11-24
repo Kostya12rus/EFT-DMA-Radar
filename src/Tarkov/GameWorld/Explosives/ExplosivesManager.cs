@@ -89,6 +89,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
                     catch (Exception ex)
                     {
                         DebugLogger.LogDebug($"Error Processing Grenade @ 0x{grenade.ToString("X")}: {ex}");
+                        _ = _explosives.TryRemove(grenade, out _); // drop bad entry to avoid repeated errors
                     }
                 }
             }
