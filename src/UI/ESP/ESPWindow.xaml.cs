@@ -522,33 +522,61 @@ namespace LoneEftDmaRadar.UI.ESP
 
         private void DrawTripwires(Dx9RenderContext ctx, float screenWidth, float screenHeight)
         {
+            if (Explosives is null)
+                return;
+
             foreach (var explosive in Explosives)
             {
-                if (explosive is not Tripwire tripwire || !tripwire.IsActive)
+                if (explosive is null || explosive is not Tripwire tripwire || !tripwire.IsActive)
                     continue;
 
-                if (!WorldToScreen2(tripwire.Position, out var screen, screenWidth, screenHeight))
-                    continue;
+                try
+                {
+                    if (tripwire.Position == Vector3.Zero)
+                        continue;
 
-                var color = GetTripwireColorForRender();
-                ctx.DrawCircle(ToRaw(screen), 5f, color, true);
-                ctx.DrawText("Tripwire", screen.X + 6, screen.Y, color, DxTextSize.Small);
+                    if (!WorldToScreen2(tripwire.Position, out var screen, screenWidth, screenHeight))
+                        continue;
+
+                    var color = GetTripwireColorForRender();
+                    ctx.DrawCircle(ToRaw(screen), 5f, color, true);
+                    ctx.DrawText("Tripwire", screen.X + 6, screen.Y, color, DxTextSize.Small);
+                }
+                catch
+                {
+                    // Silently skip invalid tripwires to prevent ESP from breaking
+                    continue;
+                }
             }
         }
 
         private void DrawGrenades(Dx9RenderContext ctx, float screenWidth, float screenHeight)
         {
+            if (Explosives is null)
+                return;
+
             foreach (var explosive in Explosives)
             {
-                if (explosive is not Grenade grenade)
+                if (explosive is null || explosive is not Grenade grenade)
                     continue;
 
-                if (!WorldToScreen2(grenade.Position, out var screen, screenWidth, screenHeight))
-                    continue;
+                try
+                {
+                    if (grenade.Position == Vector3.Zero)
+                        continue;
 
-                var color = GetGrenadeColorForRender();
-                ctx.DrawCircle(ToRaw(screen), 5f, color, true);
-                ctx.DrawText("Grenade", screen.X + 6, screen.Y, color, DxTextSize.Small);
+                    if (!WorldToScreen2(grenade.Position, out var screen, screenWidth, screenHeight))
+                        continue;
+
+                    var color = GetGrenadeColorForRender();
+                    ctx.DrawCircle(ToRaw(screen), 5f, color, true);
+                    ctx.DrawText("Grenade", screen.X + 6, screen.Y, color, DxTextSize.Small);
+                }
+                catch
+                {
+                    // Silently skip invalid grenades to prevent ESP from breaking
+                    continue;
+                }
             }
         }
 
