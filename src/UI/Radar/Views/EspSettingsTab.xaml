@@ -220,6 +220,21 @@
                         <CheckBox Content="Show Corpses" IsChecked="{Binding EspCorpses, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Show Containers" IsChecked="{Binding EspContainers, Mode=TwoWay}" Margin="0,0,16,8" />
                      </WrapPanel>
+                     <WrapPanel Margin="0,4,0,0" IsEnabled="{Binding EspContainers}">
+                        <TextBlock Text="Container Distance (ESP)"
+                                   VerticalAlignment="Center" />
+                        <Slider x:Name="EspContainerDistanceSlider"
+                                Width="150"
+                                Margin="8,0"
+                                Minimum="0"
+                                Maximum="200"
+                                SmallChange="1"
+                                LargeChange="10"
+                                Value="{Binding EspContainerDistance, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding Value, ElementName=EspContainerDistanceSlider, StringFormat='{}{0:F0}'}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                     </WrapPanel>
                      <WrapPanel Margin="0,4,0,0" IsEnabled="{Binding EspLootConeEnabled}">
                         <TextBlock Text="Cone Angle"
                                    VerticalAlignment="Center" />
@@ -252,6 +267,13 @@
                             <TextBlock Text="Loot Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <xctk:ColorPicker Width="42" Height="26"
                                               SelectedColor="{Binding EspColorLoot, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                              UsingAlphaChannel="True"
+                                              ShowRecentColors="False"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="Container Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <xctk:ColorPicker Width="42" Height="26"
+                                              SelectedColor="{Binding EspColorContainers, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
                                               UsingAlphaChannel="True"
                                               ShowRecentColors="False"/>
                         </StackPanel>

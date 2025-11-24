@@ -26,16 +26,19 @@ SOFTWARE.
  *
 */
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Input;
 using LoneEftDmaRadar.Tarkov;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.UI.ColorPicker;
-using LoneEftDmaRadar.UI.Data;
-using LoneEftDmaRadar.UI.Hotkeys;
 using LoneEftDmaRadar.UI.Misc;
 using LoneEftDmaRadar.UI.Radar.Views;
 using LoneEftDmaRadar.UI.Skia;
-using System.Collections.ObjectModel;
-using System.Windows.Input;
 
 namespace LoneEftDmaRadar.UI.Radar.ViewModels
 {
@@ -50,11 +53,9 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         {
             _parent = parent ?? throw new ArgumentNullException(nameof(parent));
             RestartRadarCommand = new SimpleCommand(OnRestartRadar);
-            OpenHotkeyManagerCommand = new SimpleCommand(OnOpenHotkeyManager);
             OpenColorPickerCommand = new SimpleCommand(OnOpenColorPicker);
             BackupConfigCommand = new SimpleCommand(OnBackupConfig);
             OpenConfigCommand = new SimpleCommand(OnOpenConfig);
-            InitializeContainers();
             SetScaleValues(UIScale);
         }
 
@@ -63,47 +64,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         public ICommand RestartRadarCommand { get; }
         private void OnRestartRadar() =>
             Memory.RestartRadar();
-
-        private bool _hotkeyManagerIsEnabled = true;
-        public bool HotkeyManagerIsEnabled
-        {
-            get => _hotkeyManagerIsEnabled;
-            set
-            {
-                if (_hotkeyManagerIsEnabled != value)
-                {
-                    _hotkeyManagerIsEnabled = value;
-                    OnPropertyChanged(nameof(HotkeyManagerIsEnabled));
-                }
-            }
-        }
-        public ICommand OpenHotkeyManagerCommand { get; }
-        private void OnOpenHotkeyManager()
-        {
-            HotkeyManagerIsEnabled = false;
-            bool wasEspVisible = UI.ESP.ESPWindow.ShowESP;
-            try
-            {
-                if (wasEspVisible)
-                {
-                    UI.ESP.ESPManager.HideESP();
-                }
-
-                var wnd = new HotkeyManagerWindow()
-                {
-                    Owner = MainWindow.Instance
-                };
-                wnd.ShowDialog();
-            }
-            finally
-            {
-                if (wasEspVisible)
-                {
-                    UI.ESP.ESPManager.ShowESP();
-                }
-                HotkeyManagerIsEnabled = true;
-            }
-        }
 
         private bool _colorPickerIsEnabled = true;
         public bool ColorPickerIsEnabled
@@ -254,19 +214,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             LootItem.ScaleLootPaints(newScale);
 
             #endregion
-        }
-
-        public int ContainerDistance
-        {
-            get => (int)Math.Round(App.Config.Containers.DrawDistance);
-            set
-            {
-                if (App.Config.Containers.DrawDistance != value)
-                {
-                    App.Config.Containers.DrawDistance = value;
-                    OnPropertyChanged(nameof(ContainerDistance));
-                }
-            }
         }
 
         private bool _showMapSetupHelper;
@@ -468,34 +415,18 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        public bool StaticContainersSelectAll
+        public int ContainerDistance
         {
-            get => App.Config.Containers.SelectAll;
+            get => (int)Math.Round(App.Config.Containers.DrawDistance);
             set
             {
-                if (App.Config.Containers.SelectAll != value)
+                if (App.Config.Containers.DrawDistance != value)
                 {
-                    App.Config.Containers.SelectAll = value;
-                    foreach (var item in StaticContainers) item.IsTracked = value;
-                    OnPropertyChanged(nameof(StaticContainersSelectAll));
+                    App.Config.Containers.DrawDistance = value;
+                    OnPropertyChanged(nameof(ContainerDistance));
                 }
             }
         }
-
-        private void InitializeContainers()
-        {
-            var entries = TarkovDataManager.AllContainers.Values
-                .OrderBy(x => x.Name)
-                .Select(x => new StaticContainerEntry(x));
-            foreach (var entry in entries)
-            {
-                StaticContainers.Add(entry);
-            }
-        }
-
-        public ObservableCollection<StaticContainerEntry> StaticContainers { get; } = new();
-
-        public bool ContainerIsTracked(string id) => StaticContainers.Any(x => x.Id.Equals(id, StringComparison.OrdinalIgnoreCase) && x.IsTracked);
 
         #endregion
 

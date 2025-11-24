@@ -792,6 +792,12 @@ namespace LoneEftDmaRadar
         [JsonPropertyName("espColorLoot")]
         public string EspColorLoot { get; set; } = "#FFD0D0D0";
 
+        /// <summary>
+        /// ESP color for static containers.
+        /// </summary>
+        [JsonPropertyName("espColorContainers")]
+        public string EspColorContainers { get; set; } = "#FFFFFFCC";
+
         [JsonPropertyName("espColorExfil")]
         public string EspColorExfil { get; set; } = "#FF7FFFD4";
 
@@ -941,6 +947,12 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("drawDistance")]
         public float DrawDistance { get; set; } = 100f;
+
+        /// <summary>
+        /// Maximum distance to draw static containers on ESP.
+        /// </summary>
+        [JsonPropertyName("espDrawDistance")]
+        public float EspDrawDistance { get; set; } = 100f;
 
         /// <summary>
         /// Select all containers.

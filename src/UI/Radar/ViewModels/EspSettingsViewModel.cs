@@ -546,6 +546,12 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             set { App.Config.UI.EspColorLoot = value; OnPropertyChanged(); }
         }
 
+        public string EspColorContainers
+        {
+            get => App.Config.UI.EspColorContainers;
+            set { App.Config.UI.EspColorContainers = value; OnPropertyChanged(); }
+        }
+
         public string EspColorExfil
         {
             get => App.Config.UI.EspColorExfil;
@@ -658,6 +664,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 if (Math.Abs(App.Config.UI.EspLootMaxDistance - value) > float.Epsilon)
                 {
                     App.Config.UI.EspLootMaxDistance = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public float EspContainerDistance
+        {
+            get => App.Config.Containers.EspDrawDistance;
+            set
+            {
+                if (Math.Abs(App.Config.Containers.EspDrawDistance - value) > float.Epsilon)
+                {
+                    App.Config.Containers.EspDrawDistance = value;
                     OnPropertyChanged();
                 }
             }

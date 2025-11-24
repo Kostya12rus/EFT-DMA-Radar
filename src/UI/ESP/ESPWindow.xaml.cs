@@ -286,6 +286,11 @@ namespace LoneEftDmaRadar.UI.ESP
                             DrawLoot(ctx, screenWidth, screenHeight, localPlayer);
                         }
 
+                        if (App.Config.Loot.Enabled && App.Config.UI.EspContainers)
+                        {
+                            DrawStaticContainers(ctx, screenWidth, screenHeight, localPlayer);
+                        }
+
                         // Render Exfils
                         if (Exits is not null && App.Config.UI.EspExfils)
                         {
@@ -480,6 +485,38 @@ namespace LoneEftDmaRadar.UI.ESP
                          ctx.DrawText(text, screen.X + 4, screen.Y + 4, textColor, DxTextSize.Small);
                     }
                 }
+            }
+        }
+
+        private void DrawStaticContainers(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        {
+            if (!App.Config.Containers.Enabled)
+                return;
+
+            var containers = Memory.Game?.Loot?.StaticContainers;
+            if (containers is null)
+                return;
+
+            bool selectAll = App.Config.Containers.SelectAll;
+            var selected = App.Config.Containers.Selected;
+            float maxDistance = App.Config.Containers.EspDrawDistance;
+            var color = GetContainerColorForRender();
+
+            foreach (var container in containers)
+            {
+                var id = container.ID ?? "UNKNOWN";
+                if (!selectAll && !selected.ContainsKey(id))
+                    continue;
+
+                float distance = Vector3.Distance(localPlayer.Position, container.Position);
+                if (maxDistance > 0 && distance > maxDistance)
+                    continue;
+
+                if (!WorldToScreen2(container.Position, out var screen, screenWidth, screenHeight))
+                    continue;
+
+                ctx.DrawCircle(ToRaw(screen), 3f, color, true);
+                ctx.DrawText(container.Name ?? "Container", screen.X + 4, screen.Y + 4, color, DxTextSize.Small);
             }
         }
 
@@ -957,6 +994,7 @@ namespace LoneEftDmaRadar.UI.ESP
         private DxColor GetExfilColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorExfil));
         private DxColor GetTripwireColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorTripwire));
         private DxColor GetGrenadeColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorGrenade));
+        private DxColor GetContainerColorForRender() => ToColor(ColorFromHex(App.Config.UI.EspColorContainers));
         private DxColor GetCrosshairColor() => ToColor(ColorFromHex(App.Config.UI.EspColorCrosshair));
 
         private static SKColor ColorFromHex(string hex)

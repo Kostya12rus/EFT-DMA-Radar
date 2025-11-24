@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:LoneEftDmaRadar"
         xmlns:vm="clr-namespace:LoneEftDmaRadar"
         xmlns:tabs="clr-namespace:LoneEftDmaRadar.UI.Radar.Views"
+        xmlns:hotkeys="clr-namespace:LoneEftDmaRadar.UI.Hotkeys"
         mc:Ignorable="d"
         Title="Moulman EFT DMA Radar"
         Width="1280" Height="720"
@@ -35,6 +36,12 @@
                     </TabItem>
                     <TabItem Header="Loot Filters">
                         <tabs:LootFiltersTab x:Name="LootFilters"/>
+                    </TabItem>
+                    <TabItem Header="Static Containers">
+                        <tabs:StaticContainersTab x:Name="StaticContainers" />
+                    </TabItem>
+                    <TabItem Header="Hotkeys">
+                        <hotkeys:HotkeyManagerTab x:Name="HotkeyManager" />
                     </TabItem>
                     <TabItem Header="Device Aimbot">
                         <tabs:DeviceAimbotTab x:Name="DeviceAimbot" />

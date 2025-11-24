@@ -61,9 +61,13 @@ namespace LoneEftDmaRadar.UI.Hotkeys
         #endregion
 
         private readonly HotkeyManagerWindow _parent;
+        public HotkeyManagerViewModel() : this(null)
+        {
+        }
+
         public HotkeyManagerViewModel(HotkeyManagerWindow parent)
         {
-            _parent = parent ?? throw new ArgumentNullException(nameof(parent));
+            _parent = parent;
             // populate the two dropdowns:
             Controllers = new ObservableCollection<HotkeyActionController>(HotkeyAction.Controllers);
             AvailableKeys = new ObservableCollection<ComboHotkeyValue>(_allKeys.Select(code => new ComboHotkeyValue(code)));
@@ -170,7 +174,10 @@ namespace LoneEftDmaRadar.UI.Hotkeys
 
         private void OnClose()
         {
-            _parent.DialogResult = true;
+            if (_parent is not null)
+            {
+                _parent.DialogResult = true;
+            }
         }
 
         // ── INotifyPropertyChanged ────────────────────────────────────────────────

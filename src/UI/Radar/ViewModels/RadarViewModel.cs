@@ -316,12 +316,13 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         }
                         if (App.Config.Containers.Enabled) // Draw Containers
                         {
-                            if (Containers is IEnumerable<StaticLootContainer> containers &&
-                                MainWindow.Instance?.Settings?.ViewModel is SettingsViewModel vm)
+                            var containerConfig = App.Config.Containers;
+                            if (Containers is IEnumerable<StaticLootContainer> containers)
                             {
                                 foreach (var container in containers)
                                 {
-                                    if (vm.ContainerIsTracked(container.ID ?? "NULL"))
+                                    var id = container.ID ?? "NULL";
+                                    if (containerConfig.SelectAll || containerConfig.Selected.ContainsKey(id))
                                     {
                                         container.Draw(canvas, mapParams, localPlayer);
                                     }
