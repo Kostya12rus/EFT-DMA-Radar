@@ -44,7 +44,7 @@ jobs:
             $releases = $releasesJson | ConvertFrom-Json
           }
 
-          $matches = @()
+          $nums = @()
 
           foreach ($rel in $releases) {
             $tag = $rel.tagName
@@ -54,18 +54,18 @@ jobs:
               if ($tag -match "^v$base(?:\.v(\d+))?$") {
                 $num = $Matches[1]
                 if ($num) {
-                  $matches += [int]$num
+                  $nums += [int]$num
                 } else {
-                  $matches += 1
+                  $nums += 1
                 }
               }
             }
           }
 
-          if ($matches.Count -eq 0) {
+          if ($nums.Count -eq 0) {
             $version = $base
           } else {
-            $next = ($matches | Measure-Object -Maximum).Maximum + 1
+            $next = ($nums | Measure-Object -Maximum).Maximum + 1
             $version = "$base.v$next"
           }
 
