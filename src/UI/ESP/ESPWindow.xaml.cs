@@ -625,8 +625,8 @@ namespace LoneEftDmaRadar.UI.ESP
             bool drawGroupId = isAI ? App.Config.UI.EspAIGroupIds : App.Config.UI.EspGroupIds;
             bool drawLabel = drawName || drawDistance || drawHealth || drawGroupId;
 
-            // Draw Skeleton
-            if (drawSkeleton)
+            // Draw Skeleton (only if not in error state to avoid frozen bones)
+            if (drawSkeleton && !player.IsError)
             {
                 DrawSkeleton(ctx, player, screenWidth, screenHeight, color, _skeletonPaint.StrokeWidth);
             }
