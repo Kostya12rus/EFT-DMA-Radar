@@ -1,4 +1,4 @@
-name: Sync from lone-dma
+name: Sync from moulmandev
 
 on:
   schedule:
@@ -16,3 +16,6 @@ jobs:
           repo: EFT-DMA-Radar
           head: master
           base: master
+          merge_method: merge
+          auto_merge: true
+          pr_title: "Fork Sync: Update from moulmandev"
