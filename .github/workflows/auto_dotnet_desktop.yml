@@ -35,8 +35,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.VPK_GITHUB_TOKEN }}
         run: |
-          $base = (Get-Date -Format "yyyy.MM.dd")
-          Write-Host "Base date version: $base"
+          $year = (Get-Date -Format "yyyy")
+          $md   = (Get-Date -Format "MMdd")
+          $basePrefix = "$year.$md"
+          Write-Host "Base prefix: $basePrefix"
 
           $releasesJson = gh release list --limit 100 --json tagName
           $releases = @()
@@ -50,24 +52,19 @@ jobs:
             $tag = $rel.tagName
             if (-not $tag) { continue }
 
-            if ($tag -like "v$base*") {
-              if ($tag -match "^v$base(?:\.(\d+))?$") {
-                $num = $Matches[1]
-                if ($num) {
-                  $nums += [int]$num
-                } else {
-                  $nums += 0
-                }
-              }
+            if ($tag -match "^v$year\.$md\.(\d+)$") {
+              $patch = [int]$Matches[1]
+              $nums += $patch
             }
           }
 
           if ($nums.Count -eq 0) {
-            $version = $base
+            $patch = 1
           } else {
-            $next = ($nums | Measure-Object -Maximum).Maximum + 1
-            $version = "$base.$next"
+            $patch = ($nums | Measure-Object -Maximum).Maximum + 1
           }
+
+          $version = "$basePrefix.$patch"
 
           Write-Host "Resolved PACK_VERSION: $version"
           "PACK_VERSION=$version" >> $env:GITHUB_ENV
