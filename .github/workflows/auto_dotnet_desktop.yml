@@ -12,7 +12,7 @@ on:
 
 permissions:
   contents: write
-  
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -30,21 +30,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version info
-        uses: dotnet/nbgv@master
-        id: nbgv
-
-      - name: Prepare pack version
+      - name: Generate date-based version
         shell: pwsh
         run: |
-          $version = "${{ steps.nbgv.outputs.SemVer2 }}"
-          if ($version -like '0.0.0-*') {
-            $version = $version -replace '^0\.0\.0', '0.0.1'
-          } elseif ($version -eq '0.0.0') {
-            $version = '0.0.1'
-          }
-          Write-Host "Using pack version: $version"
-          "PACK_VERSION=$version" >> $env:GITHUB_ENV
+          $date = (Get-Date -Format "yyyy.MM.dd")
+          Write-Host "Using date version: $date"
+          "PACK_VERSION=$date" >> $env:GITHUB_ENV
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
@@ -58,7 +49,6 @@ jobs:
           dotnet tool install -g vpk
 
       - name: Dotnet Publish
-        shell: pwsh
         run: |
           dotnet publish src/Lone-EFT-DMA-Radar.csproj `
             -c Release `
@@ -66,26 +56,22 @@ jobs:
             --no-self-contained `
             /p:PublishSingleFile=true `
             /p:DebugType=none `
-            /p:Version=$env:PACK_VERSION `
-            /p:FileVersion='${{ steps.nbgv.outputs.AssemblyFileVersion }}' `
-            /p:AssemblyVersion='${{ steps.nbgv.outputs.AssemblyVersion }}' `
+            /p:Version=${{ env.PACK_VERSION }} `
             -o out
 
       - name: Download previous release data
         env:
           VPK_GITHUB_TOKEN: ${{ secrets.VPK_GITHUB_TOKEN }}
-        shell: pwsh
         run: |
           vpk download github `
             --repoUrl "https://github.com/${{ github.repository }}" `
             --token "$env:VPK_GITHUB_TOKEN"
 
       - name: Pack with Velopack
-        shell: pwsh
         run: |
           vpk pack `
             --packId github.Kostya12rus.eft `
-            --packVersion "$env:PACK_VERSION" `
+            --packVersion "${{ env.PACK_VERSION }}" `
             --packDir "out" `
             --mainExe "Lone-EFT-DMA-Radar.exe" `
             --packTitle "Lone EFT DMA Radar" `
@@ -96,10 +82,11 @@ jobs:
           VPK_GITHUB_TOKEN: ${{ secrets.VPK_GITHUB_TOKEN }}
         shell: pwsh
         run: |
+          $version = $env:PACK_VERSION
           vpk upload github `
             --repoUrl "https://github.com/${{ github.repository }}" `
             --publish `
-            --releaseName "EFT $env:PACK_VERSION" `
-            --tag "v$env:PACK_VERSION" `
+            --releaseName "EFT $version" `
+            --tag "v$version" `
             --targetCommitish "${{ github.sha }}" `
             --token "$env:VPK_GITHUB_TOKEN"
