@@ -10,12 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: tgymnich/fork-sync@v1
+      - name: Checkout my fork
+        uses: actions/checkout@v4
         with:
-          owner: moulmandev
-          repo: EFT-DMA-Radar
-          head: master
-          base: master
-          merge_method: merge
-          auto_merge: true
-          pr_title: "Fork Sync: Update from moulmandev"
+          fetch-depth: 0
+
+      - name: Add upstream (moulmandev)
+        run: |
+          git remote add upstream https://github.com/moulmandev/EFT-DMA-Radar.git
+          git fetch upstream
+
+      - name: Merge upstream/master into my master
+        run: |
+          git checkout master
+          git merge upstream/master --no-edit || true
+
+      - name: Push back to my fork
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin master
