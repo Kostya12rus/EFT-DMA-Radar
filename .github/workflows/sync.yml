@@ -2,7 +2,7 @@ name: Sync from moulmandev
 
 on:
   schedule:
-    - cron: "15/30 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -18,18 +18,48 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure git identity
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          echo "Configured git identity as:"
+          git config user.name
+          git config user.email
+
       - name: Add upstream (moulmandev)
         run: |
           git remote add upstream https://github.com/moulmandev/EFT-DMA-Radar.git
           git fetch upstream
+          echo "--- Remotes ---"
+          git remote -v
+          echo "--- Upstream/master last 5 commits ---"
+          git log upstream/master --oneline -5
+
+      - name: Check if there are new commits from upstream
+        run: |
+          echo "--- Commits difference (master..upstream/master) ---"
+          git log master..upstream/master --oneline || true
 
       - name: Merge upstream/master into my master
         run: |
           git checkout master
-          git merge upstream/master --no-edit || true
+          echo "--- Before merge (master last 5 commits) ---"
+          git log --oneline -5
+          echo "--- Start merge ---"
+          git merge upstream/master --no-edit
+          echo "--- After merge (master last 5 commits) ---"
+          git log --oneline -5
+
+      - name: Show git status after merge
+        run: |
+          echo "--- GIT STATUS ---"
+          git status
+          echo "--- DIFF STAT ---"
+          git diff --stat origin/master..master || true
 
       - name: Push back to my fork
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "--- Push to origin master ---"
           git push origin master
