@@ -51,12 +51,12 @@ jobs:
             if (-not $tag) { continue }
 
             if ($tag -like "v$base*") {
-              if ($tag -match "^v$base(?:-v(\d+))?$") {
+              if ($tag -match "^v$base(?:\.(\d+))?$") {
                 $num = $Matches[1]
                 if ($num) {
                   $nums += [int]$num
                 } else {
-                  $nums += 1
+                  $nums += 0
                 }
               }
             }
@@ -66,7 +66,7 @@ jobs:
             $version = $base
           } else {
             $next = ($nums | Measure-Object -Maximum).Maximum + 1
-            $version = "$base-v$next"
+            $version = "$base.$next"
           }
 
           Write-Host "Resolved PACK_VERSION: $version"
