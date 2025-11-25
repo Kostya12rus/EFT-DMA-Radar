@@ -5,6 +5,7 @@ on:
     branches:
       - master
     paths:
+      - 'Maps/**'
       - 'Resources/**'
       - 'src/**'
   workflow_dispatch:
@@ -33,6 +34,18 @@ jobs:
         uses: dotnet/nbgv@master
         id: nbgv
 
+      - name: Prepare pack version
+        shell: pwsh
+        run: |
+          $version = "${{ steps.nbgv.outputs.SemVer2 }}"
+          if ($version -like '0.0.0-*') {
+            $version = $version -replace '^0\.0\.0', '0.0.1'
+          } elseif ($version -eq '0.0.0') {
+            $version = '0.0.1'
+          }
+          Write-Host "Using pack version: $version"
+          "PACK_VERSION=$version" >> $env:GITHUB_ENV
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
@@ -52,7 +65,7 @@ jobs:
             --no-self-contained `
             /p:PublishSingleFile=true `
             /p:DebugType=none `
-            /p:Version=${{ steps.nbgv.outputs.SemVer2 }} `
+            /p:Version=${{ env.PACK_VERSION }} `
             /p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} `
             /p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} `
             -o out
@@ -69,7 +82,7 @@ jobs:
         run: |
           vpk pack `
             --packId github.Kostya12rus.eft `
-            --packVersion "${{ steps.nbgv.outputs.SemVer2 }}" `
+            --packVersion "${{ env.PACK_VERSION }}" `
             --packDir "out" `
             --mainExe "Lone-EFT-DMA-Radar.exe" `
             --packTitle "Lone EFT DMA Radar" `
@@ -82,7 +95,7 @@ jobs:
           vpk upload github `
             --repoUrl "https://github.com/${{ github.repository }}" `
             --publish `
-            --releaseName "EFT ${{ steps.nbgv.outputs.SemVer2 }}" `
-            --tag "v${{ steps.nbgv.outputs.SemVer2 }}" `
+            --releaseName "EFT ${{ env.PACK_VERSION }}" `
+            --tag "v${{ env.PACK_VERSION }}" `
             --targetCommitish "${{ github.sha }}" `
             --token "$env:GITHUB_TOKEN"
