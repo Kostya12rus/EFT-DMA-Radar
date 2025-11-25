@@ -30,12 +30,47 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate date-based version
+      - name: Generate daily auto-increment version
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.VPK_GITHUB_TOKEN }}
         run: |
-          $date = (Get-Date -Format "yyyy.MM.dd")
-          Write-Host "Using date version: $date"
-          "PACK_VERSION=$date" >> $env:GITHUB_ENV
+          $base = (Get-Date -Format "yyyy.MM.dd")
+          Write-Host "Base date version: $base"
+
+          $releasesJson = gh release list --limit 100 --json tagName
+          $releases = @()
+          if ($releasesJson -and $releasesJson.Trim() -ne "") {
+            $releases = $releasesJson | ConvertFrom-Json
+          }
+
+          $matches = @()
+
+          foreach ($rel in $releases) {
+            $tag = $rel.tagName
+            if (-not $tag) { continue }
+
+            if ($tag -like "v$base*") {
+              if ($tag -match "^v$base(?:\.v(\d+))?$") {
+                $num = $Matches[1]
+                if ($num) {
+                  $matches += [int]$num
+                } else {
+                  $matches += 1
+                }
+              }
+            }
+          }
+
+          if ($matches.Count -eq 0) {
+            $version = $base
+          } else {
+            $next = ($matches | Measure-Object -Maximum).Maximum + 1
+            $version = "$base.v$next"
+          }
+
+          Write-Host "Resolved PACK_VERSION: $version"
+          "PACK_VERSION=$version" >> $env:GITHUB_ENV
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
@@ -83,6 +118,8 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:PACK_VERSION
+          Write-Host "Uploading release for version: $version"
+
           vpk upload github `
             --repoUrl "https://github.com/${{ github.repository }}" `
             --publish `
