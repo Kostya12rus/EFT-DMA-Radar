@@ -48,9 +48,9 @@
 
                     <WrapPanel Margin="0,4,0,0">
                         <TextBlock Text="Resolution Override (0 = Auto): " VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Width="50" Text="{Binding EspScreenWidth, Mode=TwoWay}" Margin="0,0,8,0" ToolTip="Width (e.g. 1920)"/>
+                        <TextBox Width="65" Text="{Binding EspScreenWidth, Mode=TwoWay}" Margin="0,0,8,0" ToolTip="Width (e.g. 1920, 2560). Set to 0 to auto-detect selected monitor resolution."/>
                         <TextBlock Text="x" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Width="50" Text="{Binding EspScreenHeight, Mode=TwoWay}" Margin="0,0,16,0" ToolTip="Height (e.g. 1080)"/>
+                        <TextBox Width="65" Text="{Binding EspScreenHeight, Mode=TwoWay}" Margin="0,0,16,0" ToolTip="Height (e.g. 1080, 1440). Set to 0 to auto-detect selected monitor resolution."/>
                     </WrapPanel>
 
                     <GroupBox Header="Text Style" Margin="0,8,0,0">
