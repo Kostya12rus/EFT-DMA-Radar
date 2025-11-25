@@ -2,8 +2,11 @@ name: Sync from moulmandev
 
 on:
   schedule:
-    - cron: "15/15 * * * *"
+    - cron: "15/30 * * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   sync:
