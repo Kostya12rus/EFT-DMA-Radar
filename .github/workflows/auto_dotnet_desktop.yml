@@ -58,6 +58,7 @@ jobs:
           dotnet tool install -g vpk
 
       - name: Dotnet Publish
+        shell: pwsh
         run: |
           dotnet publish src/Lone-EFT-DMA-Radar.csproj `
             -c Release `
@@ -65,24 +66,26 @@ jobs:
             --no-self-contained `
             /p:PublishSingleFile=true `
             /p:DebugType=none `
-            /p:Version=${{ env.PACK_VERSION }} `
-            /p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} `
-            /p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} `
+            /p:Version=$env:PACK_VERSION `
+            /p:FileVersion='${{ steps.nbgv.outputs.AssemblyFileVersion }}' `
+            /p:AssemblyVersion='${{ steps.nbgv.outputs.AssemblyVersion }}' `
             -o out
 
       - name: Download previous release data
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VPK_GITHUB_TOKEN: ${{ secrets.VPK_GITHUB_TOKEN }}
+        shell: pwsh
         run: |
           vpk download github `
             --repoUrl "https://github.com/${{ github.repository }}" `
-            --token "$env:GITHUB_TOKEN"
+            --token "$env:VPK_GITHUB_TOKEN"
 
       - name: Pack with Velopack
+        shell: pwsh
         run: |
           vpk pack `
             --packId github.Kostya12rus.eft `
-            --packVersion "${{ env.PACK_VERSION }}" `
+            --packVersion "$env:PACK_VERSION" `
             --packDir "out" `
             --mainExe "Lone-EFT-DMA-Radar.exe" `
             --packTitle "Lone EFT DMA Radar" `
@@ -90,12 +93,13 @@ jobs:
 
       - name: Upload to GitHub Releases
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VPK_GITHUB_TOKEN: ${{ secrets.VPK_GITHUB_TOKEN }}
+        shell: pwsh
         run: |
           vpk upload github `
             --repoUrl "https://github.com/${{ github.repository }}" `
             --publish `
-            --releaseName "EFT ${{ env.PACK_VERSION }}" `
-            --tag "v${{ env.PACK_VERSION }}" `
+            --releaseName "EFT $env:PACK_VERSION" `
+            --tag "v$env:PACK_VERSION" `
             --targetCommitish "${{ github.sha }}" `
-            --token "$env:GITHUB_TOKEN"
+            --token "$env:VPK_GITHUB_TOKEN"
