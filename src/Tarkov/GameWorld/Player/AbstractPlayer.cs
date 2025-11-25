@@ -523,12 +523,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                                 _verticesCount = available;
 
-                                _ = SkeletonRoot.UpdatePosition(vertices.Span);
-                                foreach (var bone in PlayerBones.Values)
+                                // Validate position before updating
+                                var newPos = SkeletonRoot.UpdatePosition(vertices.Span);
+                                if (newPos == Vector3.Zero || float.IsNaN(newPos.X) || float.IsInfinity(newPos.X))
                                 {
-                                    bone.UpdatePosition(vertices.Span);
+                                    // Invalid position - don't update bones, keep previous position
+                                    successPos = false;
                                 }
-                                _skeletonErrorLogged = false;
+                                else
+                                {
+                                    foreach (var bone in PlayerBones.Values)
+                                    {
+                                        bone.UpdatePosition(vertices.Span);
+                                    }
+                                    _skeletonErrorLogged = false;
+                                }
                             }
                             catch (ArgumentOutOfRangeException ex)
                             {
@@ -1094,17 +1103,28 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// Get Bone Position (if available).
         /// </summary>
         /// <param name="bone">Bone Index.</param>
-        /// <returns>World Position of Bone.</returns>
+        /// <returns>World Position of Bone, or SkeletonRoot position as fallback.</returns>
         public Vector3 GetBonePos(Bones bone)
         {
             try
             {
                 if (PlayerBones.TryGetValue(bone, out var boneTransform))
-                    return boneTransform.Position;
+                {
+                    var pos = boneTransform.Position;
+                    // Validate the position is reasonable (not zero, not NaN/Infinity)
+                    if (pos != Vector3.Zero && !float.IsNaN(pos.X) && !float.IsInfinity(pos.X))
+                        return pos;
+                }
             }
             catch { }
 
-            return Vector3.Zero;
+            // Fallback to skeleton root position instead of zero
+            // This prevents players from "teleporting" to the origin
+            var rootPos = SkeletonRoot?.Position ?? Vector3.Zero;
+            if (rootPos != Vector3.Zero && !float.IsNaN(rootPos.X) && !float.IsInfinity(rootPos.X))
+                return rootPos;
+
+            return Position; // Ultimate fallback to cached position
         }
 
         #endregion
