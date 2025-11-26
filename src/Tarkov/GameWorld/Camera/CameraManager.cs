@@ -121,18 +121,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                 float x = Vector3.Dot(_viewMatrix.Right, worldPos) + _viewMatrix.M14;
                 float y = Vector3.Dot(_viewMatrix.Up, worldPos) + _viewMatrix.M24;
 
-                // ✅ FIX: Only use FOV-based calculation when scoped, ignore zoom level
-                if (IsScoped)
-                {
-                    float angleRadHalf = (MathF.PI / 180f) * _fov * 0.5f;
-                    float angleCtg = MathF.Cos(angleRadHalf) / MathF.Sin(angleRadHalf);
-
-                    x /= angleCtg * _aspect * 0.5f;
-                    y /= angleCtg * 0.5f;
-                    
-                    // DON'T multiply by _zoomLevel - FOV already handles zoom!
-                }
-
                 var center = ViewportCenter;
                 scrPos = new()
                 {
@@ -427,9 +415,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                 ActiveCameraPtr = activeCamera;
 
                 scatter.PrepareReadValue<Matrix4x4>(activeMatrixAddress + UnitySDK.UnityOffsets.Camera_ViewMatrixOffset);
-                scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset);
-                scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset);
-                scatter.PrepareReadValue<float>(activeCamera + UnitySDK.UnityOffsets.Camera_ZoomLevelOffset);
+
+                // Only read FOV/Aspect when scoped (PiP scopes need this)
+                if (IsScoped)
+                {
+                    scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset);
+                    scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset);
+                }
 
                 scatter.Completed += (sender, s) =>
                 {
@@ -441,14 +433,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                             _viewMatrix.Update(ref vm);
                         }
 
-                        if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset, out var fov))
-                            _fov = fov;
+                        if (IsScoped)
+                        {
+                            if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset, out var fov))
+                                _fov = fov;
 
-                        if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset, out var aspect))
-                            _aspect = aspect;
-
-                        if (s.ReadValue<float>(activeCamera + UnitySDK.UnityOffsets.Camera_ZoomLevelOffset, out var zoom))
-                            _zoomLevel = zoom;
+                            if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset, out var aspect))
+                                _aspect = aspect;
+                        }
                     }
                     catch (Exception ex)
                     {

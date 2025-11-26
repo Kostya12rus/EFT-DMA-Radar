@@ -125,7 +125,6 @@ jobs:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           REPO: ${{ github.repository }}
           RELEASE_URL: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.nbgv.outputs.SemVer2 }}
-          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/v${{ steps.nbgv.outputs.SemVer2 }}/github.lonedma.eft-${{ steps.nbgv.outputs.SemVer2 }}-win-x64.zip
           CHANGELOG: ${{ steps.changelog.outputs.CHANGELOG }}
         run: |
           $payload = @{
@@ -137,11 +136,7 @@ jobs:
                 color = 5763719
                 fields = @(
                   @{
-                    name  = "📦 Download"
-                    value = "[Direct Download]($env:DOWNLOAD_URL)"
-                  },
-                  @{
-                    name  = "🔗 Release Page"
+                    name  = "🔗 Download Release"
                     value = "[View on GitHub]($env:RELEASE_URL)"
                   },
                   @{
