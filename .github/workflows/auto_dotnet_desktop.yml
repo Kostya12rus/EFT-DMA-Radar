@@ -105,8 +105,8 @@ jobs:
             --packId github.Kostya12rus.eft `
             --packVersion "${{ env.PACK_VERSION }}" `
             --packDir "out" `
-            --mainExe "Lone-EFT-DMA-Radar.exe" `
-            --packTitle "Lone EFT DMA Radar" `
+            --mainExe "Moulman-EFT-DMA-Radar.exe" `
+            --packTitle "Moulman's EFT DMA Radar" `
             --icon "Resources/lone-icon.ico"
 
       - name: Upload to GitHub Releases
