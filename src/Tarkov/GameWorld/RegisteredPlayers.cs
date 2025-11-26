@@ -81,8 +81,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                     {
                         if (existingPlayer.ErrorTimer.ElapsedMilliseconds >= 1500)
                         {
-                            DebugLogger.LogDebug($"WARNING - Existing player '{existingPlayer.Name}' being re-allocated due to excessive errors (>1500ms)...");
-                            AbstractPlayer.Allocate(_players, playerBase); // Re-allocate replaces existing entry
+                            DebugLogger.LogDebug($"WARNING - Existing player '{existingPlayer.Name}' at 0x{playerBase:X} being re-allocated due to excessive errors (>1500ms)...");
+                            // Remove the broken player first to allow re-allocation
+                            _ = _players.TryRemove(playerBase, out _);
+                            // Try to allocate fresh - if this fails, Allocate() catches it and logs
+                            AbstractPlayer.Allocate(_players, playerBase);
+                            // If allocation failed, player won't be in dictionary - keep trying next refresh
                             continue;
                         }
                     }

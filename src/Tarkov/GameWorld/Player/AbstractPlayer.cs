@@ -518,14 +518,39 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                                 if (available < required)
                                 {
-                                    if (!_skeletonErrorLogged)
+                                    // Try to recover by re-creating the skeleton root transform
+                                    try
                                     {
-                                        DebugLogger.LogDebug($"Skipping skeleton update for Player '{Name ?? "Unknown"}': vertices {available} < required {required}");
-                                        _skeletonErrorLogged = true;
+                                        if (!_skeletonErrorLogged)
+                                        {
+                                            DebugLogger.LogDebug($"Attempting skeleton recovery for Player '{Name ?? "Unknown"}': vertices {available} < required {required}");
+                                            _skeletonErrorLogged = true;
+                                        }
+                                        // Re-create the skeleton root transform (might have been invalidated)
+                                        SkeletonRoot = new UnityTransform(SkeletonRoot.TransformInternal);
+                                        // Recalculate requirements with fresh transform
+                                        required = SkeletonRoot.Count;
+                                        foreach (var bone in PlayerBones.Values)
+                                        {
+                                            if (bone.Count > required)
+                                                required = bone.Count;
+                                        }
+                                        // If still not enough, give up for this frame
+                                        if (available < required)
+                                        {
+                                            _verticesCount = 0; // force re-request next loop
+                                            successPos = false;
+                                            return;
+                                        }
+                                        // Recovery successful, continue with update
+                                        _skeletonErrorLogged = false;
                                     }
-                                    _verticesCount = 0; // force re-request next loop
-                                    successPos = false;
-                                    return;
+                                    catch
+                                    {
+                                        _verticesCount = 0; // force re-request next loop
+                                        successPos = false;
+                                        return;
+                                    }
                                 }
 
                                 _verticesCount = available;
