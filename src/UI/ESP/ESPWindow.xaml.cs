@@ -368,7 +368,7 @@ namespace LoneEftDmaRadar.UI.ESP
                 if (isCorpse && !App.Config.UI.EspCorpses)
                     continue;
 
-                bool isContainer = item is LootContainer;
+                bool isContainer = item is StaticLootContainer or LootAirdrop;
                 if (isContainer && !App.Config.UI.EspContainers)
                     continue;
 
@@ -462,12 +462,6 @@ namespace LoneEftDmaRadar.UI.ESP
                          {
                              var corpseName = corpse.Player?.Name;
                              text = string.IsNullOrWhiteSpace(corpseName) ? corpse.Name : corpseName;
-                             if (App.Config.UI.EspLootPrice)
-                             {
-                                 var corpseValue = corpse.Loot?.Values?.Sum(x => x.Price) ?? 0;
-                                 if (corpseValue > 0)
-                                     text = $"{text} ({LoneEftDmaRadar.Misc.Utilities.FormatNumberKM(corpseValue)})";
-                             }
                          }
                          else
                          {
@@ -491,7 +485,7 @@ namespace LoneEftDmaRadar.UI.ESP
             if (!App.Config.Containers.Enabled)
                 return;
 
-            var containers = Memory.Game?.Loot?.StaticContainers;
+            var containers = Memory.Game?.Loot?.AllLoot?.OfType<StaticLootContainer>();
             if (containers is null)
                 return;
 

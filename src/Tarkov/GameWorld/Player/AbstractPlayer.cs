@@ -245,7 +245,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// <summary>
         /// Dead Player's associated loot container object.
         /// </summary>
-        public LootContainer LootObject { get; set; }
+        public LootCorpse LootObject { get; set; }
         /// <summary>
         /// Alerts for this Player Object.
         /// Used by Player History UI Interop.
@@ -1041,17 +1041,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 if (GroupID != -1)
                     g = $"G:{GroupID} ";
                 if (g is not null) lines.Add(g);
-                var corpseLoot = LootObject?.Loot?.Values?.OrderLoot();
-                if (corpseLoot is not null)
-                {
-                    var sumPrice = corpseLoot.Sum(x => x.Price);
-                    var corpseValue = Utilities.FormatNumberKM(sumPrice);
-                    lines.Add($"Value: {corpseValue}"); // Player name, value
-                    if (corpseLoot.Any())
-                        foreach (var item in corpseLoot)
-                            lines.Add(item.GetUILabel());
-                    else lines.Add("Empty");
-                }
             }
             else if (IsAIActive)
             {
