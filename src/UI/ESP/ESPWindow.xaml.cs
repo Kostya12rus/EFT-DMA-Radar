@@ -671,6 +671,11 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 DrawPlayerLabel(ctx, player, distance, color, hasBox ? bbox : (RectangleF?)null, screenWidth, screenHeight, drawName, drawDistance, drawHealth, drawGroupId);
             }
+
+            if (isAI && App.Config.UI.EspAIDebug)
+            {
+                DrawAiDebugForPlayer(ctx, player, distance, color, hasBox ? bbox : (RectangleF?)null, screenWidth, screenHeight);
+            }
         }
 
         private void DrawSkeleton(Dx9RenderContext ctx, AbstractPlayer player, float w, float h, DxColor color, float thickness)
@@ -881,6 +886,54 @@ namespace LoneEftDmaRadar.UI.ESP
             ctx.DrawText(text, drawX, drawY, color, DxTextSize.Medium, centerX: true);
         }
 
+        private void DrawAiDebugForPlayer(Dx9RenderContext ctx, AbstractPlayer player, float distance, DxColor color, RectangleF? bbox, float screenWidth, float screenHeight)
+        {
+            if (player is null || !player.IsAI)
+                return;
+
+            float drawX;
+            float drawY;
+
+            if (bbox.HasValue)
+            {
+                var box = bbox.Value;
+                drawX = box.Left + (box.Width / 2f);
+                drawY = box.Bottom + 6f;
+            }
+            else if (TryProject(player.GetBonePos(Bones.HumanHead), screenWidth, screenHeight, out var headScreen))
+            {
+                drawX = headScreen.X;
+                drawY = headScreen.Y + 6f;
+            }
+            else
+            {
+                return;
+            }
+
+            var aiName = string.IsNullOrWhiteSpace(player.Name) ? "AI" : player.Name;
+            var aiActivity = player.IsAIActive ? "Engaged" : player.IsActive ? "Dormant" : "Inactive";
+
+            var lines = new List<string>
+            {
+                $"AI: {aiName} [{player.Type}] | Side: {player.PlayerSide} | Active: {aiActivity}",
+                $"State: {(player.IsAIActive ? "Active" : "Inactive")} | Alive: {(player.IsAlive ? "Yes" : "Dead")} | Corpse: {(player.Corpse.HasValue ? "Yes" : "No")}",
+                $"Dist: {distance:F1}m | Group: {(player.GroupID >= 0 ? player.GroupID.ToString() : "-")} | Health: {(player is ObservedPlayer observed ? observed.HealthStatus.ToString() : "n/a")}" 
+            };
+
+            lines.Add($"Flags: DefaultAI {(player.IsDefaultAIActive ? "Yes" : "No")} | Hostile {(player.IsHostile ? "Yes" : "No")} | Exfild {(player.HasExfild ? "Yes" : "No")}");
+
+            lines.Add($"Pos: {player.Position.X:F1}, {player.Position.Y:F1}, {player.Position.Z:F1} ({(IsValidPosition(player.Position) ? "OK" : "Bad")})");
+            lines.Add($"Rot: Yaw {player.Rotation.X:F1}° Pitch {player.Rotation.Y:F1}° | Map {player.MapRotation:F1}°");
+            lines.Add($"Error: {(player.IsError ? "Yes" : "No")} ({player.ErrorTimer.ElapsedMilliseconds}ms) | Alerts: {(string.IsNullOrWhiteSpace(player.Alerts) ? "-" : player.Alerts)}");
+
+            float lineStep = 14f;
+            foreach (var line in lines)
+            {
+                ctx.DrawText(line, drawX, drawY, color, DxTextSize.Small, centerX: true);
+                drawY += lineStep;
+            }
+        }
+
         /// <summary>
         /// Draw 'ESP Hidden' notification.
         /// </summary>
@@ -935,6 +988,7 @@ namespace LoneEftDmaRadar.UI.ESP
             ctx.DrawCircle(new RawVector2(width / 2f, height / 2f), radius, ToColor(skColor), filled: false);
         }
 
+
         private void DrawDeviceAimbotDebugOverlay(Dx9RenderContext ctx, float width, float height)
         {
             if (!App.Config.Device.ShowDebug)
@@ -980,6 +1034,13 @@ namespace LoneEftDmaRadar.UI.ESP
         private static DxColor ToColor(SKPaint paint) => ToColor(paint.Color);
 
         private static DxColor ToColor(SKColor color) => new(color.Blue, color.Green, color.Red, color.Alpha);
+
+        private static bool IsValidPosition(Vector3 pos)
+        {
+            return pos != Vector3.Zero &&
+                   !float.IsNaN(pos.X) && !float.IsNaN(pos.Y) && !float.IsNaN(pos.Z) &&
+                   !float.IsInfinity(pos.X) && !float.IsInfinity(pos.Y) && !float.IsInfinity(pos.Z);
+        }
 
         #endregion
 
