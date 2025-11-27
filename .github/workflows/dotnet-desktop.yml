@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Get version info
         uses: dotnet/nbgv@master
@@ -97,8 +98,24 @@ jobs:
 
           if ($previousTag) {
             Write-Host "Previous tag: $previousTag"
-            # Get commits since last release
-            $commits = git log "$previousTag..HEAD" --pretty=format:"- %s (%h)" --no-merges
+            # Check if the tag exists in git
+            $tagExists = git tag -l "$previousTag" 2>$null
+            if ($tagExists -and $LASTEXITCODE -eq 0) {
+              try {
+                # Get commits since last release
+                $commits = git log "$previousTag..HEAD" --pretty=format:"- %s (%h)" --no-merges 2>$null
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Failed to get commits since $previousTag, falling back to last 10 commits"
+                  $commits = git log -10 --pretty=format:"- %s (%h)" --no-merges
+                }
+              } catch {
+                Write-Host "Error getting commits since $previousTag, falling back to last 10 commits"
+                $commits = git log -10 --pretty=format:"- %s (%h)" --no-merges
+              }
+            } else {
+              Write-Host "Tag $previousTag not found in git, showing last 10 commits"
+              $commits = git log -10 --pretty=format:"- %s (%h)" --no-merges
+            }
           } else {
             Write-Host "No previous release found, showing last 10 commits"
             # If no previous release, show last 10 commits

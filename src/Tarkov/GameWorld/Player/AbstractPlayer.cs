@@ -317,6 +317,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         public virtual ulong RotationAddress { get; }
 
+        /// <summary>
+        /// Hands Controller address.
+        /// </summary>
+        protected ulong HandsController { get; set; }
+
         #endregion
 
         #region Boolean Getters
@@ -655,6 +660,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                 IsError = hasError;
             };
+        }
+
+        /// <summary>
+        /// Override this method to validate custom transforms.
+        /// </summary>
+        public virtual void OnValidateTransforms()
+        {
         }
 
         /// <summary>

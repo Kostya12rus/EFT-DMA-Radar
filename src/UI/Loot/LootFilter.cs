@@ -58,7 +58,7 @@ namespace LoneEftDmaRadar.UI.Loot
                 {
                     if (x.IsQuestItem)
                         return true;
-                    return (x.IsRegularLoot || x.IsValuableLoot || x.IsImportant || x.IsWishlisted) ||
+                    return (x.IsRegularLoot || x.IsValuableLoot || x.IsImportant) ||
                                 (showBackpacks && x.IsBackpack) ||
                                 (showMeds && x.IsMeds) ||
                                 (showFood && x.IsFood);

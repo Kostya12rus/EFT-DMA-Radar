@@ -31,10 +31,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         private static void MemDMA_ProcessStarting(object sender, EventArgs e) { }
         private static void MemDMA_ProcessStopped(object sender, EventArgs e) { }
         private static float _zoomLevel = 1.0f;
-        private static float ZoomLevel => _zoomLevel;        
+        private static float ZoomLevel => _zoomLevel;
         public static ulong FPSCameraPtr { get; private set; }
         public static ulong OpticCameraPtr { get; private set; }
         public static ulong ActiveCameraPtr { get; private set; }
+
+        private static bool _lastADSState = false;
+        private static bool _lastScopedState = false;
+        private static int _updateCounter = 0;
 
         private static readonly Lock _viewportSync = new();
         public static Rectangle Viewport { get; private set; }
@@ -61,7 +65,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         public ulong OpticCamera { get; }
         private ulong _fpsMatrixAddress;
         private ulong _opticMatrixAddress;
-        private bool OpticCameraActive => Memory.ReadValue<bool>(OpticCamera + UnitySDK.UnityOffsets.MonoBehaviour_IsAddedOffset, false);
+        // Simply check if OpticCamera exists (is initialized)
+        private bool OpticCameraActive => OpticCamera != 0;
 
         public static void UpdateViewportRes()
         {
@@ -378,22 +383,46 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         {
             try
             {
-                if (localPlayer is null || !OpticCameraActive)
+                if (localPlayer is null)
+                {
+                    DebugLogger.LogDebug("CheckIfScoped: localPlayer is null");
                     return false;
+                }
+
+                if (!OpticCameraActive)
+                {
+                    DebugLogger.LogDebug($"CheckIfScoped: OpticCameraActive is false (OpticCamera=0x{OpticCamera:X})");
+                    return false;
+                }
 
                 var opticsPtr = Memory.ReadPtr(localPlayer.PWA + Offsets.ProceduralWeaponAnimation._optics);
+                DebugLogger.LogDebug($"CheckIfScoped: opticsPtr=0x{opticsPtr:X}");
+
                 using var optics = UnityList<VmmPointer>.Create(opticsPtr, true);
+                DebugLogger.LogDebug($"CheckIfScoped: optics.Count={optics.Count}");
 
                 if (optics.Count > 0)
                 {
                     var pSightComponent = Memory.ReadPtr(optics[0] + Offsets.SightNBone.Mod);
+                    DebugLogger.LogDebug($"CheckIfScoped: pSightComponent=0x{pSightComponent:X}");
+
                     var sightComponent = Memory.ReadValue<SightComponent>(pSightComponent);
+                    DebugLogger.LogDebug($"CheckIfScoped: ScopeZoomValue={sightComponent.ScopeZoomValue:F2}");
 
                     if (sightComponent.ScopeZoomValue != 0f)
-                        return sightComponent.ScopeZoomValue > 0f;
+                    {
+                        bool result = sightComponent.ScopeZoomValue > 1f;
+                        DebugLogger.LogDebug($"CheckIfScoped: Using ScopeZoomValue, result={result}");
+                        return result;
+                    }
 
-                    return sightComponent.GetZoomLevel() > 1f;
+                    float zoomLevel = sightComponent.GetZoomLevel();
+                    bool zoomResult = zoomLevel > 1f;
+                    DebugLogger.LogDebug($"CheckIfScoped: GetZoomLevel()={zoomLevel:F2}, result={zoomResult}");
+                    return zoomResult;
                 }
+
+                DebugLogger.LogDebug("CheckIfScoped: No optics found, returning false");
                 return false;
             }
             catch (Exception ex)
@@ -410,17 +439,25 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                 IsADS = localPlayer?.CheckIfADS() ?? false;
                 IsScoped = IsADS && CheckIfScoped(localPlayer);
 
+                // Log when ADS or Scoped state changes
+                if (IsADS != _lastADSState || IsScoped != _lastScopedState)
+                {
+                    DebugLogger.LogInfo($"CameraManager: State Changed - IsADS={IsADS}, IsScoped={IsScoped}, OpticCamera={(OpticCamera != 0 ? "Available" : "NOT FOUND")}");
+                    _lastADSState = IsADS;
+                    _lastScopedState = IsScoped;
+                }
+
                 ulong activeMatrixAddress = (IsADS && IsScoped) ? _opticMatrixAddress : _fpsMatrixAddress;
                 ulong activeCamera = (IsADS && IsScoped) ? OpticCamera : FPSCamera;
                 ActiveCameraPtr = activeCamera;
 
                 scatter.PrepareReadValue<Matrix4x4>(activeMatrixAddress + UnitySDK.UnityOffsets.Camera_ViewMatrixOffset);
 
-                // Only read FOV/Aspect when scoped (PiP scopes need this)
+                // Read FOV/Aspect from the active camera (OpticCamera when scoped, FPSCamera otherwise)
                 if (IsScoped)
                 {
-                    scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset);
-                    scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset);
+                    scatter.PrepareReadValue<float>(OpticCamera + UnitySDK.UnityOffsets.Camera_FOVOffset);
+                    scatter.PrepareReadValue<float>(OpticCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset);
                 }
 
                 scatter.Completed += (sender, s) =>
@@ -435,11 +472,27 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 
                         if (IsScoped)
                         {
-                            if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset, out var fov))
+                            if (s.ReadValue<float>(OpticCamera + UnitySDK.UnityOffsets.Camera_FOVOffset, out var fov))
                                 _fov = fov;
 
-                            if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset, out var aspect))
+                            if (s.ReadValue<float>(OpticCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset, out var aspect))
                                 _aspect = aspect;
+
+                            // Periodic debug logging
+                            _updateCounter++;
+                            if (_updateCounter % 300 == 0)
+                            {
+                                DebugLogger.LogDebug($"CameraManager: SCOPED (PiP) - Using OpticCamera, FOV={_fov:F2}, Aspect={_aspect:F3}");
+                            }
+                        }
+                        else
+                        {
+                            // Log when not scoped occasionally
+                            _updateCounter++;
+                            if (_updateCounter % 300 == 0 && IsADS)
+                            {
+                                DebugLogger.LogDebug($"CameraManager: ADS (non-scoped) - Using FPS Camera");
+                            }
                         }
                     }
                     catch (Exception ex)
