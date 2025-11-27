@@ -103,10 +103,10 @@ jobs:
             if ($tagExists -and $LASTEXITCODE -eq 0) {
               try {
                 # Get commits since last release
-                $commits = git log "$previousTag..HEAD" --pretty=format:"- %s (%h)" --no-merges 2>$null
+                $commits = git log "$previousTag..HEAD" --pretty=format:"- %s (%h)%n" --no-merges 2>$null
                 if ($LASTEXITCODE -ne 0) {
                   Write-Host "Failed to get commits since $previousTag, falling back to last 10 commits"
-                  $commits = git log -10 --pretty=format:"- %s (%h)" --no-merges
+                  $commits = git log -10 --pretty=format:"- %s (%h)%n" --no-merges
                 }
               } catch {
                 Write-Host "Error getting commits since $previousTag, falling back to last 10 commits"
@@ -114,12 +114,12 @@ jobs:
               }
             } else {
               Write-Host "Tag $previousTag not found in git, showing last 10 commits"
-              $commits = git log -10 --pretty=format:"- %s (%h)" --no-merges
+              $commits = git log -10 --pretty=format:"- %s (%h)%n" --no-merges
             }
           } else {
             Write-Host "No previous release found, showing last 10 commits"
             # If no previous release, show last 10 commits
-            $commits = git log -10 --pretty=format:"- %s (%h)" --no-merges
+            $commits = git log -10 --pretty=format:"- %s (%h)%n" --no-merges
           }
 
           if ([string]::IsNullOrWhiteSpace($commits)) {
