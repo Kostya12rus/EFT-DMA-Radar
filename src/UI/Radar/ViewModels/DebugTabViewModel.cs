@@ -1,7 +1,9 @@
 using LoneEftDmaRadar;
 using LoneEftDmaRadar.DMA;
+using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.UI.Misc;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Numerics;
@@ -66,6 +68,20 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
+        public bool ShowLootDebugOverlay
+        {
+            get => _showLootDebugOverlay;
+            set
+            {
+                if (_showLootDebugOverlay == value)
+                    return;
+
+                _showLootDebugOverlay = value;
+                App.Config.UI.EspLootDebug = value;
+                OnPropertyChanged(nameof(ShowLootDebugOverlay));
+            }
+        }
+
         public string DeviceAimbotDebugText
         {
             get => _DeviceAimbotDebugText;
@@ -88,6 +104,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 {
                     _aiDebugText = value;
                     OnPropertyChanged(nameof(AiDebugText));
+                }
+            }
+        }
+
+        public string LootDebugText
+        {
+            get => _lootDebugText;
+            private set
+            {
+                if (_lootDebugText != value)
+                {
+                    _lootDebugText = value;
+                    OnPropertyChanged(nameof(LootDebugText));
                 }
             }
         }
@@ -175,6 +204,54 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
 
             AiDebugText = sb.ToString();
+        }
+
+        private void RefreshLootDebug()
+        {
+            var loot = Memory.Game?.Loot?.AllLoot?.ToList();
+            var localPlayer = Memory.LocalPlayer;
+
+            if (loot is null || loot.Count == 0)
+            {
+                LootDebugText = "Loot Debug Overlay: waiting for raid or loot.";
+                return;
+            }
+
+            int validPositions = loot.Count(item => IsValidPosition(item.Position));
+            int corpses = loot.Count(item => item is LootCorpse);
+            int airdrops = loot.Count(item => item is LootAirdrop);
+            int containers = loot.Count(item => item is StaticLootContainer);
+
+            List<(LootItem item, float distance)> nearest = null;
+            if (localPlayer is not null)
+            {
+                nearest = loot
+                    .Where(item => item is not null && IsValidPosition(item.Position))
+                    .Select(item => (item, distance: Vector3.Distance(localPlayer.Position, item.Position)))
+                    .OrderBy(x => x.distance)
+                    .Take(5)
+                    .ToList();
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("=== Loot Debug ===");
+            sb.AppendLine($"Total: {loot.Count} | ValidPos: {validPositions} | Corpses: {corpses} | Airdrops: {airdrops} | Static: {containers}");
+
+            if (nearest is null || nearest.Count == 0)
+            {
+                sb.AppendLine("Closest: unavailable (no local player or no valid positions).");
+            }
+            else
+            {
+                sb.AppendLine("Closest loot (up to 5):");
+                foreach (var entry in nearest)
+                {
+                    var shortName = string.IsNullOrWhiteSpace(entry.item.ShortName) ? entry.item.Name : entry.item.ShortName;
+                    sb.AppendLine($"- {shortName} [{entry.item.GetType().Name}] {entry.distance:F1}m @ {entry.item.Position}");
+                }
+            }
+
+            LootDebugText = sb.ToString();
         }
 
         private static bool IsValidPosition(Vector3 pos)

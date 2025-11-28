@@ -657,6 +657,12 @@ namespace LoneEftDmaRadar
         public bool EspAIDebug { get; set; }
 
         /// <summary>
+        /// Show loot debug information on the ESP overlay.
+        /// </summary>
+        [JsonPropertyName("espLootDebug")]
+        public bool EspLootDebug { get; set; }
+
+        /// <summary>
         /// Show ESP Overlay.
         /// </summary>
         [JsonPropertyName("showESP")]

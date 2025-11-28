@@ -9,6 +9,7 @@ using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System.Drawing;
 using System.Linq;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Windows.Input;
 using System.Windows.Threading;
 using LoneEftDmaRadar.UI.Skia;
@@ -291,6 +292,11 @@ namespace LoneEftDmaRadar.UI.ESP
                             DrawStaticContainers(ctx, screenWidth, screenHeight, localPlayer);
                         }
 
+                        if (App.Config.UI.EspLootDebug)
+                        {
+                            DrawLootDebugOverlay(ctx, screenWidth, screenHeight, localPlayer);
+                        }
+
                         // Render Exfils
                         if (Exits is not null && App.Config.UI.EspExfils)
                         {
@@ -485,6 +491,61 @@ namespace LoneEftDmaRadar.UI.ESP
                          }
                          ctx.DrawText(text, screen.X + 4, screen.Y + 4, textColor, DxTextSize.Small);
                     }
+                }
+            }
+        }
+
+        private void DrawLootDebugOverlay(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        {
+            var allLoot = Memory.Game?.Loot?.AllLoot;
+            if (allLoot is null)
+                return;
+
+            foreach (var item in allLoot)
+            {
+                if (item is null)
+                    continue;
+
+                var pos = item.Position;
+                if (!IsValidPosition(pos))
+                    continue;
+
+                if (!WorldToScreen2(pos, out var screen, screenWidth, screenHeight))
+                    continue;
+
+                float distance = localPlayer is null ? 0f : Vector3.Distance(localPlayer.Position, pos);
+                var shortName = string.IsNullOrWhiteSpace(item.ShortName) ? item.Name : item.ShortName;
+                var itemType = item.GetType().Name;
+
+                var flags = new List<string>(8);
+                if (item.IsQuestItem) flags.Add("quest");
+                if (item.IsImportant) flags.Add("important");
+                if (item.IsValuableLoot) flags.Add("valuable");
+                if (item.Blacklisted) flags.Add("blacklisted");
+                if (item.IsMeds) flags.Add("meds");
+                if (item.IsFood) flags.Add("food");
+                if (item.IsBackpack) flags.Add("backpack");
+                if (item.IsWeapon) flags.Add("weapon");
+                if (item.IsCurrency) flags.Add("currency");
+
+                string flagText = flags.Count > 0 ? string.Join(", ", flags) : "-";
+                int price = item.Price;
+
+                var lines = new List<string>
+                {
+                    $"{shortName} [{itemType}] | Dist: {distance:F1}m | Pos: {pos.X:F1},{pos.Y:F1},{pos.Z:F1}",
+                    $"ID: {item.ID} | Price: {(price > 0 ? price.ToString() : "?")} | Slots: {item.GridCount} | Flags: {flagText}"
+                };
+
+                float drawX = screen.X + 6f;
+                float drawY = screen.Y + 6f;
+                float lineStep = 14f;
+                var color = ToColor(SKPaints.TextFilteredLoot);
+
+                foreach (var line in lines)
+                {
+                    ctx.DrawText(line, drawX, drawY, color, DxTextSize.Small);
+                    drawY += lineStep;
                 }
             }
         }
