@@ -20,8 +20,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         private bool _showDeviceAimbotDebug = App.Config.Device.ShowDebug;
         private bool _showAIDebugOverlay = App.Config.UI.EspAIDebug;
         private string _aiDebugText = "AI Debug Overlay: (no data)";
-        private bool _showLootDebugOverlay = App.Config.UI.EspLootDebug;
-        private string _lootDebugText = "Loot Debug Overlay: (no data)";
 
         public DebugTabViewModel()
         {
@@ -35,12 +33,10 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             {
                 RefreshDeviceAimbotDebug();
                 RefreshAiDebug();
-                RefreshLootDebug();
             };
             _timer.Start();
             RefreshDeviceAimbotDebug();
             RefreshAiDebug();
-            RefreshLootDebug();
         }
 
         public ICommand ToggleDebugConsoleCommand { get; }
