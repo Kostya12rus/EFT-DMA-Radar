@@ -31,10 +31,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         private static void MemDMA_ProcessStarting(object sender, EventArgs e) { }
         private static void MemDMA_ProcessStopped(object sender, EventArgs e) { }
         private static float _zoomLevel = 1.0f;
-        private static float ZoomLevel => _zoomLevel;        
+        private static float ZoomLevel => _zoomLevel;
         public static ulong FPSCameraPtr { get; private set; }
         public static ulong OpticCameraPtr { get; private set; }
         public static ulong ActiveCameraPtr { get; private set; }
+
+        private static bool _lastADSState = false;
+        private static bool _lastScopedState = false;
+        private static int _updateCounter = 0;
 
         private static readonly Lock _viewportSync = new();
         public static Rectangle Viewport { get; private set; }
@@ -61,7 +65,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         public ulong OpticCamera { get; }
         private ulong _fpsMatrixAddress;
         private ulong _opticMatrixAddress;
-        private bool OpticCameraActive => Memory.ReadValue<bool>(OpticCamera + UnitySDK.UnityOffsets.MonoBehaviour_IsAddedOffset, false);
+        // Simply check if OpticCamera exists (is initialized)
+        private bool OpticCameraActive => OpticCamera != 0;
 
         public static void UpdateViewportRes()
         {
@@ -121,7 +126,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                 float x = Vector3.Dot(_viewMatrix.Right, worldPos) + _viewMatrix.M14;
                 float y = Vector3.Dot(_viewMatrix.Up, worldPos) + _viewMatrix.M24;
 
-                // ✅ FIX: Only use FOV-based calculation when scoped, ignore zoom level
                 if (IsScoped)
                 {
                     float angleRadHalf = (MathF.PI / 180f) * _fov * 0.5f;
@@ -129,8 +133,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 
                     x /= angleCtg * _aspect * 0.5f;
                     y /= angleCtg * 0.5f;
-                    
-                    // DON'T multiply by _zoomLevel - FOV already handles zoom!
                 }
 
                 var center = ViewportCenter;
@@ -390,22 +392,46 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         {
             try
             {
-                if (localPlayer is null || !OpticCameraActive)
+                if (localPlayer is null)
+                {
+                    DebugLogger.LogDebug("CheckIfScoped: localPlayer is null");
                     return false;
+                }
+
+                if (!OpticCameraActive)
+                {
+                    DebugLogger.LogDebug($"CheckIfScoped: OpticCameraActive is false (OpticCamera=0x{OpticCamera:X})");
+                    return false;
+                }
 
                 var opticsPtr = Memory.ReadPtr(localPlayer.PWA + Offsets.ProceduralWeaponAnimation._optics);
+                DebugLogger.LogDebug($"CheckIfScoped: opticsPtr=0x{opticsPtr:X}");
+
                 using var optics = UnityList<VmmPointer>.Create(opticsPtr, true);
+                DebugLogger.LogDebug($"CheckIfScoped: optics.Count={optics.Count}");
 
                 if (optics.Count > 0)
                 {
                     var pSightComponent = Memory.ReadPtr(optics[0] + Offsets.SightNBone.Mod);
+                    DebugLogger.LogDebug($"CheckIfScoped: pSightComponent=0x{pSightComponent:X}");
+
                     var sightComponent = Memory.ReadValue<SightComponent>(pSightComponent);
+                    DebugLogger.LogDebug($"CheckIfScoped: ScopeZoomValue={sightComponent.ScopeZoomValue:F2}");
 
                     if (sightComponent.ScopeZoomValue != 0f)
-                        return sightComponent.ScopeZoomValue > 0f;
+                    {
+                        bool result = sightComponent.ScopeZoomValue > 1f;
+                        DebugLogger.LogDebug($"CheckIfScoped: Using ScopeZoomValue, result={result}");
+                        return result;
+                    }
 
-                    return sightComponent.GetZoomLevel() > 1f;
+                    float zoomLevel = sightComponent.GetZoomLevel();
+                    bool zoomResult = zoomLevel > 1f;
+                    DebugLogger.LogDebug($"CheckIfScoped: GetZoomLevel()={zoomLevel:F2}, result={zoomResult}");
+                    return zoomResult;
                 }
+
+                DebugLogger.LogDebug("CheckIfScoped: No optics found, returning false");
                 return false;
             }
             catch (Exception ex)
@@ -421,40 +447,35 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
             {
                 IsADS = localPlayer?.CheckIfADS() ?? false;
                 IsScoped = IsADS && CheckIfScoped(localPlayer);
-
-                ulong activeMatrixAddress = (IsADS && IsScoped) ? _opticMatrixAddress : _fpsMatrixAddress;
-                ulong activeCamera = (IsADS && IsScoped) ? OpticCamera : FPSCamera;
-                ActiveCameraPtr = activeCamera;
-
-                scatter.PrepareReadValue<Matrix4x4>(activeMatrixAddress + UnitySDK.UnityOffsets.Camera_ViewMatrixOffset);
-                scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset);
-                scatter.PrepareReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset);
-                scatter.PrepareReadValue<float>(activeCamera + UnitySDK.UnityOffsets.Camera_ZoomLevelOffset);
-
+                ulong vmAddr = IsADS && IsScoped ? OpticCamera + UnitySDK.UnityOffsets.Camera_ViewMatrixOffset : FPSCamera + UnitySDK.UnityOffsets.Camera_ViewMatrixOffset;
+                scatter.PrepareReadValue<Matrix4x4>(vmAddr);
                 scatter.Completed += (sender, s) =>
                 {
-                    try
+                    if (s.ReadValue<Matrix4x4>(vmAddr, out var vm))
                     {
-                        // Read results when scatter completes
-                        if (s.ReadValue<Matrix4x4>(activeMatrixAddress + UnitySDK.UnityOffsets.Camera_ViewMatrixOffset, out var vm))
-                        {
+                        if (!Unsafe.IsNullRef(ref vm))
                             _viewMatrix.Update(ref vm);
-                        }
-
-                        if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset, out var fov))
-                            _fov = fov;
-
-                        if (s.ReadValue<float>(FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset, out var aspect))
-                            _aspect = aspect;
-
-                        if (s.ReadValue<float>(activeCamera + UnitySDK.UnityOffsets.Camera_ZoomLevelOffset, out var zoom))
-                            _zoomLevel = zoom;
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugLogger.LogDebug($"ERROR in CameraManager scatter callback: {ex}");
                     }
                 };
+
+              
+                if (IsScoped)
+                {
+                    var fovAddr = FPSCamera + UnitySDK.UnityOffsets.Camera_FOVOffset;
+                    var aspectAddr = FPSCamera + UnitySDK.UnityOffsets.Camera_AspectRatioOffset;
+
+                    scatter.PrepareReadValue<float>(fovAddr); // FOV
+                    scatter.PrepareReadValue<float>(aspectAddr); // Aspect
+
+                    scatter.Completed += (sender, s) =>
+                    {
+                        if (s.ReadValue<float>(fovAddr, out var fov))
+                            _fov = fov;
+
+                        if (s.ReadValue<float>(aspectAddr, out var aspect))
+                            _aspect = aspect;
+                    };
+                }
             }
             catch (Exception ex)
             {
