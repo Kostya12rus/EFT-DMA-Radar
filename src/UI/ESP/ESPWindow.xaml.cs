@@ -9,6 +9,7 @@ using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System.Drawing;
 using System.Linq;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Windows.Input;
 using System.Windows.Threading;
 using LoneEftDmaRadar.UI.Skia;
@@ -291,6 +292,11 @@ namespace LoneEftDmaRadar.UI.ESP
                             DrawStaticContainers(ctx, screenWidth, screenHeight, localPlayer);
                         }
 
+                        if (App.Config.UI.EspLootDebug)
+                        {
+                            DrawLootDebugOverlay(ctx, screenWidth, screenHeight, localPlayer);
+                        }
+
                         // Render Exfils
                         if (Exits is not null && App.Config.UI.EspExfils)
                         {
@@ -476,6 +482,61 @@ namespace LoneEftDmaRadar.UI.ESP
                          }
                          ctx.DrawText(text, screen.X + 4, screen.Y + 4, textColor, DxTextSize.Small);
                     }
+                }
+            }
+        }
+
+        private void DrawLootDebugOverlay(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        {
+            var allLoot = Memory.Game?.Loot?.AllLoot;
+            if (allLoot is null)
+                return;
+
+            foreach (var item in allLoot)
+            {
+                if (item is null)
+                    continue;
+
+                var pos = item.Position;
+                if (!IsValidPosition(pos))
+                    continue;
+
+                if (!WorldToScreen2(pos, out var screen, screenWidth, screenHeight))
+                    continue;
+
+                float distance = localPlayer is null ? 0f : Vector3.Distance(localPlayer.Position, pos);
+                var shortName = string.IsNullOrWhiteSpace(item.ShortName) ? item.Name : item.ShortName;
+                var itemType = item.GetType().Name;
+
+                var flags = new List<string>(8);
+                if (item.IsQuestItem) flags.Add("quest");
+                if (item.IsImportant) flags.Add("important");
+                if (item.IsValuableLoot) flags.Add("valuable");
+                if (item.Blacklisted) flags.Add("blacklisted");
+                if (item.IsMeds) flags.Add("meds");
+                if (item.IsFood) flags.Add("food");
+                if (item.IsBackpack) flags.Add("backpack");
+                if (item.IsWeapon) flags.Add("weapon");
+                if (item.IsCurrency) flags.Add("currency");
+
+                string flagText = flags.Count > 0 ? string.Join(", ", flags) : "-";
+                int price = item.Price;
+
+                var lines = new List<string>
+                {
+                    $"{shortName} [{itemType}] | Dist: {distance:F1}m | Pos: {pos.X:F1},{pos.Y:F1},{pos.Z:F1}",
+                    $"ID: {item.ID} | Price: {(price > 0 ? price.ToString() : "?")} | Slots: {item.GridCount} | Flags: {flagText}"
+                };
+
+                float drawX = screen.X + 6f;
+                float drawY = screen.Y + 6f;
+                float lineStep = 14f;
+                var color = ToColor(SKPaints.TextFilteredLoot);
+
+                foreach (var line in lines)
+                {
+                    ctx.DrawText(line, drawX, drawY, color, DxTextSize.Small);
+                    drawY += lineStep;
                 }
             }
         }
@@ -670,6 +731,11 @@ namespace LoneEftDmaRadar.UI.ESP
             if (drawLabel)
             {
                 DrawPlayerLabel(ctx, player, distance, color, hasBox ? bbox : (RectangleF?)null, screenWidth, screenHeight, drawName, drawDistance, drawHealth, drawGroupId);
+            }
+
+            if (isAI && App.Config.UI.EspAIDebug)
+            {
+                DrawAiDebugForPlayer(ctx, player, distance, color, hasBox ? bbox : (RectangleF?)null, screenWidth, screenHeight);
             }
         }
 
@@ -881,6 +947,54 @@ namespace LoneEftDmaRadar.UI.ESP
             ctx.DrawText(text, drawX, drawY, color, DxTextSize.Medium, centerX: true);
         }
 
+        private void DrawAiDebugForPlayer(Dx9RenderContext ctx, AbstractPlayer player, float distance, DxColor color, RectangleF? bbox, float screenWidth, float screenHeight)
+        {
+            if (player is null || !player.IsAI)
+                return;
+
+            float drawX;
+            float drawY;
+
+            if (bbox.HasValue)
+            {
+                var box = bbox.Value;
+                drawX = box.Left + (box.Width / 2f);
+                drawY = box.Bottom + 6f;
+            }
+            else if (TryProject(player.GetBonePos(Bones.HumanHead), screenWidth, screenHeight, out var headScreen))
+            {
+                drawX = headScreen.X;
+                drawY = headScreen.Y + 6f;
+            }
+            else
+            {
+                return;
+            }
+
+            var aiName = string.IsNullOrWhiteSpace(player.Name) ? "AI" : player.Name;
+            var aiActivity = player.IsAIActive ? "Engaged" : player.IsActive ? "Dormant" : "Inactive";
+
+            var lines = new List<string>
+            {
+                $"AI: {aiName} [{player.Type}] | Side: {player.PlayerSide} | Active: {aiActivity}",
+                $"State: {(player.IsAIActive ? "Active" : "Inactive")} | Alive: {(player.IsAlive ? "Yes" : "Dead")} | Corpse: {(player.Corpse.HasValue ? "Yes" : "No")}",
+                $"Dist: {distance:F1}m | Group: {(player.GroupID >= 0 ? player.GroupID.ToString() : "-")} | Health: {(player is ObservedPlayer observed ? observed.HealthStatus.ToString() : "n/a")}" 
+            };
+
+            lines.Add($"Flags: DefaultAI {(player.IsDefaultAIActive ? "Yes" : "No")} | Hostile {(player.IsHostile ? "Yes" : "No")} | Exfild {(player.HasExfild ? "Yes" : "No")}");
+
+            lines.Add($"Pos: {player.Position.X:F1}, {player.Position.Y:F1}, {player.Position.Z:F1} ({(IsValidPosition(player.Position) ? "OK" : "Bad")})");
+            lines.Add($"Rot: Yaw {player.Rotation.X:F1}° Pitch {player.Rotation.Y:F1}° | Map {player.MapRotation:F1}°");
+            lines.Add($"Error: {(player.IsError ? "Yes" : "No")} ({player.ErrorTimer.ElapsedMilliseconds}ms) | Alerts: {(string.IsNullOrWhiteSpace(player.Alerts) ? "-" : player.Alerts)}");
+
+            float lineStep = 14f;
+            foreach (var line in lines)
+            {
+                ctx.DrawText(line, drawX, drawY, color, DxTextSize.Small, centerX: true);
+                drawY += lineStep;
+            }
+        }
+
         /// <summary>
         /// Draw 'ESP Hidden' notification.
         /// </summary>
@@ -935,6 +1049,7 @@ namespace LoneEftDmaRadar.UI.ESP
             ctx.DrawCircle(new RawVector2(width / 2f, height / 2f), radius, ToColor(skColor), filled: false);
         }
 
+
         private void DrawDeviceAimbotDebugOverlay(Dx9RenderContext ctx, float width, float height)
         {
             if (!App.Config.Device.ShowDebug)
@@ -980,6 +1095,13 @@ namespace LoneEftDmaRadar.UI.ESP
         private static DxColor ToColor(SKPaint paint) => ToColor(paint.Color);
 
         private static DxColor ToColor(SKColor color) => new(color.Blue, color.Green, color.Red, color.Alpha);
+
+        private static bool IsValidPosition(Vector3 pos)
+        {
+            return pos != Vector3.Zero &&
+                   !float.IsNaN(pos.X) && !float.IsNaN(pos.Y) && !float.IsNaN(pos.Z) &&
+                   !float.IsInfinity(pos.X) && !float.IsInfinity(pos.Y) && !float.IsInfinity(pos.Z);
+        }
 
         #endregion
 

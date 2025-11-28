@@ -651,6 +651,18 @@ namespace LoneEftDmaRadar
         public bool EspAIDistance { get; set; } = true;
 
         /// <summary>
+        /// Show AI debug information on the ESP overlay.
+        /// </summary>
+        [JsonPropertyName("espAIDebug")]
+        public bool EspAIDebug { get; set; }
+
+        /// <summary>
+        /// Show loot debug information on the ESP overlay.
+        /// </summary>
+        [JsonPropertyName("espLootDebug")]
+        public bool EspLootDebug { get; set; }
+
+        /// <summary>
         /// Show ESP Overlay.
         /// </summary>
         [JsonPropertyName("showESP")]
