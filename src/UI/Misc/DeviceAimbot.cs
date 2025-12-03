@@ -359,51 +359,16 @@ namespace LoneEftDmaRadar.UI.Misc
 
 private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
 {
-    // DEBUG: Log every rejection reason for first few players
-    bool isDebugPlayer = _dbgTotalPlayers <= 3;
-    
-    if (isDebugPlayer)
-        DebugLogger.LogDebug($"\n[DeviceAimbot] === Checking Player #{_dbgTotalPlayers} ===");
-    
     // Don't target self
-    if (player == localPlayer)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: player == localPlayer");
+    if (player == localPlayer || player is LocalPlayer)
         return false;
-    }
-    
-    if (player is LocalPlayer)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: player is LocalPlayer");
+
+    if (!player.IsActive || !player.IsAlive)
         return false;
-    }
-    
-    if (!player.IsActive)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: !IsActive");
-        return false;
-    }
-    
-    if (!player.IsAlive)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: !IsAlive");
-        return false;
-    }
 
     // Check player type filters
     if (player.Type == PlayerType.Teammate)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: Type is Teammate");
         return false;
-    }
-
-    if (isDebugPlayer)
-    {
-        DebugLogger.LogDebug($"  Player Type: {player.Type}");
-        DebugLogger.LogDebug($"  Config Filters:");
-        DebugLogger.LogDebug($"    PMC={Config.TargetPMC}, PScav={Config.TargetPlayerScav}");
-        DebugLogger.LogDebug($"    AI={Config.TargetAIScav}, Boss={Config.TargetBoss}, Raider={Config.TargetRaider}");
-    }
 
     bool shouldTarget = player.Type switch
     {
@@ -415,15 +380,7 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
         PlayerType.Default => Config.TargetAIScav,
         _ => false
     };
-    
-    if (isDebugPlayer)
-    {
-        if (shouldTarget)
-            DebugLogger.LogDebug($"  ? ACCEPTED!");
-        else
-            DebugLogger.LogDebug($"  ? REJECTED: Type {player.Type} not in filters or default case");
-    }
-    
+
     return shouldTarget;
 }
         private bool IsTargetValid(AbstractPlayer target, LocalPlayer localPlayer)
