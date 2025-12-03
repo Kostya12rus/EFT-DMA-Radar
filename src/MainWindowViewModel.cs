@@ -101,6 +101,8 @@ namespace LoneEftDmaRadar
             toggleShowFood.HotkeyStateChanged += ToggleShowFood_HotkeyStateChanged;
             var toggleShowMeds = new HotkeyActionController("Toggle Show Meds");
             toggleShowMeds.HotkeyStateChanged += ToggleShowMeds_HotkeyStateChanged;
+            var toggleShowQuestItems = new HotkeyActionController("Toggle Show Quest Items");
+            toggleShowQuestItems.HotkeyStateChanged += ToggleShowQuestItems_HotkeyStateChanged;
             var engageAimbotDeviceAimbot = new HotkeyActionController("Engage Aimbot");
             engageAimbotDeviceAimbot.HotkeyStateChanged += EngageAimbotDeviceAimbot_HotkeyStateChanged;
             var toggleDeviceAimbotEnabled = new HotkeyActionController("Toggle Device Aimbot");
@@ -116,7 +118,9 @@ namespace LoneEftDmaRadar
             toggleESPLoot.HotkeyStateChanged += ToggleESPLoot_HotkeyStateChanged;
             var toggleESPExfils = new HotkeyActionController("Toggle ESP Exfils");
             toggleESPExfils.HotkeyStateChanged += ToggleESPExfils_HotkeyStateChanged;
-            
+            var toggleStaticContainers = new HotkeyActionController("Toggle Static Containers");
+            toggleStaticContainers.HotkeyStateChanged += ToggleStaticContainers_HotkeyStateChanged;
+
             // Add to Static Collection:
             HotkeyAction.RegisterController(zoomIn);
             HotkeyAction.RegisterController(zoomOut);
@@ -126,11 +130,13 @@ namespace LoneEftDmaRadar
             HotkeyAction.RegisterController(toggleInfo);
             HotkeyAction.RegisterController(toggleShowFood);
             HotkeyAction.RegisterController(toggleShowMeds);
+            HotkeyAction.RegisterController(toggleShowQuestItems);
             HotkeyAction.RegisterController(toggleESP);
             HotkeyAction.RegisterController(toggleESPPlayers);
             HotkeyAction.RegisterController(toggleESPScavs);
             HotkeyAction.RegisterController(toggleESPLoot);
             HotkeyAction.RegisterController(toggleESPExfils);
+            HotkeyAction.RegisterController(toggleStaticContainers);
             HotkeyAction.RegisterController(engageAimbotDeviceAimbot);
             HotkeyAction.RegisterController(toggleDeviceAimbotEnabled);
             HotkeyManagerViewModel.NotifyControllersRegistered();
@@ -152,6 +158,14 @@ namespace LoneEftDmaRadar
             if (e.State && _parent.Radar?.Overlay?.ViewModel is RadarOverlayViewModel vm)
             {
                 vm.ShowMeds = !vm.ShowMeds;
+            }
+        }
+
+        private void ToggleShowQuestItems_HotkeyStateChanged(object sender, HotkeyEventArgs e)
+        {
+            if (e.State && _parent.Radar?.Overlay?.ViewModel is RadarOverlayViewModel vm)
+            {
+                vm.ShowQuestItems = !vm.ShowQuestItems;
             }
         }
 
@@ -255,6 +269,14 @@ namespace LoneEftDmaRadar
             if (e.State)
             {
                 App.Config.UI.EspExfils = !App.Config.UI.EspExfils;
+            }
+        }
+
+        private void ToggleStaticContainers_HotkeyStateChanged(object sender, HotkeyEventArgs e)
+        {
+            if (e.State && _parent.Settings?.ViewModel is SettingsViewModel vm)
+            {
+                vm.ShowStaticContainers = !vm.ShowStaticContainers;
             }
         }
 
