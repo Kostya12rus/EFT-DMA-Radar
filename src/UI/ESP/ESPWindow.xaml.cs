@@ -1305,14 +1305,43 @@ namespace LoneEftDmaRadar.UI.ESP
             if (App.Config.UI.EspScreenWidth <= 0 && App.Config.UI.EspScreenHeight <= 0)
                 return;
 
+            double currentWidth, currentHeight;
+            if (Dispatcher.CheckAccess())
+            {
+                currentWidth = Width;
+                currentHeight = Height;
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    currentWidth = Width;
+                    currentHeight = Height;
+                });
+                return;
+            }
+
             var monitor = GetTargetMonitor();
             var target = GetConfiguredResolution(monitor);
-            if (Math.Abs(Width - target.width) > 0.5 || Math.Abs(Height - target.height) > 0.5)
+            if (Math.Abs(currentWidth - target.width) > 0.5 || Math.Abs(currentHeight - target.height) > 0.5)
             {
-                Width = target.width;
-                Height = target.height;
-                Left = monitor?.Left ?? 0;
-                Top = monitor?.Top ?? 0;
+                if (Dispatcher.CheckAccess())
+                {
+                    Width = target.width;
+                    Height = target.height;
+                    Left = monitor?.Left ?? 0;
+                    Top = monitor?.Top ?? 0;
+                }
+                else
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        Width = target.width;
+                        Height = target.height;
+                        Left = monitor?.Left ?? 0;
+                        Top = monitor?.Top ?? 0;
+                    }));
+                }
             }
         }
 
