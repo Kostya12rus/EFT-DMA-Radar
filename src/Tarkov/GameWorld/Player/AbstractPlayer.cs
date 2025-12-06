@@ -973,11 +973,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         {
                             lines.Add($"{name}{health}");
                         }
-                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M | {roundedHeight}" : $"{roundedDist}M");
+                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
                     }
                     else // just height, distance
                     {
-                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M | {roundedHeight}" : $"{roundedDist}M");
+                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
                         if (IsError)
                             lines[0] = "ERROR"; // In case POS stops updating, let us know!
                     }

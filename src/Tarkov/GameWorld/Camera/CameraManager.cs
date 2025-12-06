@@ -29,6 +29,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
             MemDMA.ProcessStarting += MemDMA_ProcessStarting;
             MemDMA.ProcessStopped += MemDMA_ProcessStopped;
         }
+
         private static void MemDMA_ProcessStarting(object sender, EventArgs e) { }
         private static void MemDMA_ProcessStopped(object sender, EventArgs e) { }
         public static ulong FPSCameraPtr { get; private set; }
@@ -180,8 +181,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
             try
             {
                 DebugLogger.LogDebug("=== CameraManager Initialization ===");
-                var allCamerasAddr = Memory.UnityBase + UnitySDK.UnityOffsets.AllCameras;
-                var allCamerasPtr = Memory.ReadPtr(allCamerasAddr, false);
+                var allCamerasPtr = AllCameras.GetPtr(Memory.UnityBase);
+                //var allCamerasPtr = Memory.ReadPtr(allCamerasAddr, false);
                 if (allCamerasPtr == 0)
                 {
                     DebugLogger.LogDebug(" CRITICAL: AllCameras pointer is NULL!");
@@ -197,6 +198,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 
                 // AllCameras is a List<Camera*>
                 // Structure: +0x0 = items array pointer, +0x8 = count (int)
+                //   *(_QWORD *)(a1 + 8) = a5;
+                //   *(_QWORD*)(a1 + 16) = a2;
                 var listItemsPtr = Memory.ReadPtr(allCamerasPtr + 0x0, false);
                 var count = Memory.ReadValue<int>(allCamerasPtr + 0x8, false);
 
