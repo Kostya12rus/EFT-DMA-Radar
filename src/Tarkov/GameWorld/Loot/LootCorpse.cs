@@ -73,21 +73,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
             SKPaints.ShapeOutline.StrokeWidth = 2f;
             if (heightDiff > 1.45) // loot is above player
             {
-                using var path = point.GetUpArrow(5);
-                canvas.DrawPath(path, SKPaints.ShapeOutline);
-                canvas.DrawPath(path, SKPaints.PaintCorpse);
+                var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
+                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextOutline);
+                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextCorpse);
             }
             else if (heightDiff < -1.45) // loot is below player
             {
-                using var path = point.GetDownArrow(5);
-                canvas.DrawPath(path, SKPaints.ShapeOutline);
-                canvas.DrawPath(path, SKPaints.PaintCorpse);
+                var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
+                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextOutline);
+                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextCorpse);
             }
             else // loot is level with player
             {
-                var size = 5 * App.Config.UI.UIScale;
-                canvas.DrawCircle(point, size, SKPaints.ShapeOutline);
-                canvas.DrawCircle(point, size, SKPaints.PaintCorpse);
+                var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
+                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextOutline);
+                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextCorpse);
             }
 
             point.Offset(7 * App.Config.UI.UIScale, 3 * App.Config.UI.UIScale);
