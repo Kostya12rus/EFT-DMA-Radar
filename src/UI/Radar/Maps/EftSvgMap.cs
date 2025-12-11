@@ -209,6 +209,62 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
             };
         }
 
+        public void RenderThumbnail(SKCanvas canvas, int width, int height)
+        {
+            if (_layers.Length == 0) return;
+
+            var baseLayer = _layers[0];
+            float mapW = baseLayer.RawWidth * Config.SvgScale;
+            float mapH = baseLayer.RawHeight * Config.SvgScale;
+
+            if (mapW <= 0 || mapH <= 0) return;
+
+            // Compute uniform scale to fit
+            float scaleX = width / mapW;
+            float scaleY = height / mapH;
+            float scale = Math.Min(scaleX, scaleY);
+
+            // Center
+            float scaledW = mapW * scale;
+            float scaledH = mapH * scale;
+            float dx = (width - scaledW) / 2f;
+            float dy = (height - scaledH) / 2f;
+
+            canvas.Save();
+            canvas.Translate(dx, dy);
+            canvas.Scale(scale, scale);
+            canvas.Scale(Config.SvgScale, Config.SvgScale);
+
+            // Create paint with color inversion filter for dark mode visibility
+            // Create paint with color inversion filter for dark mode visibility (configurable)
+            using var paint = new SKPaint();
+            if (App.Config.UI.MiniRadar.InvertColors)
+            {
+                paint.ColorFilter = SKColorFilter.CreateColorMatrix(new float[]
+                {
+                    -1,  0,  0, 0, 1, // R = 1 - R
+                     0, -1,  0, 0, 1, // G = 1 - G
+                     0,  0, -1, 0, 1, // B = 1 - B
+                     0,  0,  0, 1, 0  // A = A
+                });
+            }
+
+            // Draw all layers (bottom to top) to show full context
+            foreach (var layer in _layers)
+            {
+                canvas.DrawPicture(layer.Picture, paint);
+            }
+
+            canvas.Restore();
+        }
+
+        public SKRect GetBounds()
+        {
+            if (_layers.Length == 0) return SKRect.Empty;
+            var baseLayer = _layers[0];
+            return new SKRect(0, 0, baseLayer.RawWidth * Config.SvgScale, baseLayer.RawHeight * Config.SvgScale);
+        }
+
         /// <summary>
         /// Constrain map bounds to prevent showing black areas outside the map borders.
         /// This ensures the map view stays within the actual map boundaries.

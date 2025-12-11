@@ -602,6 +602,13 @@ namespace LoneEftDmaRadar
         public bool EspAIBoxes { get; set; } = true;
 
         /// <summary>
+        /// Mini Radar Configuration.
+        /// </summary>
+        [JsonPropertyName("miniRadar")]
+        [JsonInclude]
+        public MiniRadarConfig MiniRadar { get; private set; } = new();
+
+        /// <summary>
         /// Show Player Names in ESP.
         /// </summary>
         [JsonPropertyName("espPlayerNames")]
@@ -1199,5 +1206,38 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("tickRate")]
         public string TickRate { get; set; } = "60";
+    }
+
+    public sealed class MiniRadarConfig
+    {
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = true;
+
+        [JsonPropertyName("size")]
+        public int Size { get; set; } = 256;
+
+        [JsonPropertyName("screenX")]
+        public float ScreenX { get; set; } = -1; // -1 = Auto (Top Right)
+
+        [JsonPropertyName("screenY")]
+        public float ScreenY { get; set; } = 20;
+
+        [JsonPropertyName("showLoot")]
+        public bool ShowLoot { get; set; } = true;
+
+        [JsonPropertyName("showPlayers")]
+        public bool ShowPlayers { get; set; } = true;
+
+        [JsonPropertyName("showExits")]
+        public bool ShowExits { get; set; } = true;
+
+        [JsonPropertyName("showContainers")]
+        public bool ShowContainers { get; set; } = true;
+
+        [JsonPropertyName("showGrenades")]
+        public bool ShowGrenades { get; set; } = true;
+
+        [JsonPropertyName("invertColors")]
+        public bool InvertColors { get; set; } = true;
     }
 }

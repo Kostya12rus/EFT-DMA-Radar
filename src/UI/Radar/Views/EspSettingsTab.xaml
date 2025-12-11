@@ -309,6 +309,38 @@
                 </StackPanel>
             </GroupBox>
 
+            <!-- Mini Radar Settings -->
+            <GroupBox Header="Mini Radar" Margin="0,0,0,12">
+                <StackPanel>
+                    <CheckBox Content="Enable Mini Radar" IsChecked="{Binding MiniRadarEnabled, Mode=TwoWay}" Margin="0,0,0,8"/>
+                    
+                    <WrapPanel Margin="0,0,0,8" IsEnabled="{Binding MiniRadarEnabled}">
+                         <TextBlock Text="Size:" VerticalAlignment="Center" Width="60"/>
+                         <Slider Width="150" Minimum="150" Maximum="512" Value="{Binding MiniRadarSize, Mode=TwoWay}" SmallChange="10" LargeChange="50"/>
+                         <TextBlock Text="{Binding MiniRadarSize, StringFormat='{}{0} px'}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </WrapPanel>
+
+                    <WrapPanel Margin="0,0,0,8" IsEnabled="{Binding MiniRadarEnabled}">
+                        <TextBlock Text="Position:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox Width="50" Text="{Binding MiniRadarScreenX, Mode=TwoWay}" ToolTip="-1 = Auto (Right)"/>
+                        <TextBlock Text="Y" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                        <TextBox Width="50" Text="{Binding MiniRadarScreenY, Mode=TwoWay}"/>
+                        <TextBlock Text="(-1 X = Auto Top-Right)" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="Gray" FontSize="10"/>
+                    </WrapPanel>
+
+                    <TextBlock Text="Visibility Layers" FontWeight="SemiBold" Margin="0,4,0,4" IsEnabled="{Binding MiniRadarEnabled}"/>
+                    <WrapPanel IsEnabled="{Binding MiniRadarEnabled}">
+                         <CheckBox Content="Players" IsChecked="{Binding MiniRadarShowPlayers, Mode=TwoWay}" Margin="0,0,12,0"/>
+                         <CheckBox Content="Loot" IsChecked="{Binding MiniRadarShowLoot, Mode=TwoWay}" Margin="0,0,12,0"/>
+                         <CheckBox Content="Containers" IsChecked="{Binding MiniRadarShowContainers, Mode=TwoWay}" Margin="0,0,12,0"/>
+                         <CheckBox Content="Exits" IsChecked="{Binding MiniRadarShowExits, Mode=TwoWay}" Margin="0,0,12,0"/>
+                         <CheckBox Content="Grenades" IsChecked="{Binding MiniRadarShowGrenades, Mode=TwoWay}" Margin="0,0,12,0"/>
+                    </WrapPanel>
+                    <CheckBox Content="Invert Map Colors (Dark)" IsChecked="{Binding MiniRadarInvertColors, Mode=TwoWay}" IsEnabled="{Binding MiniRadarEnabled}" Margin="0,8,0,0"/>
+                </StackPanel>
+            </GroupBox>
+
             <!-- Performance Settings -->
             <GroupBox Header="Misc"
                       Margin="0,0,0,12">

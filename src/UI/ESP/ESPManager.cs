@@ -1,7 +1,7 @@
 using System;
 using System.Windows;
 using LoneEftDmaRadar.DMA;
-using CameraManagerNew = LoneEftDmaRadar.Tarkov.GameWorld.Camera.CameraManager;
+using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 
 namespace LoneEftDmaRadar.UI.ESP
 {
@@ -106,7 +106,7 @@ namespace LoneEftDmaRadar.UI.ESP
         public static void ApplyResolutionOverride()
         {
             if (!_isInitialized || _espWindow is null) return;
-            CameraManagerNew.UpdateViewportRes();
+            CameraManager.UpdateViewportRes();
             _espWindow.ApplyResolutionOverride();
         }
 
@@ -121,7 +121,7 @@ namespace LoneEftDmaRadar.UI.ESP
         /// </summary>
         public static void ResetCamera()
         {
-            CameraManagerNew.Reset();
+            CameraManager.Reset();
             _espWindow?.RefreshESP();
         }
 

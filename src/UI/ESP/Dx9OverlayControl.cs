@@ -7,6 +7,7 @@ using WinForms = System.Windows.Forms;
 using D3D9Font = SharpDX.Direct3D9.Font;
 using D3D9Line = SharpDX.Direct3D9.Line;
 using DxColor = SharpDX.Mathematics.Interop.RawColorBGRA;
+using LoneEftDmaRadar.UI.Misc;
 
 namespace LoneEftDmaRadar.UI.ESP
 {
@@ -31,6 +32,7 @@ namespace LoneEftDmaRadar.UI.ESP
         private D3D9Font _fontSmall;
         private D3D9Font _fontMedium;
         private D3D9Font _fontLarge;
+        private Texture _mapTexture;
 
         private string _fontFamily = "Segoe UI";
         private int _fontSizeSmall = 10;
@@ -38,6 +40,9 @@ namespace LoneEftDmaRadar.UI.ESP
         private int _fontSizeLarge = 24;
 
         private readonly object _deviceLock = new();
+        private byte[] _pendingMapPixels;
+        private int _pendingMapW, _pendingMapH;
+        private bool _mapUpdatePending;
 
         public Action<Dx9RenderContext> RenderFrame;
 
@@ -90,6 +95,14 @@ namespace LoneEftDmaRadar.UI.ESP
 
                 try
                 {
+                    // Handle pending map updates BEFORE BeginScene
+                    if (_mapUpdatePending)
+                    {
+                        UpdateMapTextureInternal(_pendingMapW, _pendingMapH, _pendingMapPixels);
+                        _mapUpdatePending = false;
+                        _pendingMapPixels = null; // release ref
+                    }
+
                     _device.Clear(ClearFlags.Target, new DxColor(0, 0, 0, 255), 1.0f, 0);
                     _device.BeginScene();
 
@@ -97,7 +110,7 @@ namespace LoneEftDmaRadar.UI.ESP
                     _device.SetRenderState(RenderState.SourceBlend, Blend.SourceAlpha);
                     _device.SetRenderState(RenderState.DestinationBlend, Blend.InverseSourceAlpha);
 
-                    var ctx = new Dx9RenderContext(_device, _line, _fontSmall, _fontMedium, _fontLarge, Width, Height);
+                    var ctx = new Dx9RenderContext(_device, _line, _fontSmall, _fontMedium, _fontLarge, _mapTexture, Width, Height);
                     RenderFrame?.Invoke(ctx);
 
                     _device.EndScene();
@@ -262,6 +275,83 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
+        /// <summary>
+        /// Schedules a map texture update for the next frame.
+        /// </summary>
+        public void RequestMapTextureUpdate(int width, int height, byte[] bgraPixels)
+        {
+            lock (_deviceLock)
+            {
+                _pendingMapW = width;
+                _pendingMapH = height;
+                _pendingMapPixels = bgraPixels;
+                _mapUpdatePending = true;
+            }
+        }
+
+        public string LastTextureError { get; private set; } = "None";
+
+        private void UpdateMapTextureInternal(int width, int height, byte[] bgraPixels)
+        {
+            if (_device is null)
+            {
+                 LastTextureError = "Device is null";
+                 return;
+            }
+
+            // Validation
+            int expectedBytes = width * height * 4;
+            if (bgraPixels.Length != expectedBytes)
+            {
+                LastTextureError = $"Size mismatch: {bgraPixels.Length} != {expectedBytes}";
+                return;
+            }
+
+            try
+            {
+                // 1. Create Texture (Dynamic/Default is robust for CPU updates)
+                if (_mapTexture is null || _mapTexture.GetLevelDescription(0).Width != width || _mapTexture.GetLevelDescription(0).Height != height)
+                {
+                    _mapTexture?.Dispose();
+                    try 
+                    {
+                        _mapTexture = new Texture(_device, width, height, 1, Usage.Dynamic, Format.A8R8G8B8, Pool.Default);
+                    }
+                    catch (Exception ex)
+                    {
+                        LastTextureError = $"Create Failed: {ex.Message}";
+                        throw;
+                    }
+                }
+
+                // 2. Lock and Copy (Use Discard for Dynamic)
+                DataRectangle rect;
+                try
+                {
+                    rect = _mapTexture.LockRectangle(0, LockFlags.Discard);
+                }
+                catch (Exception ex)
+                {
+                     LastTextureError = $"Lock Failed: {ex.Message}";
+                     throw;
+                }
+
+                try
+                {
+                    System.Runtime.InteropServices.Marshal.Copy(bgraPixels, 0, rect.DataPointer, bgraPixels.Length);
+                    LastTextureError = "Success"; 
+                }
+                finally
+                {
+                    _mapTexture.UnlockRectangle(0);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[Dx9Overlay] Map Update Error: {ex}");
+            }
+        }
+
         private static int ClampFontSize(int value)
         {
             if (value <= 0) return 10;
@@ -285,6 +375,7 @@ namespace LoneEftDmaRadar.UI.ESP
             _fontSmall?.Dispose();
             _fontMedium?.Dispose();
             _fontLarge?.Dispose();
+            _mapTexture?.Dispose();
             _device?.Dispose();
             _d3d?.Dispose();
 
@@ -292,6 +383,7 @@ namespace LoneEftDmaRadar.UI.ESP
             _fontSmall = null;
             _fontMedium = null;
             _fontLarge = null;
+            _mapTexture = null;
             _device = null;
             _d3d = null;
         }
@@ -317,6 +409,7 @@ namespace LoneEftDmaRadar.UI.ESP
         private readonly D3D9Font _fontSmall;
         private readonly D3D9Font _fontMedium;
         private readonly D3D9Font _fontLarge;
+        private readonly Texture _mapTexture;
 
         public int Width { get; }
         public int Height { get; }
@@ -327,6 +420,7 @@ namespace LoneEftDmaRadar.UI.ESP
             D3D9Font fontSmall,
             D3D9Font fontMedium,
             D3D9Font fontLarge,
+            Texture mapTexture,
             int width,
             int height)
         {
@@ -335,6 +429,7 @@ namespace LoneEftDmaRadar.UI.ESP
             _fontSmall = fontSmall;
             _fontMedium = fontMedium;
             _fontLarge = fontLarge;
+            _mapTexture = mapTexture;
             Width = width;
             Height = height;
         }
@@ -367,6 +462,18 @@ namespace LoneEftDmaRadar.UI.ESP
             _line.Begin();
             _line.Draw(pts, color);
             _line.End();
+        }
+
+        public void DrawFilledRect(RectangleF rect, DxColor color)
+        {
+            var verts = new ColoredVertex[4];
+            verts[0] = new ColoredVertex(rect.Left, rect.Top, color);
+            verts[1] = new ColoredVertex(rect.Right, rect.Top, color);
+            verts[2] = new ColoredVertex(rect.Left, rect.Bottom, color);
+            verts[3] = new ColoredVertex(rect.Right, rect.Bottom, color);
+
+            _device.VertexFormat = ColoredVertex.Format;
+            _device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, verts);
         }
 
         public void DrawCircle(RawVector2 center, float radius, DxColor color, bool filled)
@@ -415,15 +522,52 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
+        public void DrawMapTexture(RectangleF destRect, float opacity = 1.0f)
+        {
+            // Fallback: If texture is missing, draw a Magenta box to indicate error/loading
+            if (_mapTexture is null)
+            {
+                DrawRect(destRect, new DxColor(255, 0, 255, 128), 2f); // Magenta outline/fill replacement
+                return;
+            }
+
+            // Setup render state for texture
+            _device.SetRenderState(RenderState.CullMode, Cull.None); // Disable culling to ensure visibility
+            _device.SetTexture(0, _mapTexture);
+            _device.SetTextureStageState(0, TextureStage.ColorOperation, TextureOperation.Modulate);
+            _device.SetTextureStageState(0, TextureStage.ColorArg1, TextureArgument.Texture);
+            _device.SetTextureStageState(0, TextureStage.ColorArg2, TextureArgument.Diffuse);
+            _device.SetTextureStageState(0, TextureStage.AlphaOperation, TextureOperation.Modulate);
+            _device.SetTextureStageState(0, TextureStage.AlphaArg1, TextureArgument.Texture);
+            _device.SetTextureStageState(0, TextureStage.AlphaArg2, TextureArgument.Diffuse);
+
+            var color = new DxColor(255, 255, 255, (byte)(255 * opacity));
+            
+            var verts = new TexturedVertex[4];
+            verts[0] = new TexturedVertex(destRect.Left, destRect.Top, 0, 0, color);
+            verts[1] = new TexturedVertex(destRect.Right, destRect.Top, 1, 0, color);
+            verts[2] = new TexturedVertex(destRect.Left, destRect.Bottom, 0, 1, color);
+            verts[3] = new TexturedVertex(destRect.Right, destRect.Bottom, 1, 1, color);
+
+            _device.VertexFormat = TexturedVertex.Format;
+            _device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, verts);
+
+            // Cleanup
+            _device.SetTexture(0, null);
+        }
+
         public RawRectangle MeasureText(string text, DxTextSize size)
         {
             var font = GetFont(size);
+            if (font is null) return new RawRectangle(0, 0, 0, 0);
             return font.MeasureText(null, text, FontDrawFlags.Left);
         }
 
         public void DrawText(string text, float x, float y, DxColor color, DxTextSize size, bool centerX = false, bool centerY = false)
         {
             var font = GetFont(size);
+            if (font is null) return;
+
             var bounds = font.MeasureText(null, text, FontDrawFlags.Left);
 
             int textWidth = Math.Max(1, bounds.Right - bounds.Left);
@@ -471,6 +615,31 @@ namespace LoneEftDmaRadar.UI.ESP
             }
 
             public const VertexFormat Format = VertexFormat.PositionRhw | VertexFormat.Diffuse;
+
+            private static int PackColor(DxColor color)
+            {
+                return (color.A << 24) | (color.R << 16) | (color.G << 8) | color.B;
+            }
+        }
+
+        private struct TexturedVertex
+        {
+            public float X, Y, Z, Rhw;
+            public int Color;
+            public float U, V;
+
+            public TexturedVertex(float x, float y, float u, float v, DxColor color)
+            {
+                X = x;
+                Y = y;
+                Z = 0.5f;
+                Rhw = 1.0f;
+                Color = PackColor(color);
+                U = u;
+                V = v;
+            }
+
+            public const VertexFormat Format = VertexFormat.PositionRhw | VertexFormat.Diffuse | VertexFormat.Texture1;
 
             private static int PackColor(DxColor color)
             {

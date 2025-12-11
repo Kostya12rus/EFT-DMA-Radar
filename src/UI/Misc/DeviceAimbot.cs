@@ -17,7 +17,7 @@ using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc.Ballistics;
 using SkiaSharp;
-using CameraManagerNew = LoneEftDmaRadar.Tarkov.GameWorld.Camera.CameraManager;
+using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 
 namespace LoneEftDmaRadar.UI.Misc
 {
@@ -318,10 +318,10 @@ namespace LoneEftDmaRadar.UI.Misc
                 {
                     // IMPORTANT: use same W2S style as ESP  "in" + default flags
                     // Disable on-screen check so viewport issues don't discard candidates.
-                    if (CameraManagerNew.WorldToScreen(in bone.Position, out var screenPos, false))
+                    if (CameraManager.WorldToScreen(in bone.Position, out var screenPos, false))
                     {
                         anyBoneProjected = true;
-                        float fovDist = CameraManagerNew.GetFovMagnitude(screenPos);
+                        float fovDist = CameraManager.GetFovMagnitude(screenPos);
                         if (fovDist < bestFovForThisPlayer)
                         {
                             bestFovForThisPlayer = fovDist;
@@ -408,10 +408,10 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
 
             foreach (var bone in target.Skeleton.BoneTransforms.Values)
             {
-                if (CameraManagerNew.WorldToScreen(in bone.Position, out var screenPos, false))
+                if (CameraManager.WorldToScreen(in bone.Position, out var screenPos, false))
                 {
                     anyBoneProjected = true;
-                    float fovDist = CameraManagerNew.GetFovMagnitude(screenPos);
+                    float fovDist = CameraManager.GetFovMagnitude(screenPos);
                     if (fovDist < minFov)
                         minFov = fovDist;
                 }
@@ -452,9 +452,9 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
                 float bestFov = float.MaxValue;
                 foreach (var candidate in target.Skeleton.BoneTransforms.Values)
                 {
-                    if (CameraManagerNew.WorldToScreen(in candidate.Position, out var screenPos))
+                    if (CameraManager.WorldToScreen(in candidate.Position, out var screenPos))
                     {
-                        float fov = CameraManagerNew.GetFovMagnitude(screenPos);
+                        float fov = CameraManager.GetFovMagnitude(screenPos);
                         if (fov < bestFov)
                         {
                             bestFov = fov;
@@ -511,11 +511,11 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
 
             // Original DeviceAimbot device aiming (only if MemoryAim is disabled)
             // Convert to screen space
-            if (!CameraManagerNew.WorldToScreen(ref targetPos, out var screenPos, false))
+            if (!CameraManager.WorldToScreen(ref targetPos, out var screenPos, false))
                 return;
 
             // Calculate delta from center
-            var center = CameraManagerNew.ViewportCenter;
+            var center = CameraManager.ViewportCenter;
             float deltaX = screenPos.X - center.X;
             float deltaY = screenPos.Y - center.Y;
 
