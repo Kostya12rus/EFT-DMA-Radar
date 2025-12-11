@@ -44,6 +44,13 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 {
     public sealed class RadarViewModel
     {
+        #region Events
+        /// <summary>
+        /// Fired when the follow target changes
+        /// </summary>
+        public event Action<string> OnFollowTargetChanged;
+        #endregion
+
         #region Static Interface
 
         /// <summary>
@@ -603,38 +610,35 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 p != LocalPlayer &&
                 !p.HasExfild &&
                 p.IsAlive &&
-                p.IsHumanHostileActive &&
+                p.IsFriendlyActive &&
                 p.GroupID == LocalPlayer?.GroupID &&
                 p.GroupID != -1
             ).ToList();
 
             if (teammates == null || teammates.Count == 0)
             {
-                // No teammates, follow self
                 _followTarget = null;
                 return;
             }
 
             if (_followTarget == null)
             {
-                // Currently following self, switch to first teammate
                 _followTarget = teammates[0];
             }
             else
             {
-                // Find current target in the list and move to next
                 int currentIndex = teammates.IndexOf(_followTarget);
                 if (currentIndex >= 0 && currentIndex < teammates.Count - 1)
                 {
-                    // Switch to next teammate
                     _followTarget = teammates[currentIndex + 1];
                 }
                 else
                 {
-                    // Back to self
                     _followTarget = null;
                 }
             }
+
+            OnFollowTargetChanged?.Invoke(GetFollowTargetInfo());
         }
 
         /// <summary>
@@ -643,13 +647,13 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         /// <param name="teammate">Teammate to follow, or null to follow self.</param>
         public void SetFollowTarget(AbstractPlayer teammate)
         {
-            // Validate that this is a teammate or null
             if (teammate == null ||
-                (teammate.IsHumanHostileActive &&
+                (teammate.IsFriendlyActive &&
                  teammate.GroupID == LocalPlayer?.GroupID &&
                  teammate.GroupID != -1))
             {
                 _followTarget = teammate;
+                OnFollowTargetChanged?.Invoke(GetFollowTargetInfo());
             }
         }
 
@@ -660,9 +664,9 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         public string GetFollowTargetInfo()
         {
             if (_followTarget == null)
-                return "Following: Self";
+                return "Following: LocalPlayer";
 
-            return $"Following: {_followTarget.Name ?? "Teammate"} (Group {_followTarget.GroupID})";
+            return $"Following: {_followTarget.Name ?? "Teammate"}";
         }
 
         #endregion

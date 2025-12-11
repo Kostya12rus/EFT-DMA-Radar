@@ -767,6 +767,12 @@ namespace LoneEftDmaRadar
         public int EspFontSizeLarge { get; set; } = 24;
 
         /// <summary>
+        /// Font size used for Radar ESP widgets (loot height indicators ▲▼●, etc).
+        /// </summary>
+        [JsonPropertyName("radarWidgetFontSize")]
+        public float RadarWidgetFontSize { get; set; } = 9f;
+
+        /// <summary>
         /// Custom ESP Screen Width (0 = Auto).
         /// </summary>
         [JsonPropertyName("espScreenWidth")]

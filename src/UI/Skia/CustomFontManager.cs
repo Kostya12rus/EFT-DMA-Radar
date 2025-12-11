@@ -1,7 +1,7 @@
-﻿/*
+/*
  * Lone EFT DMA Radar
  * Brought to you by Lone (Lone DMA)
- * 
+ *
 MIT License
 
 Copyright (c) 2025 Lone DMA
@@ -26,46 +26,36 @@ SOFTWARE.
  *
 */
 
-using LoneEftDmaRadar.UI.Radar.ViewModels;
-using System.Windows.Controls;
+using SkiaSharp;
 
-namespace LoneEftDmaRadar.UI.Radar.Views
+namespace LoneEftDmaRadar.UI.Skia
 {
     /// <summary>
-    /// Interaction logic for RadarTab.xaml
+    /// Custom font manager for creating dynamic fonts based on configuration
     /// </summary>
-    public sealed partial class RadarTab : UserControl
+    internal static class CustomFontManager
     {
-        public RadarViewModel ViewModel { get; }
-
-        public RadarTab()
+        /// <summary>
+        /// Creates a font for radar ESP widgets (loot height indicators, etc)
+        /// </summary>
+        /// <param name="fontSize">The font size to use</param>
+        /// <returns>A configured SKFont instance</returns>
+        public static SKFont CreateRadarWidgetFont(float fontSize)
         {
-            InitializeComponent();
-            DataContext = ViewModel = new RadarViewModel(this);
-
-            Loaded += (s, e) =>
+            return new SKFont(CustomFonts.NeoSansStdRegular, fontSize)
             {
-                UpdateFollowTargetDisplay();
-
-                ViewModel.OnFollowTargetChanged += (targetInfo) =>
-                {
-                    Overlay.ViewModel.FollowTargetInfo = targetInfo;
-                };
-
-                Overlay.ViewModel.PropertyChanged += (sender, args) =>
-                {
-                    if (args.PropertyName == nameof(Overlay.ViewModel.IsMapFreeEnabled))
-                    {
-                        UpdateFollowTargetDisplay();
-                    }
-                };
+                Subpixel = true,
+                Edging = SKFontEdging.SubpixelAntialias
             };
+        }
 
-            void UpdateFollowTargetDisplay()
-            {
-                Overlay.ViewModel.IsFollowTargetVisible = !Overlay.ViewModel.IsMapFreeEnabled;
-                Overlay.ViewModel.FollowTargetInfo = ViewModel.GetFollowTargetInfo();
-            }
+        /// <summary>
+        /// Gets the current radar widget font based on app configuration
+        /// </summary>
+        /// <returns>A configured SKFont instance with current config settings</returns>
+        public static SKFont GetCurrentRadarWidgetFont()
+        {
+            return CreateRadarWidgetFont(App.Config.UI.RadarWidgetFontSize);
         }
     }
 }

@@ -429,5 +429,22 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         #endregion
 
+        #region Radar Widget Font
+
+        public float RadarWidgetFontSize
+        {
+            get => App.Config.UI.RadarWidgetFontSize;
+            set
+            {
+                if (Math.Abs(App.Config.UI.RadarWidgetFontSize - value) > 0.1f)
+                {
+                    App.Config.UI.RadarWidgetFontSize = value;
+                    OnPropertyChanged(nameof(RadarWidgetFontSize));
+                }
+            }
+        }
+
+        #endregion
+
     }
 }

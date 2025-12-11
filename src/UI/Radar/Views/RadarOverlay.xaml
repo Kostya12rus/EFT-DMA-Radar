@@ -21,20 +21,33 @@
 
     <Grid>
         <!-- ─── top‑left toolbar ─────────────────────────────────────────────── -->
-        <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Left"
+        <StackPanel HorizontalAlignment="Left"
                     VerticalAlignment="Top"
                     Margin="8">
-            <ToggleButton x:Name="MapFreeToggle"
-                          Content="{Binding MapFreeButtonText}"
-                          IsChecked="{Binding IsMapFreeEnabled}"
-                          Padding="6,2"
-                          Margin="0,0,4,0" />
-            <ToggleButton x:Name="LootToggle"
-                          Visibility="{Binding IsLootButtonVisible, Converter={StaticResource BoolToVis}}"
-                          Content="Loot"
-                          IsChecked="{Binding IsLootOverlayVisible}"
-                          Padding="6,2" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                <ToggleButton x:Name="MapFreeToggle"
+                              Content="{Binding MapFreeButtonText}"
+                              IsChecked="{Binding IsMapFreeEnabled}"
+                              Padding="6,2"
+                              Margin="0,0,4,0" />
+                <ToggleButton x:Name="LootToggle"
+                              Visibility="{Binding IsLootButtonVisible, Converter={StaticResource BoolToVis}}"
+                              Content="Loot"
+                              IsChecked="{Binding IsLootOverlayVisible}"
+                              Padding="6,2" />
+            </StackPanel>
+
+            <!-- Follow target indicator -->
+            <Border Background="#DD1E1E1E"
+                    Padding="8,4"
+                    CornerRadius="4"
+                    MinWidth="150"
+                    Visibility="{Binding IsFollowTargetVisible, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding FollowTargetInfo}"
+                           Foreground="White"
+                           FontWeight="SemiBold"
+                           FontSize="12" />
+            </Border>
         </StackPanel>
 
         <!-- ─── in‑tree Loot overlay ─────────────────────────────────────────── -->

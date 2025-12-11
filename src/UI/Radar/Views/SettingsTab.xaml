@@ -140,6 +140,28 @@ Toggle Fullscreen: F11
                                   Margin="0,0,0,8" />
                     </WrapPanel>
 
+                    <!-- Widget Font Size Slider -->
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="0,8,0,8">
+                        <TextBlock Text="Widget Font Size"
+                                   VerticalAlignment="Center"
+                                   ToolTip="Font size for loot height indicators (▲▼●) and other radar widgets." />
+                        <Slider x:Name="WidgetFontSizeSlider"
+                                Width="150"
+                                Margin="8,0"
+                                Minimum="6"
+                                Maximum="24"
+                                SmallChange="1"
+                                LargeChange="2"
+                                TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                Value="{Binding RadarWidgetFontSize, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding Value, ElementName=WidgetFontSizeSlider, StringFormat='{}{0:F0} px'}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                    </StackPanel>
+
                 </StackPanel>
             </GroupBox>
 

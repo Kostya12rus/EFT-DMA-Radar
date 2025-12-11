@@ -27,6 +27,7 @@ SOFTWARE.
 */
 
 using LoneEftDmaRadar.UI.Loot;
+using System.ComponentModel;
 
 namespace LoneEftDmaRadar.UI.Radar.ViewModels
 {
@@ -243,6 +244,34 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 {
                     _searchText = value;
                     OnPropertyChanged(nameof(SearchText));
+                }
+            }
+        }
+
+        private string _followTargetInfo = "Following: LocalPlayer";
+        public string FollowTargetInfo
+        {
+            get => _followTargetInfo;
+            set
+            {
+                if (_followTargetInfo != value)
+                {
+                    _followTargetInfo = value;
+                    OnPropertyChanged(nameof(FollowTargetInfo));
+                }
+            }
+        }
+
+        private bool _isFollowTargetVisible = true;
+        public bool IsFollowTargetVisible
+        {
+            get => _isFollowTargetVisible;
+            set
+            {
+                if (_isFollowTargetVisible != value)
+                {
+                    _isFollowTargetVisible = value;
+                    OnPropertyChanged(nameof(IsFollowTargetVisible));
                 }
             }
         }

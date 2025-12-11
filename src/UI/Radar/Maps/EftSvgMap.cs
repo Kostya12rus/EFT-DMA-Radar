@@ -49,9 +49,9 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
         /// <summary>Tracks the last valid zoom level to prevent zoom value drift at boundaries.</summary>
         private static int _lastValidZoom = 100;
         /// <summary>Redundant horizontal space to add around map boundaries.</summary>
-        private const float HORIZONTAL_PADDING = 100f;
+        private const float HORIZONTAL_PADDING = 25f;
         /// <summary>Redundant vertical space to add around map boundaries.</summary>
-        private const float VERTICAL_PADDING = 35f;
+        private const float VERTICAL_PADDING = 100f;
 
         /// <summary>
         /// Construct a new vector map by loading each SVG layer from the supplied zip archive.
