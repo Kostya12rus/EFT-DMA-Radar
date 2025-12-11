@@ -323,6 +323,14 @@ namespace LoneEftDmaRadar
         };
 
         /// <summary>
+        /// Player Whitelist Collection.
+        /// ** ONLY USE FOR BINDING **
+        /// </summary>
+        [JsonInclude]
+        [JsonPropertyName("playerWhitelist")]
+        public ObservableCollection<PlayerWhitelistEntry> PlayerWhitelist { get; private set; } = new();
+
+        /// <summary>
         /// FilteredLoot Filters Config.
         /// </summary>
         [JsonInclude]

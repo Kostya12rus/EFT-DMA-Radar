@@ -54,6 +54,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
             Viewport = new Rectangle();
             ActiveCameraPtr = 0;
             OpticCameraPtr = 0;
+            FPSCameraPtr = 0;
             _fov = 0f;
             _aspect = 0f;
             IsInitialized = false;
@@ -250,7 +251,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 
                 VerifyViewMatrix(_fpsMatrixAddress, "FPS");
 
-                _hasSearchedForPotentialCameras = false;
+                CacheOpticCameras(listItemsPtr, count);
 
                 IsInitialized = true;
                 DebugLogger.LogDebug("=== CameraManager Initialization Complete ===\n");
@@ -501,7 +502,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                         }
                         else
                         {
-                            SearchOpticCameras();
                             if (_potentialOpticCameras.Count > 0)
                             {
                                 if (ValidateOpticCameras())
@@ -511,13 +511,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                                 else
                                 {
                                     _useFpsCameraForCurrentAds = true;
-                                    DebugLogger.LogDebug("No valid optic cameras found, using FPS camera for this ADS");
+                                    DebugLogger.LogDebug("No valid optic cameras in cache, using FPS camera for this ADS");
                                 }
                             }
                             else
                             {
                                 _useFpsCameraForCurrentAds = true;
-                                DebugLogger.LogDebug("No potential optic cameras found, using FPS camera");
+                                DebugLogger.LogDebug("No potential optic cameras cached during initialization, using FPS camera");
                             }
                         }
                     }
@@ -603,22 +603,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         }
 
         /// <summary>
-        /// Search and cache all potential optic cameras
+        /// Cache all potential optic cameras during initialization
         /// </summary>
-        private void SearchOpticCameras()
+        private static void CacheOpticCameras(ulong listItemsPtr, int count)
         {
             try
             {
-                if (_hasSearchedForPotentialCameras) return;
-
-                var allCamerasAddr = Memory.UnityBase + UnitySDK.UnityOffsets.AllCameras;
-                var allCamerasPtr = Memory.ReadPtr(allCamerasAddr, false);
-                if (allCamerasPtr == 0) return;
-
-                var listItemsPtr = Memory.ReadPtr(allCamerasPtr + 0x0, false);
-                var count = Memory.ReadValue<int>(allCamerasPtr + 0x8, false);
-
-                DebugLogger.LogDebug($"Searching for potential optic cameras... ({count} cameras available)");
+                DebugLogger.LogDebug($"Caching potential optic cameras... ({count} cameras available)");
 
                 for (int i = 0; i < count; i++)
                 {
@@ -656,11 +647,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
                 }
 
                 _hasSearchedForPotentialCameras = true;
-                DebugLogger.LogDebug($"Potential optic camera search complete: {_potentialOpticCameras.Count} cameras cached");
+                DebugLogger.LogDebug($"Optic camera caching complete: {_potentialOpticCameras.Count} cameras cached");
             }
             catch (Exception ex)
             {
-                DebugLogger.LogDebug($"SearchOpticCameras error: {ex.Message}");
+                DebugLogger.LogDebug($"CacheOpticCameras error: {ex.Message}");
             }
         }
 

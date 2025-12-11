@@ -101,12 +101,12 @@
                      <WrapPanel Margin="0,4,0,0">
                         <TextBlock Text="Max Distance (0 = Unlimited):" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <Slider x:Name="PlayerDistanceSlider"
-                                Width="200"
+                                Width="300"
                                 Margin="0,0,8,0"
                                 Minimum="0"
-                                Maximum="500"
+                                Maximum="1000"
                                 SmallChange="10"
-                                LargeChange="50"
+                                LargeChange="100"
                                 Value="{Binding EspPlayerMaxDistance, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding Value, ElementName=PlayerDistanceSlider, StringFormat='{}{0:F0}m'}"
                                    VerticalAlignment="Center"
@@ -189,12 +189,12 @@
                      <WrapPanel Margin="0,4,0,0">
                         <TextBlock Text="Max Distance (0 = Unlimited):" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <Slider x:Name="AIDistanceSlider"
-                                Width="200"
+                                Width="300"
                                 Margin="0,0,8,0"
                                 Minimum="0"
-                                Maximum="500"
+                                Maximum="1000"
                                 SmallChange="10"
-                                LargeChange="50"
+                                LargeChange="100"
                                 Value="{Binding EspAIMaxDistance, Mode=TwoWay}"/>
                         <TextBlock Text="{Binding Value, ElementName=AIDistanceSlider, StringFormat='{}{0:F0}m'}"
                                    VerticalAlignment="Center"

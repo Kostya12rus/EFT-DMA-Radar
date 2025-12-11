@@ -219,20 +219,20 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
             if (heightDiff > 1.45) // loot is above player
             {
                 var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
-                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextOutline);
-                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, paints.Item1);
+                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, SKFonts.EspWidgetFont, SKPaints.TextOutline);
+                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, SKFonts.EspWidgetFont, paints.Item1);
             }
             else if (heightDiff < -1.45) // loot is below player
             {
                 var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
-                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextOutline);
-                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, paints.Item1);
+                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, SKFonts.EspWidgetFont, SKPaints.TextOutline);
+                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, SKFonts.EspWidgetFont, paints.Item1);
             }
             else // loot is level with player
             {
                 var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
-                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, SKPaints.TextOutline);
-                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, SKFonts.UIRegular, paints.Item1);
+                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, SKFonts.EspWidgetFont, SKPaints.TextOutline);
+                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, SKFonts.EspWidgetFont, paints.Item1);
             }
 
             point.Offset(7 * App.Config.UI.UIScale, 3 * App.Config.UI.UIScale);
@@ -241,13 +241,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                 label,
                 point,
                 SKTextAlign.Left,
-                SKFonts.UIRegular,
+                SKFonts.EspWidgetFont,
                 SKPaints.TextOutline); // Draw outline
             canvas.DrawText(
                 label,
                 point,
                 SKTextAlign.Left,
-                SKFonts.UIRegular,
+                SKFonts.EspWidgetFont,
                 paints.Item2);
 
         }
@@ -264,7 +264,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
         {
             var label = "";
             if (IsImportant)
-                label += "!!";
+                label += "";
             else if (Price > 0)
                 label += $"[{Utilities.FormatNumberKM(Price)}] ";
             label += ShortName;

@@ -876,8 +876,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         Name = "Zombie",
                         Type = PlayerType.AIScav
                     };
-                default:
-                    break;
             }
             if (voiceLine.Contains("scav", StringComparison.OrdinalIgnoreCase))
                 return new AIRole
@@ -902,24 +900,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 {
                     Name = "Bear",
                     Type = PlayerType.AIRaider
-                };
-                 if (voiceLine.Contains("black_division", StringComparison.OrdinalIgnoreCase)) // BLACK_DIVISION_1
-                return new AIRole
-                {
-                    Name = "BD",
-                    Type = PlayerType.AIRaider
-                };
-            if (voiceLine.Contains("vsrf", StringComparison.OrdinalIgnoreCase)) // VSRF_01
-                return new AIRole
-                {
-                    Name = "Vsrf",
-                    Type = PlayerType.AIRaider
-                };
-            if (voiceLine.Contains("civilian", StringComparison.OrdinalIgnoreCase)) // CIVILIAN_01
-                return new AIRole
-                {
-                    Name = "Civ",
-                    Type = PlayerType.AIScav
                 };
             DebugLogger.LogDebug($"Unknown Voice Line: {voiceLine}");
             return new AIRole
@@ -974,7 +954,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         if (IsError)
                             name = "ERROR"; // In case POS stops updating, let us know!
                         else
-                            name = Name;
+                        {
+                            var whitelistEntry = App.Config.PlayerWhitelist
+                                .FirstOrDefault(w => w.AcctID == AccountID);
+
+                            if (whitelistEntry != null && !string.IsNullOrEmpty(whitelistEntry.CustomName))
+                                name = whitelistEntry.CustomName;
+                            else
+                                name = Name;
+                        }
                         string health = null; string level = null;
                         if (this is ObservedPlayer observed)
                         {
@@ -984,7 +972,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                             if (observed.Profile?.Level is int levelResult)
                                 level = $"{levelResult}:";
                         }
-                        if (IsPmc)
+                        var isWhitelisted = App.Config.PlayerWhitelist
+                            .Any(w => w.AcctID == AccountID && !string.IsNullOrEmpty(w.CustomName));
+
+                        if (IsPmc && !isWhitelisted)
                         {
                             char faction = PlayerSide.ToString()[0]; // Get faction letter (U/B)
                             lines.Add($"[{faction}] {name}{health}");
@@ -1081,7 +1072,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 canvas.DrawText(line, point, SKTextAlign.Left, SKFonts.UIRegular, SKPaints.TextOutline); // Draw outline
                 canvas.DrawText(line, point, SKTextAlign.Left, SKFonts.UIRegular, paints.Item2); // draw line text
 
-                point.Offset(0, SKFonts.UIRegular.Spacing);
+                point.Offset(0, 12f * App.Config.UI.UIScale); // Compact
             }
         }
 
