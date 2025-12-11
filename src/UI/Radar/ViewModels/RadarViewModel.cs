@@ -64,15 +64,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         /// <summary>
         /// Map Identifier of Current Map.
         /// </summary>
-        private static string MapID
-        {
-            get
-            {
-                string id = Memory.MapID;
-                id ??= "null";
-                return id;
-            }
-        }
+        private static string MapID => Memory?.MapID;
 
         /// <summary>
         /// LocalPlayer (who is running Radar) 'Player' object.
@@ -265,7 +257,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 SetMapName();
                 /// Check for map switch
                 string mapID = MapID; // Cache ref
-                if (!mapID.Equals(EftMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
+                if (mapID != null && !string.Equals(mapID, EftMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
                 {
                     EftMapManager.LoadMap(mapID);
                 }
