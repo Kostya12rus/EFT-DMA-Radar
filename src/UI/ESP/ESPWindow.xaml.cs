@@ -711,17 +711,26 @@ namespace LoneEftDmaRadar.UI.ESP
         {
              try
              {
-                 var map = EftMapManager.Map;
-                 if (map is null) return;
-
-                 // Check if map changed
-                 if (_lastMapId != map.ID)
+                 // Ensure Map Manager is synced with Game Memory
+                 var gameMapId = Memory.Game?.MapID;
+                 if (!string.IsNullOrEmpty(gameMapId) && 
+                     !string.Equals(gameMapId, EftMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase))
                  {
-                     UpdateMiniRadarTexture(map);
+                     DebugLogger.LogInfo($"[MiniRadar] Map Mismatch detected! Game: '{gameMapId}' vs Manager: '{EftMapManager.Map?.ID}'. Loading correct map...");
+                     EftMapManager.LoadMap(gameMapId);
                  }
 
-                var cfg = App.Config.UI.MiniRadar;
+                 var map = EftMapManager.Map;
+                 var cfg = App.Config.UI.MiniRadar;
+
+                 if (map is null) return;
                  if (!cfg.Enabled) return;
+
+                 // Check if map changed or size changed
+                 if (_lastMapId != map.ID || _lastMiniRadarSize != cfg.Size)
+                 {
+                     UpdateMiniRadarTexture(map, cfg.Size);
+                 }
 
                  if (!_miniRadarParams.IsValid)
                      return;
@@ -885,15 +894,9 @@ namespace LoneEftDmaRadar.UI.ESP
              // Transform
              var mapPos = worldPos.ToMapPos(map.Config);
              
-             // Override Scale based on actual draw size vs texture size
-             float currentDrawSize = _miniRadarParams.DrawSize; // Set from Config in DrawMiniRadar
-             
-             float sizeFactor = currentDrawSize / 256f; 
-
-             float finalScale = _miniRadarParams.Scale * sizeFactor;
-             
-             float miniX = mapPos.X * finalScale + (_miniRadarParams.OffsetX * sizeFactor);
-             float miniY = mapPos.Y * finalScale + (_miniRadarParams.OffsetY * sizeFactor);
+             // Use pre-calculated params from UpdateMiniRadarTexture (already scaled to size)
+             float miniX = mapPos.X * _miniRadarParams.Scale + _miniRadarParams.OffsetX;
+             float miniY = mapPos.Y * _miniRadarParams.Scale + _miniRadarParams.OffsetY;
 
              // Screen relative
              float screenX = _miniRadarParams.ScreenX + miniX;
@@ -927,16 +930,27 @@ namespace LoneEftDmaRadar.UI.ESP
              ctx.DrawLine(new RawVector2(screenX, screenY), new RawVector2(endX, endY), ToColor(color), 1f);
         }
 
-        private void UpdateMiniRadarTexture(IEftMap map)
+        private int _lastMiniRadarSize = -1;
+        private DateTime _lastMiniRadarErrorTime = DateTime.MinValue;
+
+        private void UpdateMiniRadarTexture(IEftMap map, int size)
         {
              try 
              {
                  // Get Map Bounds
                  var bounds = map.GetBounds();
-                 if (bounds.IsEmpty) return;
+                 if (bounds.IsEmpty) 
+                 {
+                     if ((DateTime.Now - _lastMiniRadarErrorTime).TotalSeconds > 5)
+                     {
+                         DebugLogger.LogDebug($"[MiniRadar] Map bounds empty for '{map.ID}'. Retrying...");
+                         _lastMiniRadarErrorTime = DateTime.Now;
+                     }
+                     return;
+                 }
 
                  // We render to a higher resolution texture to ensure map lines are preserved during scaling
-                 // Then we let DX9 overlay handle the downsampling to screen size (MINIRADAR_SIZE)
+                 // Then we let DX9 overlay handle the downsampling to screen size
                  const int TEXTURE_SIZE = 512; // Moderate res for quality/perf balance
                  
                  float mapW = bounds.Width;
@@ -952,19 +966,10 @@ namespace LoneEftDmaRadar.UI.ESP
                  float renderOffsetX = (TEXTURE_SIZE - (mapW * renderScale)) / 2f;
                  float renderOffsetY = (TEXTURE_SIZE - (mapH * renderScale)) / 2f;
 
-                 float screenScale = renderScale * ((float)MINIRADAR_SIZE / TEXTURE_SIZE);
-                 float screenOffsetX = renderOffsetX * ((float)MINIRADAR_SIZE / TEXTURE_SIZE);
-                 float screenOffsetY = renderOffsetY * ((float)MINIRADAR_SIZE / TEXTURE_SIZE);
-
-                 _miniRadarParams = new MiniRadarParams
-                 {
-                     Scale = screenScale,
-                     OffsetX = screenOffsetX,
-                     OffsetY = screenOffsetY,
-                     DrawSize = MINIRADAR_SIZE,
-                     IsValid = true
-                 };
-
+                 float screenScale = renderScale * ((float)size / TEXTURE_SIZE);
+                 float screenOffsetX = renderOffsetX * ((float)size / TEXTURE_SIZE);
+                 float screenOffsetY = renderOffsetY * ((float)size / TEXTURE_SIZE);
+                 
                  // Render to Bitmap
                  using var bitmap = new SKBitmap(TEXTURE_SIZE, TEXTURE_SIZE, SKColorType.Bgra8888, SKAlphaType.Premul);
                  using var canvas = new SKCanvas(bitmap);
@@ -981,12 +986,28 @@ namespace LoneEftDmaRadar.UI.ESP
                  // Request texture update
                  _dxOverlay.RequestMapTextureUpdate(TEXTURE_SIZE, TEXTURE_SIZE, bytes);
                  
-                 // Set ID only after success to ensure we retry on failure
+                 // Set ID/Params only after success to ensure we retry on failure
+                 // This ensures that dots are only drawn if the map is valid and loaded
+                 _miniRadarParams = new MiniRadarParams
+                 {
+                     Scale = screenScale,
+                     OffsetX = screenOffsetX,
+                     OffsetY = screenOffsetY,
+                     DrawSize = size,
+                     IsValid = true
+                 };
+                 
                  _lastMapId = map.ID;
+                 _lastMiniRadarSize = size;
+                 DebugLogger.LogInfo($"[MiniRadar] Texture updated for '{map.ID}' @ {size}px (Scale: {screenScale:F3})");
              }
-             catch
+             catch (Exception ex)
              {
-                 // Silently fail to avoid console spam loop
+                 if ((DateTime.Now - _lastMiniRadarErrorTime).TotalSeconds > 5)
+                 {
+                     DebugLogger.LogDebug($"[MiniRadar] Update failed: {ex.Message}");
+                     _lastMiniRadarErrorTime = DateTime.Now;
+                 }
              }
         }
 
@@ -1410,6 +1431,8 @@ namespace LoneEftDmaRadar.UI.ESP
         {
             _lastInRaidState = false;
             _espGroupPaints.Clear();
+            _lastMapId = null; // Reset map ID to force update next raid
+            _miniRadarParams = default; // Clear render params
             CameraManager.Reset();
             RefreshESP();
             DebugLogger.LogInfo("ESP: RaidStopped -> state reset");
