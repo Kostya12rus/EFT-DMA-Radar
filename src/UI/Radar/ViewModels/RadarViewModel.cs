@@ -289,6 +289,16 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         targetPos = localPlayer.Position;
                     }
                     var targetMapPos = targetPos.ToMapPos(map.Config);
+
+                    if (_followTarget != null && _followTarget != localPlayer)
+                    {
+                        localPlayer.ReferenceHeight = _followTarget.Position.Y;
+                    }
+                    else
+                    {
+                        localPlayer.ReferenceHeight = localPlayer.Position.Y;
+                    }
+
                     if (MainWindow.Instance?.Radar?.MapSetupHelper?.ViewModel is MapSetupHelperViewModel mapSetup && mapSetup.IsVisible)
                     {
                         string targetName = _followTarget != null && _followTarget != localPlayer
@@ -322,7 +332,10 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     // Draw Map
                     try
                     {
-                        map.Draw(canvas, localPlayer.Position.Y, mapParams.Bounds, mapCanvasBounds);
+                        float floorHeight = (_followTarget != null && _followTarget != localPlayer)
+                            ? _followTarget.Position.Y
+                            : localPlayer.Position.Y;
+                        map.Draw(canvas, floorHeight, mapParams.Bounds, mapCanvasBounds);
                     }
                     catch (Exception ex)
                     {

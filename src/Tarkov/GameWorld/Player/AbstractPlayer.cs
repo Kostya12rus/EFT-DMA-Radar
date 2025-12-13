@@ -943,7 +943,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     DrawPlayerPill(canvas, localPlayer, point);
                     if (this == localPlayer)
                         return;
-                    var height = Position.Y - localPlayer.Position.Y;
+                    var height = Position.Y - localPlayer.ReferenceHeight;
                     var dist = Vector3.Distance(localPlayer.Position, Position);
                     var roundedHeight = (int)Math.Round(height);
                     var roundedDist = (int)Math.Round(dist);

@@ -51,6 +51,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         public Vector3 LookPosition => _lookRaycastTransform?.Position ?? this.Position;
 
         /// <summary>
+        /// Reference height for UI elements (height arrows, etc).
+        /// This can be set to follow target's height when following another player.
+        /// </summary>
+        public float ReferenceHeight { get; set; }
+
+        /// <summary>
         /// Public accessor for Hands Controller (used by FirearmManager).
         /// </summary>
         public new ulong HandsController
