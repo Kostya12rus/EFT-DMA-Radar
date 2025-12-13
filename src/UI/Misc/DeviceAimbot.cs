@@ -17,7 +17,7 @@ using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc.Ballistics;
 using SkiaSharp;
-using CameraManagerNew = LoneEftDmaRadar.Tarkov.GameWorld.Camera.CameraManager;
+using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 
 namespace LoneEftDmaRadar.UI.Misc
 {
@@ -318,10 +318,10 @@ namespace LoneEftDmaRadar.UI.Misc
                 {
                     // IMPORTANT: use same W2S style as ESP  "in" + default flags
                     // Disable on-screen check so viewport issues don't discard candidates.
-                    if (CameraManagerNew.WorldToScreen(in bone.Position, out var screenPos, false))
+                    if (CameraManager.WorldToScreen(in bone.Position, out var screenPos, false))
                     {
                         anyBoneProjected = true;
-                        float fovDist = CameraManagerNew.GetFovMagnitude(screenPos);
+                        float fovDist = CameraManager.GetFovMagnitude(screenPos);
                         if (fovDist < bestFovForThisPlayer)
                         {
                             bestFovForThisPlayer = fovDist;
@@ -359,51 +359,16 @@ namespace LoneEftDmaRadar.UI.Misc
 
 private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
 {
-    // DEBUG: Log every rejection reason for first few players
-    bool isDebugPlayer = _dbgTotalPlayers <= 3;
-    
-    if (isDebugPlayer)
-        DebugLogger.LogDebug($"\n[DeviceAimbot] === Checking Player #{_dbgTotalPlayers} ===");
-    
     // Don't target self
-    if (player == localPlayer)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: player == localPlayer");
+    if (player == localPlayer || player is LocalPlayer)
         return false;
-    }
-    
-    if (player is LocalPlayer)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: player is LocalPlayer");
+
+    if (!player.IsActive || !player.IsAlive)
         return false;
-    }
-    
-    if (!player.IsActive)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: !IsActive");
-        return false;
-    }
-    
-    if (!player.IsAlive)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: !IsAlive");
-        return false;
-    }
 
     // Check player type filters
     if (player.Type == PlayerType.Teammate)
-    {
-        if (isDebugPlayer) DebugLogger.LogDebug($"  ? REJECTED: Type is Teammate");
         return false;
-    }
-
-    if (isDebugPlayer)
-    {
-        DebugLogger.LogDebug($"  Player Type: {player.Type}");
-        DebugLogger.LogDebug($"  Config Filters:");
-        DebugLogger.LogDebug($"    PMC={Config.TargetPMC}, PScav={Config.TargetPlayerScav}");
-        DebugLogger.LogDebug($"    AI={Config.TargetAIScav}, Boss={Config.TargetBoss}, Raider={Config.TargetRaider}");
-    }
 
     bool shouldTarget = player.Type switch
     {
@@ -415,15 +380,7 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
         PlayerType.Default => Config.TargetAIScav,
         _ => false
     };
-    
-    if (isDebugPlayer)
-    {
-        if (shouldTarget)
-            DebugLogger.LogDebug($"  ? ACCEPTED!");
-        else
-            DebugLogger.LogDebug($"  ? REJECTED: Type {player.Type} not in filters or default case");
-    }
-    
+
     return shouldTarget;
 }
         private bool IsTargetValid(AbstractPlayer target, LocalPlayer localPlayer)
@@ -451,10 +408,10 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
 
             foreach (var bone in target.Skeleton.BoneTransforms.Values)
             {
-                if (CameraManagerNew.WorldToScreen(in bone.Position, out var screenPos, false))
+                if (CameraManager.WorldToScreen(in bone.Position, out var screenPos, false))
                 {
                     anyBoneProjected = true;
-                    float fovDist = CameraManagerNew.GetFovMagnitude(screenPos);
+                    float fovDist = CameraManager.GetFovMagnitude(screenPos);
                     if (fovDist < minFov)
                         minFov = fovDist;
                 }
@@ -495,9 +452,9 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
                 float bestFov = float.MaxValue;
                 foreach (var candidate in target.Skeleton.BoneTransforms.Values)
                 {
-                    if (CameraManagerNew.WorldToScreen(in candidate.Position, out var screenPos))
+                    if (CameraManager.WorldToScreen(in candidate.Position, out var screenPos))
                     {
-                        float fov = CameraManagerNew.GetFovMagnitude(screenPos);
+                        float fov = CameraManager.GetFovMagnitude(screenPos);
                         if (fov < bestFov)
                         {
                             bestFov = fov;
@@ -547,18 +504,18 @@ private bool ShouldTargetPlayer(AbstractPlayer player, LocalPlayer localPlayer)
             // ? Check if MemoryAim is enabled
             if (App.Config.MemWrites.Enabled && App.Config.MemWrites.MemoryAimEnabled)
             {
-                ApplyMemoryAim(localPlayer, targetPos);
-                DebugLogger.LogDebug($"[DeviceAimbot] Using MemoryAim for target {target.Name}");
+                LoneEftDmaRadar.Tarkov.Features.MemWrites.MemoryAim.Instance.SetTargetPosition(targetPos);
+                DebugLogger.LogDebug($"[DeviceAimbot] Delegating to MemoryAim for target {target.Name}");
                 return;
             }
 
             // Original DeviceAimbot device aiming (only if MemoryAim is disabled)
             // Convert to screen space
-            if (!CameraManagerNew.WorldToScreen(ref targetPos, out var screenPos, false))
+            if (!CameraManager.WorldToScreen(ref targetPos, out var screenPos, false))
                 return;
 
             // Calculate delta from center
-            var center = CameraManagerNew.ViewportCenter;
+            var center = CameraManager.ViewportCenter;
             float deltaX = screenPos.X - center.X;
             float deltaY = screenPos.Y - center.Y;
 
@@ -732,28 +689,46 @@ private static float RadToDeg(float radians)
             {
                 var firearmManager = localPlayer.FirearmManager;
                 if (firearmManager == null)
-                {
-                    DebugLogger.LogDebug("[DeviceAimbot] FirearmManager is null");
                     return null;
-                }
 
-                var hands = firearmManager.HandsController;
-                if (hands.Item2 == false) // Not a weapon
-                {
-                    DebugLogger.LogDebug("[DeviceAimbot] HandsController is not a weapon");
+                // Use cached hands info for safer access
+                var handsInfo = firearmManager.CurrentHands;
+                if (handsInfo == null || !handsInfo.IsWeapon || handsInfo.ItemAddr == 0)
                     return null;
-                }
 
-                ulong itemBase = _memory.ReadPtr(hands.Item1 + Offsets.ItemHandsController.Item, false);
-                ulong itemTemplate = _memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
+                ulong itemBase = handsInfo.ItemAddr;
+                
+                // Validate itemBase before proceeding
+                if (!MemDMA.IsValidVirtualAddress(itemBase))
+                    return CreateFallbackBallistics();
 
-                // Get ammo template
-                var ammoTemplate = FirearmManager.MagazineManager.GetAmmoTemplateFromWeapon(itemBase);
-                if (ammoTemplate == 0)
+                ulong itemTemplate;
+                try
                 {
-                    DebugLogger.LogDebug("[DeviceAimbot] No ammo template found, using fallback ballistics");
+                    itemTemplate = _memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
+                }
+                catch
+                {
                     return CreateFallbackBallistics();
                 }
+
+                if (!MemDMA.IsValidVirtualAddress(itemTemplate))
+                    return CreateFallbackBallistics();
+
+                // Get ammo template - wrap in try/catch since weapon may be empty
+                ulong ammoTemplate;
+                try
+                {
+                    ammoTemplate = FirearmManager.MagazineManager.GetAmmoTemplateFromWeapon(itemBase);
+                }
+                catch
+                {
+                    // Weapon has no ammo loaded
+                    return CreateFallbackBallistics();
+                }
+
+                if (ammoTemplate == 0 || !MemDMA.IsValidVirtualAddress(ammoTemplate))
+                    return CreateFallbackBallistics();
 
                 // Read ballistics data
                 var ballistics = new BallisticsInfo
@@ -773,16 +748,13 @@ private static float RadToDeg(float radians)
                 ballistics.BulletSpeed = baseSpeed * (1f + (velMod / 100f));
 
                 if (!ballistics.IsAmmoValid)
-                {
-                    DebugLogger.LogDebug("[DeviceAimbot] Ammo ballistics invalid, using fallback ballistics");
                     return CreateFallbackBallistics();
-                }
 
                 return ballistics;
             }
             catch (Exception ex)
             {
-                DebugLogger.LogDebug($"[DeviceAimbot] Failed to get ballistics: {ex}. Using fallback ballistics.");
+                DebugLogger.LogDebug($"[DeviceAimbot] Failed to get ballistics: {ex.Message}");
                 return CreateFallbackBallistics();
             }
         }

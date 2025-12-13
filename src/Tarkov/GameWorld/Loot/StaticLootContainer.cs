@@ -37,6 +37,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
     public sealed class StaticLootContainer : LootItem
     {
         private static readonly TarkovMarketItem _default = new();
+        private readonly ulong _interactiveClass;
 
         public override string Name { get; }
 
@@ -65,8 +66,43 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
             }
         }
 
+        // Internal constructor for LootManager with InteractiveClass
+        internal StaticLootContainer(string containerId, Vector3 position, ulong interactiveClass)
+            : this(containerId, position)
+        {
+            _interactiveClass = interactiveClass;
+        }
+
+        /// <summary>
+        /// Updates the searched status of this container by reading memory.
+        /// Called periodically by LootManager.
+        /// </summary>
+        internal void UpdateSearchedStatus()
+        {
+            if (_interactiveClass == 0)
+                return;
+
+            try
+            {
+                var interactingPlayer = Memory.ReadValue<ulong>(_interactiveClass + Offsets.LootableContainer.InteractingPlayer);
+                if (interactingPlayer != 0)
+                {
+                    Searched = true;
+                }
+            }
+            catch
+            {
+            }
+        }
+
         public override void Draw(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
         {
+            if (!App.Config.Containers.Enabled)
+                return;
+
+            if (App.Config.Containers.HideSearched && Searched)
+                return;
+
             if (Position.WithinDistance(localPlayer.Position, App.Config.Containers.DrawDistance))
             {
                 var heightDiff = Position.Y - localPlayer.Position.Y;
@@ -75,19 +111,19 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                 SKPaints.ShapeOutline.StrokeWidth = 2f;
                 if (heightDiff > 1.45) // loot is above player
                 {
-                    using var path = point.GetUpArrow(4);
+                    using var path = point.GetUpArrow(2.5f);
                     canvas.DrawPath(path, SKPaints.ShapeOutline);
                     canvas.DrawPath(path, SKPaints.PaintContainerLoot);
                 }
                 else if (heightDiff < -1.45) // loot is below player
                 {
-                    using var path = point.GetDownArrow(4);
+                    using var path = point.GetDownArrow(2.5f);
                     canvas.DrawPath(path, SKPaints.ShapeOutline);
                     canvas.DrawPath(path, SKPaints.PaintContainerLoot);
                 }
                 else // loot is level with player
                 {
-                    var size = 4 * App.Config.UI.UIScale;
+                    var size = 2.5f * App.Config.UI.UIScale;
                     canvas.DrawCircle(point, size, SKPaints.ShapeOutline);
                     canvas.DrawCircle(point, size, SKPaints.PaintContainerLoot);
                 }

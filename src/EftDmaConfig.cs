@@ -323,6 +323,14 @@ namespace LoneEftDmaRadar
         };
 
         /// <summary>
+        /// Player Whitelist Collection.
+        /// ** ONLY USE FOR BINDING **
+        /// </summary>
+        [JsonInclude]
+        [JsonPropertyName("playerWhitelist")]
+        public ObservableCollection<PlayerWhitelistEntry> PlayerWhitelist { get; private set; } = new();
+
+        /// <summary>
         /// FilteredLoot Filters Config.
         /// </summary>
         [JsonInclude]
@@ -594,6 +602,13 @@ namespace LoneEftDmaRadar
         public bool EspAIBoxes { get; set; } = true;
 
         /// <summary>
+        /// Mini Radar Configuration.
+        /// </summary>
+        [JsonPropertyName("miniRadar")]
+        [JsonInclude]
+        public MiniRadarConfig MiniRadar { get; private set; } = new();
+
+        /// <summary>
         /// Show Player Names in ESP.
         /// </summary>
         [JsonPropertyName("espPlayerNames")]
@@ -769,6 +784,12 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("espFontSizeLarge")]
         public int EspFontSizeLarge { get; set; } = 24;
+
+        /// <summary>
+        /// Font size used for Radar ESP widgets (loot height indicators ▲▼●, etc).
+        /// </summary>
+        [JsonPropertyName("radarWidgetFontSize")]
+        public float RadarWidgetFontSize { get; set; } = 9f;
 
         /// <summary>
         /// Custom ESP Screen Width (0 = Auto).
@@ -971,6 +992,12 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("selectAll")]
         public bool SelectAll { get; set; } = true;
+
+        /// <summary>
+        /// Hide containers that have been searched by local player.
+        /// </summary>
+        [JsonPropertyName("hideSearched")]
+        public bool HideSearched { get; set; } = false;
 
         /// <summary>
         /// Selected containers to display.
@@ -1191,5 +1218,38 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("tickRate")]
         public string TickRate { get; set; } = "60";
+    }
+
+    public sealed class MiniRadarConfig
+    {
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = true;
+
+        [JsonPropertyName("size")]
+        public int Size { get; set; } = 256;
+
+        [JsonPropertyName("screenX")]
+        public float ScreenX { get; set; } = -1; // -1 = Auto (Top Right)
+
+        [JsonPropertyName("screenY")]
+        public float ScreenY { get; set; } = 20;
+
+        [JsonPropertyName("showLoot")]
+        public bool ShowLoot { get; set; } = true;
+
+        [JsonPropertyName("showPlayers")]
+        public bool ShowPlayers { get; set; } = true;
+
+        [JsonPropertyName("showExits")]
+        public bool ShowExits { get; set; } = true;
+
+        [JsonPropertyName("showContainers")]
+        public bool ShowContainers { get; set; } = true;
+
+        [JsonPropertyName("showGrenades")]
+        public bool ShowGrenades { get; set; } = true;
+
+        [JsonPropertyName("invertColors")]
+        public bool InvertColors { get; set; } = true;
     }
 }

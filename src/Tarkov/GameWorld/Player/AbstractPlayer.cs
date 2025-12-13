@@ -945,6 +945,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         return;
                     var height = Position.Y - localPlayer.Position.Y;
                     var dist = Vector3.Distance(localPlayer.Position, Position);
+                    var roundedHeight = (int)Math.Round(height);
+                    var roundedDist = (int)Math.Round(dist);
                     using var lines = new PooledList<string>();
                     if (!App.Config.UI.HideNames) // show full names & info
                     {
@@ -952,7 +954,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         if (IsError)
                             name = "ERROR"; // In case POS stops updating, let us know!
                         else
-                            name = Name;
+                        {
+                            var whitelistEntry = App.Config.PlayerWhitelist
+                                .FirstOrDefault(w => w.AcctID == AccountID);
+
+                            if (whitelistEntry != null && !string.IsNullOrEmpty(whitelistEntry.CustomName))
+                                name = whitelistEntry.CustomName;
+                            else
+                                name = Name;
+                        }
                         string health = null; string level = null;
                         if (this is ObservedPlayer observed)
                         {
@@ -960,14 +970,25 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                                 ? null
                                 : $" ({observed.HealthStatus})"; // Only display abnormal health status
                             if (observed.Profile?.Level is int levelResult)
-                                level = $"L{levelResult}:";
+                                level = $"{levelResult}:";
                         }
-                        lines.Add($"{level}{name}{health}");
-                        lines.Add($"H: {height:n0} D: {dist:n0}");
+                        var isWhitelisted = App.Config.PlayerWhitelist
+                            .Any(w => w.AcctID == AccountID && !string.IsNullOrEmpty(w.CustomName));
+
+                        if (IsPmc && !isWhitelisted)
+                        {
+                            char faction = PlayerSide.ToString()[0]; // Get faction letter (U/B)
+                            lines.Add($"[{faction}] {name}{health}");
+                        }
+                        else
+                        {
+                            lines.Add($"{name}{health}");
+                        }
+                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
                     }
                     else // just height, distance
                     {
-                        lines.Add($"{height:n0},{dist:n0}");
+                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
                         if (IsError)
                             lines[0] = "ERROR"; // In case POS stops updating, let us know!
                     }
@@ -1051,7 +1072,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 canvas.DrawText(line, point, SKTextAlign.Left, SKFonts.UIRegular, SKPaints.TextOutline); // Draw outline
                 canvas.DrawText(line, point, SKTextAlign.Left, SKFonts.UIRegular, paints.Item2); // draw line text
 
-                point.Offset(0, SKFonts.UIRegular.Spacing);
+                point.Offset(0, 12f * App.Config.UI.UIScale); // Compact
             }
         }
 

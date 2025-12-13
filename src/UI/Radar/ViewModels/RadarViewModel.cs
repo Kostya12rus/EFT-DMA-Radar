@@ -44,6 +44,13 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 {
     public sealed class RadarViewModel
     {
+        #region Events
+        /// <summary>
+        /// Fired when the follow target changes
+        /// </summary>
+        public event Action<string> OnFollowTargetChanged;
+        #endregion
+
         #region Static Interface
 
         /// <summary>
@@ -64,15 +71,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         /// <summary>
         /// Map Identifier of Current Map.
         /// </summary>
-        private static string MapID
-        {
-            get
-            {
-                string id = Memory.MapID;
-                id ??= "null";
-                return id;
-            }
-        }
+        private static string MapID => Memory?.MapID;
 
         /// <summary>
         /// LocalPlayer (who is running Radar) 'Player' object.
@@ -158,6 +157,9 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         private Vector2 _mapPanPosition;
         private long _lastRadarFrameTicks;
 
+        /// <summary>Current target player for camera following. Null = follow self.</summary>
+        private AbstractPlayer _followTarget;
+
         /// <summary>
         /// Skia Radar Viewport.
         /// </summary>
@@ -232,25 +234,29 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             var isReady = Ready;
             var inRaid = InRaid;
             var canvas = e.Surface.Canvas;
-            // FPS cap for radar rendering to free headroom for ESP.
+
+            // FPS cap for radar rendering - skip frames instead of blocking thread
             int maxFps = App.Config.UI.RadarMaxFPS;
             if (maxFps > 0)
             {
                 long now = Stopwatch.GetTimestamp();
                 double elapsedMs = (now - _lastRadarFrameTicks) * 1000.0 / Stopwatch.Frequency;
                 double targetMs = 1000.0 / maxFps;
-                double waitMs = targetMs - elapsedMs;
-                if (waitMs > 0)
+
+                if (elapsedMs < targetMs)
                 {
-                    Thread.Sleep((int)Math.Min(waitMs, 50)); // block briefly to align with target frame time
-                    now = Stopwatch.GetTimestamp();
+                    // Skip this frame - not enough time elapsed to maintain FPS cap
+                    // This prevents blocking the UI thread and allows ESP to render smoothly
+                    return;
                 }
+
                 _lastRadarFrameTicks = now;
             }
             else
             {
                 _lastRadarFrameTicks = Stopwatch.GetTimestamp();
             }
+
             // Begin draw
             try
             {
@@ -258,7 +264,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 SetMapName();
                 /// Check for map switch
                 string mapID = MapID; // Cache ref
-                if (!mapID.Equals(EftMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
+                if (mapID != null && !string.Equals(mapID, EftMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
                 {
                     EftMapManager.LoadMap(mapID);
                 }
@@ -268,12 +274,23 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     var map = EftMapManager.Map; // Cache ref
                     ArgumentNullException.ThrowIfNull(map, nameof(map));
                     var closestToMouse = _mouseOverItem; // cache ref
-                    // Get LocalPlayer location
-                    var localPlayerPos = localPlayer.Position;
-                    var localPlayerMapPos = localPlayerPos.ToMapPos(map.Config);
+                    // Get target location (either local player or teammate)
+                    Vector3 targetPos;
+                    if (_followTarget != null && _followTarget != localPlayer)
+                    {
+                        targetPos = _followTarget.Position;
+                    }
+                    else
+                    {
+                        targetPos = localPlayer.Position;
+                    }
+                    var targetMapPos = targetPos.ToMapPos(map.Config);
                     if (MainWindow.Instance?.Radar?.MapSetupHelper?.ViewModel is MapSetupHelperViewModel mapSetup && mapSetup.IsVisible)
                     {
-                        mapSetup.Coords = $"Unity X,Y,Z: {localPlayerPos.X},{localPlayerPos.Y},{localPlayerPos.Z}";
+                        string targetName = _followTarget != null && _followTarget != localPlayer
+                            ? $"Target: {_followTarget.Name ?? "Teammate"}"
+                            : "LocalPlayer";
+                        mapSetup.Coords = $"Unity X,Y,Z ({targetName}): {targetPos.X},{targetPos.Y},{targetPos.Z}";
                     }
                     // Prepare to draw Game Map
                     EftMapParams mapParams; // Drawing Source
@@ -281,14 +298,14 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     {
                         if (_mapPanPosition == default)
                         {
-                            _mapPanPosition = localPlayerMapPos;
+                            _mapPanPosition = targetMapPos;
                         }
                         mapParams = map.GetParameters(Radar, App.Config.UI.Zoom, ref _mapPanPosition);
                     }
                     else
                     {
                         _mapPanPosition = default;
-                        mapParams = map.GetParameters(Radar, App.Config.UI.Zoom, ref localPlayerMapPos); // Map auto follow LocalPlayer
+                        mapParams = map.GetParameters(Radar, App.Config.UI.Zoom, ref targetMapPos); // Map auto follow target
                     }
                     var info = e.RawInfo;
                     var mapCanvasBounds = new SKRect() // Drawing Destination
@@ -305,15 +322,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         .Where(x => !x.HasExfild); // Skip exfil'd players
                     if (App.Config.Loot.Enabled) // Draw loot (if enabled)
                     {
-                        if (Loot is IEnumerable<LootItem> loot)
-                        {
-                            foreach (var item in loot)
-                            {
-                                if (App.Config.Loot.HideCorpses && item is LootCorpse)
-                                    continue;
-                                item.Draw(canvas, mapParams, localPlayer);
-                            }
-                        }
                         if (App.Config.Containers.Enabled) // Draw Containers
                         {
                             var containerConfig = App.Config.Containers;
@@ -327,6 +335,15 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                                         container.Draw(canvas, mapParams, localPlayer);
                                     }
                                 }
+                            }
+                        }
+                        if (Loot is IEnumerable<LootItem> loot)
+                        {
+                            foreach (var item in loot)
+                            {
+                                if (App.Config.Loot.HideCorpses && item is LootCorpse)
+                                    continue;
+                                item.Draw(canvas, mapParams, localPlayer);
                             }
                         }
                     }
@@ -580,6 +597,76 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             {
                 App.Config.UI.Zoom = 200;
             }
+        }
+
+        /// <summary>
+        /// Switch camera follow target to the next teammate.
+        /// Cycles through: Self -> Teammates -> Self
+        /// </summary>
+        public void SwitchFollowTarget()
+        {
+            // Get teammates (players in the same group and not local player)
+            var teammates = AllPlayers?.Where(p =>
+                p != LocalPlayer &&
+                !p.HasExfild &&
+                p.IsAlive &&
+                p.IsFriendlyActive &&
+                p.GroupID == LocalPlayer?.GroupID &&
+                p.GroupID != -1
+            ).ToList();
+
+            if (teammates == null || teammates.Count == 0)
+            {
+                _followTarget = null;
+                return;
+            }
+
+            if (_followTarget == null)
+            {
+                _followTarget = teammates[0];
+            }
+            else
+            {
+                int currentIndex = teammates.IndexOf(_followTarget);
+                if (currentIndex >= 0 && currentIndex < teammates.Count - 1)
+                {
+                    _followTarget = teammates[currentIndex + 1];
+                }
+                else
+                {
+                    _followTarget = null;
+                }
+            }
+
+            OnFollowTargetChanged?.Invoke(GetFollowTargetInfo());
+        }
+
+        /// <summary>
+        /// Switch camera follow target to a specific teammate.
+        /// </summary>
+        /// <param name="teammate">Teammate to follow, or null to follow self.</param>
+        public void SetFollowTarget(AbstractPlayer teammate)
+        {
+            if (teammate == null ||
+                (teammate.IsFriendlyActive &&
+                 teammate.GroupID == LocalPlayer?.GroupID &&
+                 teammate.GroupID != -1))
+            {
+                _followTarget = teammate;
+                OnFollowTargetChanged?.Invoke(GetFollowTargetInfo());
+            }
+        }
+
+        /// <summary>
+        /// Get the current follow target information for display.
+        /// </summary>
+        /// <returns>String describing current follow target.</returns>
+        public string GetFollowTargetInfo()
+        {
+            if (_followTarget == null)
+                return "Following: LocalPlayer";
+
+            return $"Following: {_followTarget.Name ?? "Teammate"}";
         }
 
         #endregion

@@ -192,8 +192,17 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
             return predicate(this);
         }
 
-        private readonly Vector3 _position; // Loot doesn't move, readonly ok
+        private Vector3 _position; // Allow position updates for items in case they start rolling around
         public ref readonly Vector3 Position => ref _position;
+
+        /// <summary>
+        /// Updates the position of this loot item.
+        /// </summary>
+        /// <param name="newPosition">The new position</param>
+        public void UpdatePosition(Vector3 newPosition)
+        {
+            _position = newPosition;
+        }
         public Vector2 MouseoverPosition { get; set; }
 
         public virtual void Draw(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
@@ -207,23 +216,25 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
             var point = Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
             MouseoverPosition = new Vector2(point.X, point.Y);
             SKPaints.ShapeOutline.StrokeWidth = 2f;
+            var widgetFont = CustomFontManager.GetCurrentRadarWidgetFont();
+
             if (heightDiff > 1.45) // loot is above player
             {
-                using var path = point.GetUpArrow(5);
-                canvas.DrawPath(path, SKPaints.ShapeOutline);
-                canvas.DrawPath(path, paints.Item1);
+                var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
+                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, widgetFont, SKPaints.TextOutline);
+                canvas.DrawText("▲", adjustedPoint, SKTextAlign.Center, widgetFont, paints.Item1);
             }
             else if (heightDiff < -1.45) // loot is below player
             {
-                using var path = point.GetDownArrow(5);
-                canvas.DrawPath(path, SKPaints.ShapeOutline);
-                canvas.DrawPath(path, paints.Item1);
+                var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
+                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, widgetFont, SKPaints.TextOutline);
+                canvas.DrawText("▼", adjustedPoint, SKTextAlign.Center, widgetFont, paints.Item1);
             }
             else // loot is level with player
             {
-                var size = 5 * App.Config.UI.UIScale;
-                canvas.DrawCircle(point, size, SKPaints.ShapeOutline);
-                canvas.DrawCircle(point, size, paints.Item1);
+                var adjustedPoint = new SKPoint(point.X, point.Y + 3 * App.Config.UI.UIScale);
+                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, widgetFont, SKPaints.TextOutline);
+                canvas.DrawText("●", adjustedPoint, SKTextAlign.Center, widgetFont, paints.Item1);
             }
 
             point.Offset(7 * App.Config.UI.UIScale, 3 * App.Config.UI.UIScale);
@@ -232,13 +243,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                 label,
                 point,
                 SKTextAlign.Left,
-                SKFonts.UIRegular,
+                widgetFont,
                 SKPaints.TextOutline); // Draw outline
             canvas.DrawText(
                 label,
                 point,
                 SKTextAlign.Left,
-                SKFonts.UIRegular,
+                widgetFont,
                 paints.Item2);
 
         }
@@ -255,7 +266,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
         {
             var label = "";
             if (IsImportant)
-                label += "!!";
+                label += "";
             else if (Price > 0)
                 label += $"[{Utilities.FormatNumberKM(Price)}] ";
             label += ShortName;

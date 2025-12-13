@@ -59,5 +59,15 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
         /// <param name="localPlayerMapPos"></param>
         /// <returns></returns>
         EftMapParams GetParameters(SKGLElement control, int zoom, ref Vector2 localPlayerMapPos);
+
+        /// <summary>
+        /// Renders a full-map thumbnail to the provided canvas.
+        /// </summary>
+        void RenderThumbnail(SKCanvas canvas, int width, int height);
+
+        /// <summary>
+        /// Gets the map boundaries (0, 0, Width, Height) in Map Space.
+        /// </summary>
+        SKRect GetBounds();
     }
 }

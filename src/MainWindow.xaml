@@ -61,6 +61,9 @@
             <TabItem Header="Player Watchlist">
                 <tabs:PlayerWatchlistTab x:Name="PlayerWatchlist"/>
             </TabItem>
+            <TabItem Header="Player Whitelist">
+                <tabs:PlayerWhitelistTab x:Name="PlayerWhitelist"/>
+            </TabItem>
             <TabItem Header="Debug">
                 <tabs:DebugTab x:Name="DebugTab" />
             </TabItem>

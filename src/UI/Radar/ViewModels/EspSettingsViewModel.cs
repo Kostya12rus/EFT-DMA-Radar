@@ -688,6 +688,139 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
+        #region MiniRadar
+        public bool MiniRadarEnabled
+        {
+            get => App.Config.UI.MiniRadar.Enabled;
+            set
+            {
+                if (App.Config.UI.MiniRadar.Enabled != value)
+                {
+                    App.Config.UI.MiniRadar.Enabled = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int MiniRadarSize
+        {
+            get => App.Config.UI.MiniRadar.Size;
+            set
+            {
+                if (App.Config.UI.MiniRadar.Size != value)
+                {
+                    App.Config.UI.MiniRadar.Size = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public float MiniRadarScreenX
+        {
+            get => App.Config.UI.MiniRadar.ScreenX;
+            set
+            {
+                if (Math.Abs(App.Config.UI.MiniRadar.ScreenX - value) > float.Epsilon)
+                {
+                    App.Config.UI.MiniRadar.ScreenX = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public float MiniRadarScreenY
+        {
+            get => App.Config.UI.MiniRadar.ScreenY;
+            set
+            {
+                if (Math.Abs(App.Config.UI.MiniRadar.ScreenY - value) > float.Epsilon)
+                {
+                    App.Config.UI.MiniRadar.ScreenY = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool MiniRadarInvertColors
+        {
+            get => App.Config.UI.MiniRadar.InvertColors;
+            set
+            {
+                if (App.Config.UI.MiniRadar.InvertColors != value)
+                {
+                    App.Config.UI.MiniRadar.InvertColors = value;
+                    OnPropertyChanged();
+                    App.Config.Save(); // Save immediately as this affects heavy rendering might be good to persist
+                }
+            }
+        }
+
+        public bool MiniRadarShowLoot
+        {
+            get => App.Config.UI.MiniRadar.ShowLoot;
+            set
+            {
+                if (App.Config.UI.MiniRadar.ShowLoot != value)
+                {
+                    App.Config.UI.MiniRadar.ShowLoot = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool MiniRadarShowPlayers
+        {
+            get => App.Config.UI.MiniRadar.ShowPlayers;
+            set
+            {
+                if (App.Config.UI.MiniRadar.ShowPlayers != value)
+                {
+                    App.Config.UI.MiniRadar.ShowPlayers = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool MiniRadarShowExits
+        {
+            get => App.Config.UI.MiniRadar.ShowExits;
+            set
+            {
+                if (App.Config.UI.MiniRadar.ShowExits != value)
+                {
+                    App.Config.UI.MiniRadar.ShowExits = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool MiniRadarShowContainers
+        {
+            get => App.Config.UI.MiniRadar.ShowContainers;
+            set
+            {
+                if (App.Config.UI.MiniRadar.ShowContainers != value)
+                {
+                    App.Config.UI.MiniRadar.ShowContainers = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool MiniRadarShowGrenades
+        {
+            get => App.Config.UI.MiniRadar.ShowGrenades;
+            set
+            {
+                if (App.Config.UI.MiniRadar.ShowGrenades != value)
+                {
+                    App.Config.UI.MiniRadar.ShowGrenades = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        #endregion
+
         public string EspFontFamily
         {
             get => App.Config.UI.EspFontFamily;

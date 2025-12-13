@@ -42,6 +42,30 @@ namespace LoneEftDmaRadar.UI.Radar.Views
         {
             InitializeComponent();
             DataContext = ViewModel = new RadarViewModel(this);
+
+            Loaded += (s, e) =>
+            {
+                UpdateFollowTargetDisplay();
+
+                ViewModel.OnFollowTargetChanged += (targetInfo) =>
+                {
+                    Overlay.ViewModel.FollowTargetInfo = targetInfo;
+                };
+
+                Overlay.ViewModel.PropertyChanged += (sender, args) =>
+                {
+                    if (args.PropertyName == nameof(Overlay.ViewModel.IsMapFreeEnabled))
+                    {
+                        UpdateFollowTargetDisplay();
+                    }
+                };
+            };
+
+            void UpdateFollowTargetDisplay()
+            {
+                Overlay.ViewModel.IsFollowTargetVisible = !Overlay.ViewModel.IsMapFreeEnabled;
+                Overlay.ViewModel.FollowTargetInfo = ViewModel.GetFollowTargetInfo();
+            }
         }
     }
 }

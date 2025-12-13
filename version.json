@@ -1,6 +1,6 @@
 {
-    "version": "0.0.4",
-    "publicReleaseRefSpec": [
-      "^refs/heads/master$"
-    ]
-  }
+  "version": "0.0.14",
+  "publicReleaseRefSpec": [
+    "^refs/heads/master$"
+  ]
+}
