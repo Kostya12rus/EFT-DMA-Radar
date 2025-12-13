@@ -200,7 +200,7 @@ namespace LoneEftDmaRadar
         private async Task ConfigureProgramAsync(LoadingWindow loadingWindow)
         {
             await loadingWindow.ViewModel.UpdateProgressAsync(15, "Loading, Please Wait...");
-            _ = Task.Run(CheckForUpdatesAsync); // Run continuations on the thread pool
+            // _ = Task.Run(CheckForUpdatesAsync); // Run continuations on the thread pool
             var tarkovDataManager = TarkovDataManager.ModuleInitAsync();
             var eftMapManager = EftMapManager.ModuleInitAsync();
             var memoryInterface = MemoryInterface.ModuleInitAsync();

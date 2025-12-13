@@ -501,6 +501,12 @@ namespace LoneEftDmaRadar.UI.ESP
             if (allLoot is null)
                 return;
 
+            var color = ToColor(SKPaints.PaintAimviewWidgetPMC);
+
+            // будем хранить уже занятые прямоугольники с подписями,
+            // чтобы новые не налезали друг на друга
+            var usedLabelRects = new List<RectangleF>();
+
             foreach (var item in allLoot)
             {
                 if (item is null)
@@ -513,9 +519,19 @@ namespace LoneEftDmaRadar.UI.ESP
                 if (!WorldToScreen2(pos, out var screen, screenWidth, screenHeight))
                     continue;
 
-                float distance = localPlayer is null ? 0f : Vector3.Distance(localPlayer.Position, pos);
-                var shortName = string.IsNullOrWhiteSpace(item.ShortName) ? item.Name : item.ShortName;
+                int price = item.Price;
+                if (price > 0)
+                    continue;
+
                 var itemType = item.GetType().Name;
+                if (itemType != "LootItem")
+                    continue;
+
+                var shortName = string.IsNullOrWhiteSpace(item.ShortName) ? item.Name : item.ShortName;
+                if (shortName != null && shortName.StartsWith("Q_", StringComparison.Ordinal))
+                    continue;
+
+                float distance = localPlayer is null ? 0f : Vector3.Distance(localPlayer.Position, pos);
 
                 var flags = new List<string>(8);
                 if (item.IsQuestItem) flags.Add("quest");
@@ -528,23 +544,91 @@ namespace LoneEftDmaRadar.UI.ESP
                 if (item.IsWeapon) flags.Add("weapon");
                 if (item.IsCurrency) flags.Add("currency");
 
-                string flagText = flags.Count > 0 ? string.Join(", ", flags) : "-";
-                int price = item.Price;
+                if (flags.Count > 0)
+                    continue;
+
+                // Кружок на самом предмете
+                ctx.DrawCircle(ToRaw(screen), 3f, color, true);
+
+                //string flagText = flags.Count > 0 ? string.Join(", ", flags) : "-";
+
+                //var lines = new List<string>
+                //{
+                //    $"{shortName} [{itemType}] | Dist: {distance:F1}m | Pos: {pos.X:F1},{pos.Y:F1},{pos.Z:F1}",
+                //    $"ID: {item.ID} | Price: {(price > 0 ? price.ToString() : "?")} | Slots: {item.GridCount}",
+                //    $"Flags: {flagText}"
+                //};
 
                 var lines = new List<string>
                 {
-                    $"{shortName} [{itemType}] | Dist: {distance:F1}m | Pos: {pos.X:F1},{pos.Y:F1},{pos.Z:F1}",
-                    $"ID: {item.ID} | Price: {(price > 0 ? price.ToString() : "?")} | Slots: {item.GridCount} | Flags: {flagText}"
+                    $"{shortName} [{itemType}]"
                 };
 
-                float drawX = screen.X + 6f;
-                float drawY = screen.Y + 6f;
+                // -------- размещение текста наверху экрана без пересечений --------
+
                 float lineStep = 14f;
-                var color = ToColor(SKPaints.TextFilteredLoot);
+                float labelHeight = lineStep * lines.Count + 4f; // небольшой запас по высоте
+
+                // грубая оценка ширины по длине самой длинной строки
+                int maxLen = 0;
+                foreach (var l in lines)
+                    if (l.Length > maxLen) maxLen = l.Length;
+                float labelWidth = maxLen * 6f + 10f; // 6px на символ условно
+
+                float topMargin = 10f;
+                float sideMargin = 10f;
+
+                // X по горизонтали – примерно над предметом, но в пределах экрана
+                float labelX = Math.Clamp(screen.X, sideMargin, screenWidth - labelWidth - sideMargin);
+                float labelY = topMargin;
+
+                // сдвигаем по Y вниз, пока не перестанем пересекаться с уже занятыми прямоугольниками
+                bool overlapped;
+                int safetyCounter = 0;
+                do
+                {
+                    overlapped = false;
+                    var candidate = new RectangleF(labelX, labelY, labelWidth, labelHeight);
+
+                    foreach (var rect in usedLabelRects)
+                    {
+                        // проверяем горизонтальное и вертикальное пересечение
+                        bool horizontal = candidate.Right > rect.Left && candidate.Left < rect.Right;
+                        bool vertical = candidate.Bottom > rect.Top && candidate.Top < rect.Bottom;
+
+                        if (horizontal && vertical)
+                        {
+                            // пересекаемся – сдвигаем блок ниже и попробуем ещё раз
+                            labelY = rect.Bottom + 4f;
+                            overlapped = true;
+                            break;
+                        }
+                    }
+
+                    // на всякий случай не уезжаем за экран бесконечно
+                    if (labelY + labelHeight > screenHeight - topMargin)
+                        break;
+
+                    safetyCounter++;
+                }
+                while (overlapped && safetyCounter < 100);
+
+                // фиксируем прямоугольник этой подписи
+                var labelRect = new RectangleF(labelX, labelY, labelWidth, labelHeight);
+                usedLabelRects.Add(labelRect);
+
+                // линия от предмета к подписи
+                // можно тянуть к верхнему левому углу текста или к середине по высоте
+                var lineEnd = new Vector2(labelX, labelY); // к левому верхнему углу
+                ctx.DrawLine(ToRaw(screen), ToRaw(lineEnd), color, 1f);
+
+                // рисуем текст уже в labelX/labelY
+                float drawX = labelX + 4f;
+                float drawY = labelY + 4f;
 
                 foreach (var line in lines)
                 {
-                    ctx.DrawText(line, drawX, drawY, color, DxTextSize.Small);
+                    ctx.DrawText(line, drawX, drawY, color, DxTextSize.Medium);
                     drawY += lineStep;
                 }
             }

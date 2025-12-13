@@ -18,8 +18,11 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         private readonly DispatcherTimer _timer;
         private string _DeviceAimbotDebugText = "DeviceAimbot Aimbot: (no data)";
         private bool _showDeviceAimbotDebug = App.Config.Device.ShowDebug;
+
         private bool _showAIDebugOverlay = App.Config.UI.EspAIDebug;
         private string _aiDebugText = "AI Debug Overlay: (no data)";
+        private bool _showLootDebugOverlay = App.Config.UI.EspLootDebug;
+        private string _lootDebugText = "Loot Debug Overlay: (no data)";
 
         public DebugTabViewModel()
         {

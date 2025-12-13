@@ -47,6 +47,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
         /// All loot (with filter applied).
         /// </summary>
         public IReadOnlyList<LootItem> FilteredLoot { get; private set; }
+        public IReadOnlyList<LootItem> AllLoot { get; private set; }
 
         /// <summary>
         /// All Static Containers on the map.
@@ -73,13 +74,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                 try
                 {
                     var filter = LootFilter.Create();
-                    FilteredLoot = _loot.Values?
-                        .Where(x => filter(x))
-                        .OrderBy(x => x.Important)
-                        .ThenBy(x => x?.Price ?? 0)
-                        .ToList();
+                    FilteredLoot = _loot.Values?.Where(x => filter(x)).OrderBy(x => x.Important).ThenBy(x => x?.Price ?? 0).ToList();
+                    AllLoot = _loot.Values?.ToList();
                 }
-                catch { }
+                catch 
+                { 
+                }
                 finally
                 {
                     _filterSync.Exit();
