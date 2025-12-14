@@ -405,7 +405,8 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         {
                             if (player == localPlayer)
                                 continue; // Already drawn local player, move on
-                            player.Draw(canvas, mapParams, localPlayer);
+                            bool isFollowTarget = _followTarget != null && _followTarget == player;
+                            player.DrawReference(canvas, mapParams, localPlayer, targetPos, isFollowTarget);
                         }
                     }
                     if (App.Config.UI.ConnectGroups) // Connect Groups together
