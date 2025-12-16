@@ -106,7 +106,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                         price = _item.TraderPrice;
                 }
                 if (price <= 0)
-                    price = Math.Max(_item.FleaPrice, _item.TraderPrice);
+                {
+                    price = Config.Loot.PriceMode is LootPriceMode.FleaMarket ? _item.FleaPrice : _item.TraderPrice;
+                }
                 return (int)price;
             }
         }
@@ -212,7 +214,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
 
             var label = GetUILabel();
             var paints = GetPaints();
-            var heightDiff = Position.Y - localPlayer.Position.Y;
+            var heightDiff = Position.Y - localPlayer.ReferenceHeight;
             var point = Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
             MouseoverPosition = new Vector2(point.X, point.Y);
             SKPaints.ShapeOutline.StrokeWidth = 2f;

@@ -57,7 +57,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             if (Status == EStatus.Closed)
                 return;
 
-            var heightDiff = Position.Y - localPlayer.Position.Y;
+            var heightDiff = Position.Y - localPlayer.ReferenceHeight;
             
             var paint = Status switch
             {

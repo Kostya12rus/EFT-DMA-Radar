@@ -23,7 +23,7 @@ namespace SDK
 
         public readonly partial struct SynchronizableObjectLogicProcessor
         {
-            public const uint SynchronizableObjects = 0x10; // System.Collections.Generic.List<SynchronizableObject>
+            public const uint SynchronizableObjects = 0x18; // System.Collections.Generic.List<SynchronizableObject>
         }
 
         public readonly partial struct TripwireSynchronizableObject
@@ -40,7 +40,7 @@ namespace SDK
         public readonly partial struct BTRView
         {
             public const uint turret = 0x60; // EFT.Vehicle.BTRTurretView
-            public const uint _targetPosition = 0xAC; // UnityEngine.Vector3
+            public const uint _previousPosition = 0xB4;
         }
 
         public readonly partial struct BTRTurretView

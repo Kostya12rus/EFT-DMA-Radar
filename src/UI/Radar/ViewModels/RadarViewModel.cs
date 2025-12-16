@@ -272,7 +272,11 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 if (inRaid && LocalPlayer is LocalPlayer localPlayer) // LocalPlayer is in a raid -> Begin Drawing...
                 {
                     var map = EftMapManager.Map; // Cache ref
-                    ArgumentNullException.ThrowIfNull(map, nameof(map));
+                    if (map == null)
+                    {
+                        DebugLogger.LogDebug("[RadarViewModel] Map is null after loading, skipping render frame");
+                        return; // dont crash pls
+                    }
                     var closestToMouse = _mouseOverItem; // cache ref
                     // Get target location (either local player or teammate)
                     Vector3 targetPos;
@@ -285,6 +289,16 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         targetPos = localPlayer.Position;
                     }
                     var targetMapPos = targetPos.ToMapPos(map.Config);
+
+                    if (_followTarget != null && _followTarget != localPlayer)
+                    {
+                        localPlayer.ReferenceHeight = _followTarget.Position.Y;
+                    }
+                    else
+                    {
+                        localPlayer.ReferenceHeight = localPlayer.Position.Y;
+                    }
+
                     if (MainWindow.Instance?.Radar?.MapSetupHelper?.ViewModel is MapSetupHelperViewModel mapSetup && mapSetup.IsVisible)
                     {
                         string targetName = _followTarget != null && _followTarget != localPlayer
@@ -316,7 +330,18 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         Bottom = info.Rect.Bottom
                     };
                     // Draw Map
-                    map.Draw(canvas, localPlayer.Position.Y, mapParams.Bounds, mapCanvasBounds);
+                    try
+                    {
+                        float floorHeight = (_followTarget != null && _followTarget != localPlayer)
+                            ? _followTarget.Position.Y
+                            : localPlayer.Position.Y;
+                        map.Draw(canvas, floorHeight, mapParams.Bounds, mapCanvasBounds);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugLogger.LogError($"[RadarViewModel] Failed to draw map: {ex.Message}");
+                        return; // dont crash pls
+                    }
                     // Draw other players
                     var allPlayers = AllPlayers?
                         .Where(x => !x.HasExfild); // Skip exfil'd players
@@ -380,7 +405,8 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         {
                             if (player == localPlayer)
                                 continue; // Already drawn local player, move on
-                            player.Draw(canvas, mapParams, localPlayer);
+                            bool isFollowTarget = _followTarget != null && _followTarget == player;
+                            player.DrawReference(canvas, mapParams, localPlayer, targetPos, isFollowTarget);
                         }
                     }
                     if (App.Config.UI.ConnectGroups) // Connect Groups together

@@ -11,6 +11,7 @@ This app has been tested on 🪟 Windows 11 25H2 (Game) and 🪟 Windows 11 23H2
 ## Features ✨
 
 - 🛰️ ESP Fuser DX9 overlay
+   - Mini radar integration to the fuser ESP overlay
 - 🎯 Device Aimbot / Kmbox integration
 - 🕵️‍♂️ Silent aim (memory aim)
 - 💪 No recoil, no sway, and infinite stamina
@@ -18,7 +19,11 @@ This app has been tested on 🪟 Windows 11 25H2 (Game) and 🪟 Windows 11 23H2
 
 ##  Common Issues ⚠️
 
-### DX Overlay/D3DX Errors ("DX overlay init failed", "ESP DX init failed: System.DllNotFoundException: Unable to load DLL 'd3dx943.dll'...")
+### - You might have performance issue when running both the radar and the fuser overlay at the same time on low end hardware
+
+### - The silent aimbot / device aimbot might be innacurate
+
+### - DX Overlay/D3DX Errors ("DX overlay init failed", "ESP DX init failed: System.DllNotFoundException: Unable to load DLL 'd3dx943.dll'...")
 
 If you see an error like:
 

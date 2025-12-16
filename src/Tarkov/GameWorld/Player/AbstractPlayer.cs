@@ -913,22 +913,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
         #region Interfaces
 
-        public virtual ref readonly Vector3 Position
-        {
-            get
-            {
-                var skeletonPos = SkeletonRoot.Position;
-                if (skeletonPos != Vector3.Zero && !float.IsNaN(skeletonPos.X) && !float.IsInfinity(skeletonPos.X))
-                {
-                    _cachedPosition = skeletonPos;
-                    return ref SkeletonRoot.Position;
-                }
-                return ref _cachedPosition;
-            }
-        }
-        public Vector2 MouseoverPosition { get; set; }
-
         public void Draw(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
+        {
+            DrawReference(canvas, mapParams, localPlayer, localPlayer.Position, false);
+        }
+
+        /// <summary>
+        /// Draw this Entity on the Radar with custom reference position.
+        /// </summary>
+        public void DrawReference(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer, Vector3 referencePosition, bool isFollowTarget = false)
         {
             try
             {
@@ -943,8 +936,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     DrawPlayerPill(canvas, localPlayer, point);
                     if (this == localPlayer)
                         return;
-                    var height = Position.Y - localPlayer.Position.Y;
-                    var dist = Vector3.Distance(localPlayer.Position, Position);
+                    var height = Position.Y - localPlayer.ReferenceHeight;
+                    var refPos = referencePosition;
+                    var dist = Vector3.Distance(refPos, Position);
                     var roundedHeight = (int)Math.Round(height);
                     var roundedDist = (int)Math.Round(dist);
                     using var lines = new PooledList<string>();
@@ -984,11 +978,29 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         {
                             lines.Add($"{name}{health}");
                         }
-                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
+
+                        if (!isFollowTarget)
+                        {
+                            lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
+                        }
+                        else
+                        {
+                            if (roundedHeight != 0)
+                                lines.Add(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}");
+                        }
                     }
                     else // just height, distance
                     {
-                        lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
+                        if (!isFollowTarget)
+                        {
+                            lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
+                        }
+                        else
+                        {
+                            if (roundedHeight != 0)
+                                lines.Add(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}");
+                        }
+
                         if (IsError)
                             lines[0] = "ERROR"; // In case POS stops updating, let us know!
                     }
@@ -1001,6 +1013,22 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 DebugLogger.LogDebug($"WARNING! Player Draw Error: {ex}");
             }
         }
+
+    
+        public virtual ref readonly Vector3 Position
+        {
+            get
+            {
+                var skeletonPos = SkeletonRoot.Position;
+                if (skeletonPos != Vector3.Zero && !float.IsNaN(skeletonPos.X) && !float.IsInfinity(skeletonPos.X))
+                {
+                    _cachedPosition = skeletonPos;
+                    return ref SkeletonRoot.Position;
+                }
+                return ref _cachedPosition;
+            }
+        }
+        public Vector2 MouseoverPosition { get; set; }
 
         /// <summary>
         /// Draws a Player Pill on this location.
