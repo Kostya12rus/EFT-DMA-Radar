@@ -578,6 +578,12 @@ namespace LoneEftDmaRadar
         public bool MarkSusPlayers { get; set; } = false;
 
         /// <summary>
+        /// Automatically start ESP Fuser on application startup.
+        /// </summary>
+        [JsonPropertyName("espAutoStartup")]
+        public bool EspAutoStartup { get; set; }
+
+        /// <summary>
         /// Show Player Skeletons in ESP.
         /// </summary>
         [JsonPropertyName("espPlayerSkeletons")]

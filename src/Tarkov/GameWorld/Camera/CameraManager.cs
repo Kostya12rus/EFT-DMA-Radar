@@ -775,5 +775,28 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
         {
             return Vector2.Distance(ViewportCenter.AsVector2(), point.AsVector2());
         }
+
+        /// <summary>
+        /// World-to-screen projection with distance-based scaling for ESP markers.
+        /// Returns both screen position and scale factor based on distance from player.
+        /// </summary>
+        public static bool WorldToScreenWithScale(in Vector3 worldPos, out SKPoint screenPos, out float scale, bool onScreenCheck = false, bool useTolerance = false)
+        {
+            screenPos = default;
+            scale = 1f;
+
+            if (!WorldToScreen(in worldPos, out screenPos, onScreenCheck, useTolerance))
+            {
+                return false;
+            }
+
+            var playerPos = Memory.LocalPlayer?.Position ?? CameraPosition;
+            float distance = Vector3.Distance(playerPos, worldPos);
+
+            const float referenceDistance = 10f;
+            scale = Math.Clamp(referenceDistance / Math.Max(distance, 1f), 0.3f, 3f);
+
+            return true;
+        }
     }
 }

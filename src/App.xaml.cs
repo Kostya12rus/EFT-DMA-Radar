@@ -171,6 +171,12 @@ namespace LoneEftDmaRadar
 
                 MainWindow = new MainWindow();
                 MainWindow.Show();
+
+                if (Config.UI.EspAutoStartup)
+                {
+                    await System.Threading.Tasks.Task.Delay(1000);
+                    UI.ESP.ESPManager.StartESP();
+                }
             }
             catch (Exception ex)
             {

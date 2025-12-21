@@ -106,7 +106,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 _t3 = new WorkerThread()
                 {
                     Name = "Explosives Worker",
-                    SleepDuration = TimeSpan.FromMilliseconds(30),
+                    SleepDuration = TimeSpan.FromMilliseconds(16),
                     SleepMode = WorkerThreadSleepMode.DynamicSleep
                 };
                 _t3.PerformWork += ExplosivesWorker_PerformWork;
@@ -114,7 +114,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 _rgtPlayers = new RegisteredPlayers(rgtPlayersAddr, this);
                 ArgumentOutOfRangeException.ThrowIfLessThan(_rgtPlayers.GetPlayerCount(), 1, nameof(_rgtPlayers));
                 Loot = new(localGameWorld);
-                _exfilManager = new(mapID, _rgtPlayers.LocalPlayer.IsPmc);
+                _exfilManager = new ExitManager(localGameWorld, mapID, _rgtPlayers.LocalPlayer);
                 _explosivesManager = new(localGameWorld);
                 _memWritesManager = new MemWritesManager();
                 _t4 = new WorkerThread()
@@ -314,6 +314,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             Loot.Refresh(ct);
              // Refresh player equipment
             RefreshEquipment();
+            // Refresh Exfil Status
+            RefreshExfils();
         }
 
         private void RefreshEquipment()
@@ -325,6 +327,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             foreach (var player in players)
             {
                 player.Equipment.Refresh();
+            }
+        }
+
+        /// <summary>
+        /// Refreshes the exfil status from game memory.
+        /// </summary>
+        private void RefreshExfils()
+        {
+            try
+            {
+                _exfilManager?.Refresh();
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[ExitManager] ERROR Refreshing: {ex}");
             }
         }
 

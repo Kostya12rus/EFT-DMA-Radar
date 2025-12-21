@@ -49,11 +49,14 @@ namespace LoneEftDmaRadar.UI.Misc
         private int _dbgWithinDistance;
         private int _dbgHaveSkeleton;
         private int _dbgW2SPassed;
+#pragma warning disable CS0169 // Field is never used
         private ulong _cachedBreathEffector;
         private ulong _cachedShotEffector;
         private ulong _cachedNewShotRecoil;
+#pragma warning disable CS0414 // Field is assigned but its value is never used
         private float _lastRecoilAmount = 1.0f;
         private float _lastSwayAmount = 1.0f;
+#pragma warning restore
         #endregion
 
         private void SendDeviceMove(int dx, int dy)
@@ -974,37 +977,43 @@ private static float RadToDeg(float radians)
                     IsAntialias = true
                 };
 
+                using var textFont = new SKFont
+                {
+                    Size = 14,
+                    Typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Normal)
+                };
+
+                using var headerFont = new SKFont
+                {
+                    Size = 14,
+                    Typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Bold)
+                };
+
                 using var textPaint = new SKPaint
                 {
                     Color = SKColors.White,
-                    TextSize = 14,
-                    IsAntialias = true,
-                    Typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Normal)
+                    IsAntialias = true
                 };
 
                 using var headerPaint = new SKPaint
                 {
                     Color = SKColors.Yellow,
-                    TextSize = 14,
-                    IsAntialias = true,
-                    Typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Bold)
+                    IsAntialias = true
                 };
 
                 using var shadowPaint = new SKPaint
                 {
                     Color = SKColors.Black,
-                    TextSize = 14,
                     IsAntialias = true,
                     Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 3,
-                    Typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Bold)
+                    StrokeWidth = 3
                 };
 
                 // Background size
                 float maxWidth = 0;
                 foreach (var line in lines)
                 {
-                    float width = textPaint.MeasureText(line);
+                    float width = textFont.MeasureText(line);
                     if (width > maxWidth) maxWidth = width;
                 }
 
@@ -1013,6 +1022,13 @@ private static float RadToDeg(float radians)
                 // Text with shadow (fake bold / shading)
                 foreach (var line in lines)
                 {
+                    var font = line.StartsWith("===") ||
+                                line == "Ballistics:" ||
+                                line == "Settings:" ||
+                                line == "Target Filters:" ||
+                                line == "Players (this scan):"
+                        ? headerFont
+                        : textFont;
                     var paint = line.StartsWith("===") ||
                                 line == "Ballistics:" ||
                                 line == "Settings:" ||
@@ -1021,8 +1037,8 @@ private static float RadToDeg(float radians)
                         ? headerPaint
                         : textPaint;
 
-                    canvas.DrawText(line, x + 1.5f, y + 1.5f, shadowPaint);
-                    canvas.DrawText(line, x, y, paint);
+                    canvas.DrawText(line, x + 1.5f, y + 1.5f, SKTextAlign.Left, font, shadowPaint);
+                    canvas.DrawText(line, x, y, SKTextAlign.Left, font, paint);
                     y += lineHeight;
                 }
             }

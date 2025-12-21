@@ -26,7 +26,7 @@
         public ulong GetComponent(string className)
         {
             throw new NotImplementedException("TODO");
-            // component list
+            /* // component list
             var componentArr = Memory.ReadValue<DynamicArray>(Components);
             int size = componentArr.Size <= 0x1000 ?
                 (int)componentArr.Size : 0x1000;
@@ -39,6 +39,7 @@
                     return compClass;
             }
             throw new InvalidOperationException("Component Not Found!");
+            */
         }
     }
 }

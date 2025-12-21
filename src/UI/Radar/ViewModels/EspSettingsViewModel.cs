@@ -70,6 +70,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         public ICommand ToggleEspCommand { get; }
         public ICommand StartEspCommand { get; }
 
+        public bool EspAutoStartup
+        {
+            get => App.Config.UI.EspAutoStartup;
+            set
+            {
+                if (App.Config.UI.EspAutoStartup != value)
+                {
+                    App.Config.UI.EspAutoStartup = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public bool ShowESP
         {
             get => App.Config.UI.ShowESP;

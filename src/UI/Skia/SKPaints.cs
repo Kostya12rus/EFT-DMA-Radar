@@ -513,6 +513,14 @@ namespace LoneEftDmaRadar.UI.Skia
             IsAntialias = true,
         };
 
+        public static SKPaint PaintExfil { get; } = new()
+        {
+            Color = SKColors.Yellow,
+            StrokeWidth = 0.25f,
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true,
+        };
+
         public static SKPaint TextExfil { get; } = new()
         {
             Color = SKColors.White,

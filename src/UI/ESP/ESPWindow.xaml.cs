@@ -25,7 +25,6 @@ using DxColor = SharpDX.Mathematics.Interop.RawColorBGRA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 using LoneEftDmaRadar.UI.Radar;
 using LoneEftDmaRadar.UI.Radar.Maps;
-using LoneEftDmaRadar.UI.Skia;
 
 namespace LoneEftDmaRadar.UI.ESP
 {
@@ -320,15 +319,18 @@ namespace LoneEftDmaRadar.UI.ESP
                             {
                                 if (exit is Exfil exfil && (exfil.Status == Exfil.EStatus.Open || exfil.Status == Exfil.EStatus.Pending))
                                 {
-                                     if (WorldToScreen2(exfil.Position, out var screen, screenWidth, screenHeight))
+                                     if (CameraManager.WorldToScreenWithScale(exfil.Position, out var screen, out float scale, true, true))
                                      {
                                          var dotColor = exfil.Status == Exfil.EStatus.Pending
                                              ? ToColor(SKPaints.PaintExfilPending)
                                              : ToColor(SKPaints.PaintExfilOpen);
                                          var textColor = GetExfilColorForRender();
 
-                                         ctx.DrawCircle(ToRaw(screen), 4f, dotColor, true);
-                                         ctx.DrawText(exfil.Name, screen.X + 6, screen.Y + 4, textColor, DxTextSize.Medium);
+                                         float radius = Math.Clamp(4f * App.Config.UI.UIScale * scale, 2f, 15f);
+                                         ctx.DrawCircle(ToRaw(screen), radius, dotColor, true);
+
+                                         DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
+                                         ctx.DrawText(exfil.Name, screen.X + radius + 6, screen.Y + 4, textColor, textSize);
                                      }
                                 }
                             }
@@ -413,7 +415,7 @@ namespace LoneEftDmaRadar.UI.ESP
                 if (App.Config.UI.EspLootMaxDistance > 0 && distance > App.Config.UI.EspLootMaxDistance)
                     continue;
 
-                if (WorldToScreen2(item.Position, out var screen, screenWidth, screenHeight))
+                if (CameraManager.WorldToScreenWithScale(item.Position, out var screen, out float scale, true, true))
                 {
                      // Calculate cone filter based on screen position
                      bool coneEnabled = App.Config.UI.EspLootConeEnabled && App.Config.UI.EspLootConeAngle > 0f;
@@ -482,7 +484,8 @@ namespace LoneEftDmaRadar.UI.ESP
                          textColor = circleColor;
                      }
 
-                     ctx.DrawCircle(ToRaw(screen), 2f, circleColor, true);
+                     float radius = Math.Clamp(3f * App.Config.UI.UIScale * scale, 2f, 15f);
+                     ctx.DrawCircle(ToRaw(screen), radius, circleColor, true);
 
                      if (item.Important || inCone)
                      {
@@ -507,7 +510,8 @@ namespace LoneEftDmaRadar.UI.ESP
                                      : $"{shortName} ({LoneEftDmaRadar.Misc.Utilities.FormatNumberKM(item.Price)})";
                              }
                          }
-                         ctx.DrawText(text, screen.X + 4, screen.Y + 4, textColor, DxTextSize.Small);
+                         DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
+                         ctx.DrawText(text, screen.X + radius + 4, screen.Y + 4, textColor, textSize);
                     }
                 }
             }
@@ -541,11 +545,14 @@ namespace LoneEftDmaRadar.UI.ESP
                 if (maxDistance > 0 && distance > maxDistance)
                     continue;
 
-                if (!WorldToScreen2(container.Position, out var screen, screenWidth, screenHeight))
+                if (!CameraManager.WorldToScreenWithScale(container.Position, out var screen, out float scale, true, true))
                     continue;
 
-                ctx.DrawCircle(ToRaw(screen), 3f, color, true);
-                ctx.DrawText(container.Name ?? "Container", screen.X + 4, screen.Y + 4, color, DxTextSize.Small);
+                float radius = Math.Clamp(3f * App.Config.UI.UIScale * scale, 2f, 15f);
+                ctx.DrawCircle(ToRaw(screen), radius, color, true);
+
+                DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
+                ctx.DrawText(container.Name ?? "Container", screen.X + radius + 4, screen.Y + 4, color, textSize);
             }
         }
 
@@ -564,12 +571,15 @@ namespace LoneEftDmaRadar.UI.ESP
                     if (tripwire.Position == Vector3.Zero)
                         continue;
 
-                    if (!WorldToScreen2(tripwire.Position, out var screen, screenWidth, screenHeight))
+                    if (!CameraManager.WorldToScreenWithScale(tripwire.Position, out var screen, out float scale, true, true))
                         continue;
 
                     var color = GetTripwireColorForRender();
-                    ctx.DrawCircle(ToRaw(screen), 5f, color, true);
-                    ctx.DrawText("Tripwire", screen.X + 6, screen.Y, color, DxTextSize.Small);
+                    float radius = Math.Clamp(5f * App.Config.UI.UIScale * scale, 3f, 20f);
+                    ctx.DrawCircle(ToRaw(screen), radius, color, true);
+
+                    DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
+                    ctx.DrawText("Tripwire", screen.X + radius + 6, screen.Y, color, textSize);
                 }
                 catch
                 {
@@ -594,12 +604,15 @@ namespace LoneEftDmaRadar.UI.ESP
                     if (grenade.Position == Vector3.Zero)
                         continue;
 
-                    if (!WorldToScreen2(grenade.Position, out var screen, screenWidth, screenHeight))
+                    if (!CameraManager.WorldToScreenWithScale(grenade.Position, out var screen, out float scale, true, true))
                         continue;
 
                     var color = GetGrenadeColorForRender();
-                    ctx.DrawCircle(ToRaw(screen), 5f, color, true);
-                    ctx.DrawText("Grenade", screen.X + 6, screen.Y, color, DxTextSize.Small);
+                    float radius = Math.Clamp(5f * App.Config.UI.UIScale * scale, 3f, 20f);
+                    ctx.DrawCircle(ToRaw(screen), radius, color, true);
+
+                    DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
+                    ctx.DrawText("Grenade", screen.X + radius + 6, screen.Y, color, textSize);
                 }
                 catch
                 {

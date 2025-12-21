@@ -14,7 +14,31 @@ namespace SDK
 			public const uint MainPlayer = 0x1e8; // EFT.Player
 			public const uint SynchronizableObjectLogicProcessor = 0x220; // EFT.SynchronizableObjects.SynchronizableObjectLogicProcessor
 			public const uint Grenades = 0x260; // DictionaryListHydra<int, Throwable>
-		}
+            public const uint ExfiltrationController = 0x48; // EFT.Interactive.ExfiltrationController
+        }
+
+        public readonly partial struct ExfiltrationController
+        {
+            public const uint SecretExfilitrationController = 0x18; // EFT.Interactive.SecretExfiltrations.SecretExfilitranionController
+            public const uint ExfiltrationPoints = 0x20; // EFT.Interactive.ExfiltrationPoint[]
+            public const uint ScavExfiltrationPoints = 0x28; // EFT.Interactive.ScavExfiltrationPoint[]
+            public const uint SecretExfiltrationPoints = 0x30; // EFT.Interactive.SecretExfiltrations.SecretExfiltrationPoint[]
+        }
+
+        public readonly partial struct ExfiltrationPoint
+        {
+            public const uint _status = 0x58; // EFT.Interactive.EExfiltrationStatus
+            public const uint Settings = 0x98; // EFT.Interactive.ExitTriggerSettings
+            public const uint EligibleEntryPoints = 0xC0; // string[]
+            public const uint EligibleIds = 0xF8; // System.Collections.Generic.List<string>
+        }
+
+        public readonly partial struct ExitTriggerSettings
+        {
+            public const uint Id = 0x10; // string
+            public const uint Name = 0x18; // string
+            public const uint EntryPoints = 0x40; // string
+        }
 
         public readonly partial struct SynchronizableObject
         {
