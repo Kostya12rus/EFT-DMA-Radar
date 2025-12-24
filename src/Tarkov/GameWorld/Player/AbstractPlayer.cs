@@ -939,6 +939,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     var dist = Vector3.Distance(refPos, Position);
                     var roundedHeight = (int)Math.Round(height);
                     var roundedDist = (int)Math.Round(dist);
+
+                    // Draw height indicator on the left side
+                    if (roundedHeight != 0)
+                    {
+                        string heightIndicator = roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}";
+                        DrawHeightIndicator(canvas, point, heightIndicator);
+                    }
+
+                    // Draw name and distance on the right side
                     using var lines = new PooledList<string>();
                     if (!App.Config.UI.HideNames) // show full names & info
                     {
@@ -955,14 +964,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                             else
                                 name = Name;
                         }
-                        string health = null; string level = null;
+                        string health = null;
                         if (this is ObservedPlayer observed)
                         {
                             health = observed.HealthStatus is Enums.ETagStatus.Healthy
                                 ? null
                                 : $" ({observed.HealthStatus})"; // Only display abnormal health status
-                            if (observed.Profile?.Level is int levelResult)
-                                level = $"{levelResult}:";
                         }
                         var isWhitelisted = App.Config.PlayerWhitelist
                             .Any(w => w.AcctID == AccountID && !string.IsNullOrEmpty(w.CustomName));
@@ -979,24 +986,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                         if (!isFollowTarget)
                         {
-                            lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
-                        }
-                        else
-                        {
-                            if (roundedHeight != 0)
-                                lines.Add(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}");
+                            lines.Add($"{roundedDist}M");
                         }
                     }
-                    else // just height, distance
+                    else // just distance
                     {
                         if (!isFollowTarget)
                         {
-                            lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
-                        }
-                        else
-                        {
-                            if (roundedHeight != 0)
-                                lines.Add(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}");
+                            lines.Add($"{roundedDist}M");
                         }
 
                         if (IsError)
@@ -1088,7 +1085,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             var paints = GetPaints();
             if (RadarViewModel.MouseoverGroup is int grp && grp == GroupID)
                 paints.Item2 = SKPaints.TextMouseoverGroup;
-            point.Offset(9.5f * App.Config.UI.UIScale, 0);
+            point.Offset(10.5f * App.Config.UI.UIScale, 0);
             foreach (var line in lines)
             {
                 if (string.IsNullOrEmpty(line?.Trim()))
@@ -1101,6 +1098,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 point.Offset(0, 12f * App.Config.UI.UIScale); // Compact
             }
         }
+
+        /// <summary>
+        /// Draws Height Indicator on the left side of player pill.
+        /// </summary>
+        private void DrawHeightIndicator(SKCanvas canvas, SKPoint point, string heightIndicator)
+        {
+            var paints = GetPaints();
+            if (RadarViewModel.MouseoverGroup is int grp && grp == GroupID)
+                paints.Item2 = SKPaints.TextMouseoverGroup;
+            var leftPoint = new SKPoint(point.X - 10.5f * App.Config.UI.UIScale, point.Y + 5f * App.Config.UI.UIScale);
+
+            canvas.DrawText(heightIndicator, leftPoint, SKTextAlign.Right, SKFonts.UIRegular, SKPaints.TextOutline); // Draw outline
+            canvas.DrawText(heightIndicator, leftPoint, SKTextAlign.Right, SKFonts.UIRegular, paints.Item2); // draw text
+        }
+
 
         private ValueTuple<SKPaint, SKPaint> GetPaints()
         {
