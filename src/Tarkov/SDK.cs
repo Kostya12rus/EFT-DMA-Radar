@@ -10,11 +10,11 @@ namespace SDK
 			public const uint BtrController = 0x20; // EFT.Vehicle.BtrController
 			public const uint LocationId = 0xC8; // string
 			public const uint LootList = 0x190; // System.Collections.Generic.List<IKillable>
-			public const uint RegisteredPlayers = 0x180; // System.Collections.Generic.List<IPlayer>
+			public const uint RegisteredPlayers = 0x1B0; // System.Collections.Generic.List<IPlayer>
 			public const uint MainPlayer = 0x208; // EFT.Player
 			public const uint SynchronizableObjectLogicProcessor = 0x240; // EFT.SynchronizableObjects.SynchronizableObjectLogicProcessor
 			public const uint Grenades = 0x280; // DictionaryListHydra<int, Throwable>
-            public const uint ExfiltrationController = 0x68; // EFT.Interactive.ExfiltrationController
+            public const uint ExfiltrationController = 0x50; // EFT.Interactive.ExfiltrationController
         }
 
         public readonly partial struct ExfiltrationController
@@ -81,13 +81,13 @@ namespace SDK
         {
             public const uint MovementContext = 0x60; // EFT.MovementContext
             public const uint _playerBody = 0x190; // EFT.PlayerBody
-            public const uint Physical = 0x8F8; // -.\uE399 <Physical> Physical
+            public const uint Physical = 0x918; // -.\uE399 <Physical> Physical
             public const uint Corpse = 0x680; // EFT.Interactive.Corpse
             public const uint Location = 0x870; // String
             public const uint Profile = 0x900; // EFT.Profile
             public const uint ProceduralWeaponAnimation = 0x338; // EFT.Animations.ProceduralWeaponAnimation
-            public const uint _inventoryController = 0x958; // EFT.PlayerInventoryController update
-            public const uint _handsController = 0x960; // EFT.PlayerHands update
+            public const uint _inventoryController = 0x978; // EFT.PlayerInventoryController update
+            public const uint _handsController = 0x980; // EFT.PlayerHands update
             public const uint _playerLookRaycastTransform = 0xA08; // UnityEngine.Transform
         }
 
@@ -95,7 +95,8 @@ namespace SDK
         {
 			public const uint ObservedPlayerController = 0x28; // EFT.NextObservedPlayer.ObservedPlayerController
 			public const uint Voice = 0x40; // string
-			public const uint GroupID = 0x80; // string
+            public const uint Id = 0x7C; // int32_t
+            public const uint GroupID = 0x80; // string
 			public const uint Side = 0x94; // EFT.EPlayerSide
 			public const uint IsAI = 0xA0; // bool
 			public const uint AccountId = 0xC0; // string
