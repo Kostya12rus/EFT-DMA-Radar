@@ -61,30 +61,6 @@ namespace LoneEftDmaRadar.DMA
         private readonly Vmm _vmm;
         private readonly InputManager _input;
         private uint _pid;
-        #region Restart Radar
-
-        private readonly Lock _restartSync = new();
-        private CancellationTokenSource _cts = new();
-        /// <summary>
-        /// Signal the Radar to restart the raid/game loop.
-        /// </summary>
-        public void RestartRadar()
-        {
-            lock (_restartSync)
-            {
-                _cts.Cancel();
-                _cts.Dispose();
-                _cts = new();
-                Restart = _cts.Token;
-            }
-        }
-        /// <summary>
-        /// Cancellation Token that is triggered when the Radar should restart the raid/game loop.
-        /// </summary>
-        public CancellationToken Restart { get; private set; }
-
-        #endregion
-
         public string MapID => Game?.MapID;
         public ulong UnityBase { get; private set; }
         public ulong GOM { get; private set; }
@@ -102,7 +78,6 @@ namespace LoneEftDmaRadar.DMA
 
         internal MemDMA()
         {
-            Restart = _cts.Token;
             FpgaAlgo fpgaAlgo = App.Config.DMA.FpgaAlgo;
             bool useMemMap = App.Config.DMA.MemMapEnabled;
             DebugLogger.LogDebug("Initializing DMA...");
@@ -222,6 +197,26 @@ namespace LoneEftDmaRadar.DMA
 
         #endregion
 
+        #region Restart Radar
+
+        private readonly Lock _restartSync = new();
+        private CancellationTokenSource _cts = new();
+
+        /// <summary>
+        /// Signal the Radar to restart the raid/game loop.
+        /// </summary>
+        public void RestartRadar()
+        {
+            lock (_restartSync)
+            {
+                _cts.Cancel();
+                _cts.Dispose();
+                _cts = new();
+            }
+        }
+
+        #endregion
+
         #region Startup / Main Loop
 
         /// <summary>
@@ -264,7 +259,7 @@ namespace LoneEftDmaRadar.DMA
             {
                 try
                 {
-                    var ct = Restart;
+                    var ct = _cts.Token;
 
                     using (var game = Game = LocalGameWorld.CreateGameInstance(ct))
                     {

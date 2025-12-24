@@ -34,11 +34,28 @@ namespace LoneEftDmaRadar.UI.Misc
 {
     /// <summary>
     /// Converts a hex/color‐name string ↔ System.Windows.Media.Color.
+    /// Supports color inheritance for LootFilterEntry via parameter="inherit".
     /// </summary>
     public class StringToColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            // Handle LootFilterEntry with color inheritance
+            if (value is LoneEftDmaRadar.UI.Loot.LootFilterEntry entry && parameter?.ToString() == "inherit")
+            {
+                var colorStr = entry.Color; // This returns inherited color when ExplicitColor is null
+                if (!string.IsNullOrEmpty(colorStr))
+                {
+                    try
+                    {
+                        return (Color)ColorConverter.ConvertFromString(colorStr);
+                    }
+                    catch { }
+                }
+                return Colors.Transparent;
+            }
+
+            // Standard string to color conversion
             if (value is string s && !string.IsNullOrWhiteSpace(s))
             {
                 try

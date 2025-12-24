@@ -150,14 +150,14 @@
                         <DataTemplate>
                             <Border Width="16"
                                     Height="16"
-                                    Background="{Binding ExplicitColor, Converter={StaticResource StringToBrushConverter}}"
+                                    Background="{Binding ., Converter={StaticResource StringToBrushConverter}, ConverterParameter=inherit}"
                                     BorderBrush="Black"
                                     BorderThickness="1" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <xctk:ColorPicker SelectedColor="{Binding ExplicitColor, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                            <xctk:ColorPicker SelectedColor="{Binding ., Converter={StaticResource StringToColorConverter}, ConverterParameter=inherit}"
                                               DisplayColorAndName="True"
                                               Width="150" />
                         </DataTemplate>

@@ -64,6 +64,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
             if (Player is not null && Player.LootObject is null)
                 Player.LootObject = this;
         }
+        public override string GetUILabel() => this.Name;
 
         public override void Draw(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)
         {
