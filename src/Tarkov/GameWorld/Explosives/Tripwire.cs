@@ -26,6 +26,7 @@ SOFTWARE.
  *
 */
 
+using Collections.Pooled;
 using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
@@ -42,6 +43,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
     public sealed class Tripwire : IExplosiveItem, IWorldEntity, IMapEntity
     {
         public static implicit operator ulong(Tripwire x) => x.Addr;
+        private readonly ConcurrentDictionary<ulong, IExplosiveItem> _parent;
         private bool _isActive;
         private bool _destroyed;
 
@@ -50,10 +52,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
         /// </summary>
         public ulong Addr { get; }
 
-        public Tripwire(ulong baseAddr)
+        public Tripwire(ulong baseAddr, ConcurrentDictionary<ulong, IExplosiveItem> parent)
         {
             baseAddr.ThrowIfInvalidVirtualAddress(nameof(baseAddr));
             Addr = baseAddr;
+            _parent = parent;
             _position = Memory.ReadValue<Vector3>(baseAddr + Offsets.TripwireSynchronizableObject.ToPosition, false);
             _position.ThrowIfAbnormal("Tripwire Position");
         }
@@ -72,6 +75,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
                     var state = (Enums.ETripwireState)nState;
                     _destroyed = state is Enums.ETripwireState.Exploded or Enums.ETripwireState.Inert;
                     _isActive = state is Enums.ETripwireState.Wait or Enums.ETripwireState.Active;
+                    if (_destroyed)
+                    {
+                        _ = _parent.TryRemove(Addr, out _);
+                    }
                 }
             };
         }

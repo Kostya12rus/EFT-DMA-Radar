@@ -117,7 +117,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
                             continue;
                         _ = _explosives.GetOrAdd(
                             syncObject,
-                            addr => new Tripwire(addr));
+                            addr => new Tripwire(addr, _explosives));
                     }
                     catch (Exception ex)
                     {

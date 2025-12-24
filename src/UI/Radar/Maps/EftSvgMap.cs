@@ -124,6 +124,8 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
             float scaleY = windowBounds.Height / mapBounds.Height;
 
             canvas.Save();
+            // Clip to window bounds to avoid rendering areas outside the visible viewport
+            canvas.ClipRect(windowBounds);
             // Map coordinate system -> window region
             canvas.Translate(windowBounds.Left, windowBounds.Top);
             canvas.Scale(scaleX, scaleY);
