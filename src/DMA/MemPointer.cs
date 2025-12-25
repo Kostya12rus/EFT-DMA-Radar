@@ -1,6 +1,6 @@
 ﻿using LoneEftDmaRadar.Common.Misc;
-using LoneEftDmaRadar.DMA;
 using System.Runtime.CompilerServices;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Common.DMA
 {
@@ -23,7 +23,7 @@ namespace LoneEftDmaRadar.Common.DMA
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Validate() =>
-            _pointer.ThrowIfInvalidVirtualAddress();
+            _pointer.ThrowIfInvalidUserVA();
 
         public override string ToString() => _pointer.ToString("X");
     }

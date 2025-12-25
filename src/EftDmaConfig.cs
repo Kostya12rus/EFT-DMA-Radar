@@ -27,7 +27,6 @@ SOFTWARE.
 */
 
 using LoneEftDmaRadar.Common.DMA;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc.JSON;
 using LoneEftDmaRadar.UI.ColorPicker;
 using LoneEftDmaRadar.UI.Data;

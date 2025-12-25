@@ -1,6 +1,6 @@
-﻿using LoneEftDmaRadar.DMA;
-using LoneEftDmaRadar.UI.Misc;
+﻿using LoneEftDmaRadar.UI.Misc;
 using VmmSharpEx;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.Unity.Structures
 {
@@ -28,17 +28,17 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Structures
                     //.text: 0000000180BA30CA 49 8B 3C 0C mov     rdi, [r12+rcx]
                     const string signature = "48 8B 05 ? ? ? ? 48 8B 08 49 8B 3C 0C";
                     ulong allCamerasSig = Memory.FindSignature(signature);
-                    allCamerasSig.ThrowIfInvalidVirtualAddress(nameof(allCamerasSig));
+                    allCamerasSig.ThrowIfInvalidUserVA(nameof(allCamerasSig));
                     int rva = Memory.ReadValueEnsure<int>(allCamerasSig + 3);
                     var allCamerasPtr = Memory.ReadValueEnsure<VmmPointer>(allCamerasSig.AddRVA(7, rva));
-                    allCamerasPtr.ThrowIfInvalid();
+                    allCamerasPtr.ThrowIfInvalidUserVA();
                     DebugLogger.LogDebug("AllCameras Located via Signature.");
                     return allCamerasPtr;
                 }
                 catch
                 {
                     var allCamerasPtr = Memory.ReadValueEnsure<VmmPointer>(unityBase + UnitySDK.UnityOffsets.AllCameras);
-                    allCamerasPtr.ThrowIfInvalid();
+                    allCamerasPtr.ThrowIfInvalidUserVA();
                     DebugLogger.LogDebug("AllCameras Located via Hardcoded Offset.");
                     return allCamerasPtr;
                 }

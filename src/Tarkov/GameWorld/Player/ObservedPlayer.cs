@@ -204,21 +204,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 else
                 {
                     Name = $"PScav{GetPlayerId()}";
-                    Type = GroupID != -1 && GroupID == localPlayer.GroupID ?
+                    Type = IsTempTeammate(this) || (GroupID != -1 && GroupID == localPlayer.GroupID) ?
                         PlayerType.Teammate : PlayerType.PScav;
                 }
             }
             else if (IsPmc)
             {
                 Name = $"PMC{GetPlayerId()}";
-                Type = GroupID != -1 && GroupID == localPlayer.GroupID ?
+                Type = IsTempTeammate(this) || (GroupID != -1 && GroupID == localPlayer.GroupID) ?
                     PlayerType.Teammate : PlayerType.PMC;
             }
             else
                 throw new NotImplementedException(nameof(PlayerSide));
             if (IsHuman)
             {
-                long.TryParse(AccountID, out long acctIdLong);
+                _ = long.TryParse(AccountID, out long acctIdLong);
                 var cache = LocalCache.GetProfileCollection();
                 if (cache.FindById(acctIdLong) is EftProfileDto dto &&
                     dto.IsCachedRecent)
@@ -369,6 +369,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 UpdateHealthStatus();
             }
             base.OnRegRefresh(scatter, registered, isActive);
+        }
+
+        /// <summary>
+        /// Updates the player's Type when temporary teammate status changes.
+        /// </summary>
+        public override void UpdateTypeForTeammate(bool isTeammate)
+        {
+            Profile?.UpdateTypeForTeammate(isTeammate);
         }
 
         /// <summary>

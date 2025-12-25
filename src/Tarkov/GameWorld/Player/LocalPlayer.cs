@@ -27,7 +27,6 @@ SOFTWARE.
 */
 
 using System.Diagnostics;
-using Collections.Pooled;
 using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc;

@@ -1,5 +1,4 @@
 using LoneEftDmaRadar;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.UI.Misc;
 using System;
 using System.ComponentModel;
@@ -58,7 +57,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         private void RefreshDeviceAimbotDebug()
         {
-            var snapshot = MemDMA.DeviceAimbot?.GetDebugSnapshot();
+            var snapshot = Memory.DeviceAimbot?.GetDebugSnapshot();
             if (snapshot == null)
             {
                 DeviceAimbotDebugText = "DeviceAimbot Aimbot: not running or no data yet.";

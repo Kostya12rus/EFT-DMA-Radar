@@ -26,7 +26,6 @@ SOFTWARE.
  *
 */
 
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.UI.Misc;
 using System.Runtime;
 
@@ -38,17 +37,17 @@ namespace LoneEftDmaRadar.Misc
 
         static ResourceJanitor()
         {
-            MemDMA.RaidStarted += MemDMA_RaidStarted;
-            MemDMA.RaidStopped += MemDMA_RaidStopped;
+            Memory.RaidStarted += Memory_RaidStarted;
+            Memory.RaidStopped += Memory_RaidStopped;
             _ = Task.Run(WorkerRoutineAsync);
         }
 
-        private static void MemDMA_RaidStarted(object sender, EventArgs e)
+        private static void Memory_RaidStarted(object sender, EventArgs e)
         {
             GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
         }
 
-        private static void MemDMA_RaidStopped(object sender, EventArgs e)
+        private static void Memory_RaidStopped(object sender, EventArgs e)
         {
             GCSettings.LatencyMode = GCLatencyMode.Interactive;
         }

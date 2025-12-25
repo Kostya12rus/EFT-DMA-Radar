@@ -45,7 +45,6 @@ global using System.Text;
 global using System.Text.Json;
 global using System.Text.Json.Serialization;
 global using System.Windows;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc.Services;
 using LoneEftDmaRadar.Tarkov;
 using LoneEftDmaRadar.UI.ColorPicker;
@@ -190,6 +189,7 @@ namespace LoneEftDmaRadar
             try
             {
                 ESPManager.CloseESP();
+                Memory.Dispose();
                 Config.Save();
             }
             finally
@@ -209,7 +209,7 @@ namespace LoneEftDmaRadar
             _ = Task.Run(CheckForUpdatesAsync); // Run continuations on the thread pool
             var tarkovDataManager = TarkovDataManager.ModuleInitAsync();
             var eftMapManager = EftMapManager.ModuleInitAsync();
-            var memoryInterface = MemoryInterface.ModuleInitAsync();
+            var memoryInterface = Memory.ModuleInitAsync();
             var misc = Task.Run(() =>
             {
                 IsDarkMode = GetIsDarkMode();

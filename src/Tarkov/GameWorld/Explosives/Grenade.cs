@@ -26,14 +26,14 @@ SOFTWARE.
  *
 */
 
-using Collections.Pooled;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Skia;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Scatter;
+using System.Buffers;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
 {
@@ -54,7 +54,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
 
         public Grenade(ulong baseAddr, ConcurrentDictionary<ulong, IExplosiveItem> parent)
         {
-            baseAddr.ThrowIfInvalidVirtualAddress(nameof(baseAddr));
+            baseAddr.ThrowIfInvalidUserVA(nameof(baseAddr));
             Addr = baseAddr;
             _parent = parent;
             var type = ObjectClass.ReadName(baseAddr, 64, false);
@@ -96,11 +96,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
                     _ = _parent.TryRemove(Addr, out _);
                     return;
                 }
-                if (x1.ReadArray<UnityTransform.TrsX>(_transform.VerticesAddr, _transform.Count) is PooledMemory<UnityTransform.TrsX> vertices)
+                if (x1.ReadPooled<UnityTransform.TrsX>(_transform.VerticesAddr, _transform.Count) is IMemoryOwner<UnityTransform.TrsX> vertices)
                 {
                     using (vertices)
                     {
-                        _ = _transform.UpdatePosition(vertices.Span);
+                        _ = _transform.UpdatePosition(vertices.Memory.Span);
                     }
                 }
             };

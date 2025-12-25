@@ -3,7 +3,6 @@
  * MIT License - Copyright (c) 2025 Lone DMA
  */
 
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.UI.Misc;
 using System;

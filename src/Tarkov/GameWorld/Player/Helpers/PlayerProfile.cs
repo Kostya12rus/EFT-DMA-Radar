@@ -226,6 +226,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
         }
 
         private PlayerType _type;
+        private PlayerType _originalType;
         public PlayerType Type
         {
             get => _type;
@@ -233,8 +234,19 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
             {
                 if (_type == value) return;
                 _type = value;
+                if (value != PlayerType.Teammate && (_originalType == PlayerType.Default || _type != PlayerType.Teammate))
+                    _originalType = value;
                 OnPropertyChanged(nameof(Type));
             }
+        }
+
+        /// <summary>
+        /// Updates the Type based on temporary teammate status.
+        /// Should be called after AddTempTeammate or RemoveTempTeammate.
+        /// </summary>
+        public void UpdateTypeForTeammate(bool isTeammate)
+        {
+            Type = isTeammate ? PlayerType.Teammate : _originalType;
         }
 
         private string _accountID;

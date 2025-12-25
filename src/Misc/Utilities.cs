@@ -26,9 +26,9 @@ SOFTWARE.
  *
 */
 
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.UI.Misc;
 using System.Security.Cryptography;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Misc
 {
@@ -70,7 +70,7 @@ namespace LoneEftDmaRadar.Misc
                 try
                 {
                     var childClass = Memory.ReadValue<ulong>(thisClass + offset);
-                    if (childClass.IsValidVirtualAddress())
+                    if (childClass.IsValidUserVA())
                     {
                         var namePtr = Memory.ReadPtrChain(childClass, true, 0x0, 0x10);
                         var name = Memory.ReadUtf8String(namePtr, 128, true);

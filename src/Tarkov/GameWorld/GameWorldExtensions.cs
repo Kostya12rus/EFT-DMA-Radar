@@ -1,7 +1,7 @@
-﻿using LoneEftDmaRadar.DMA;
-using LoneEftDmaRadar.Tarkov.Unity;
+﻿using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld
 {
@@ -21,10 +21,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             DebugLogger.LogDebug("Searching for GameWorld...");
             var firstObject = Memory.ReadValue<LinkedListObject>(gom.ActiveNodes);
             var lastObject = Memory.ReadValue<LinkedListObject>(gom.LastActiveNode);
-            firstObject.ThisObject.ThrowIfInvalidVirtualAddress(nameof(firstObject));
-            firstObject.NextObjectLink.ThrowIfInvalidVirtualAddress(nameof(firstObject));
-            lastObject.ThisObject.ThrowIfInvalidVirtualAddress(nameof(lastObject));
-            lastObject.PreviousObjectLink.ThrowIfInvalidVirtualAddress(nameof(lastObject));
+            firstObject.ThisObject.ThrowIfInvalidUserVA(nameof(firstObject));
+            firstObject.NextObjectLink.ThrowIfInvalidUserVA(nameof(firstObject));
+            lastObject.ThisObject.ThrowIfInvalidUserVA(nameof(lastObject));
+            lastObject.PreviousObjectLink.ThrowIfInvalidUserVA(nameof(lastObject));
 
             using var cts = new CancellationTokenSource();
             try
@@ -72,7 +72,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                     var gom = GameObjectManager.Get();
                     var currentObject = Memory.ReadValue<LinkedListObject>(gom.ActiveNodes);
                     int iterations = 0;
-                    while (currentObject.ThisObject.IsValidVirtualAddress())
+                    while (currentObject.ThisObject.IsValidUserVA())
                     {
                         ct1.ThrowIfCancellationRequested();
                         ct2.ThrowIfCancellationRequested();
@@ -130,7 +130,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         {
             try
             {
-                currentObject.ThisObject.ThrowIfInvalidVirtualAddress(nameof(currentObject));
+                currentObject.ThisObject.ThrowIfInvalidUserVA(nameof(currentObject));
                 var objectNamePtr = Memory.ReadPtr(currentObject.ThisObject + UnitySDK.UnityOffsets.GameObject_NameOffset);
                 var objectNameStr = Memory.ReadUtf8String(objectNamePtr, 64);
                 if (objectNameStr.Equals("GameWorld", StringComparison.OrdinalIgnoreCase))

@@ -3,7 +3,6 @@
  * MIT License - Copyright (c) 2025 Lone DMA
  */
 
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.UI.Misc;
 using LoneEftDmaRadar.UI.Misc.Ballistics;
@@ -11,6 +10,7 @@ using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 {
@@ -151,7 +151,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                 var shotDirectionAddr = localPlayer.PWA + Offsets.ProceduralWeaponAnimation._shotDirection;
                 var fovAdjustAddr = localPlayer.PWA + Offsets.ProceduralWeaponAnimation.ShotNeedsFovAdjustments;
                 
-                if (!MemDMA.IsValidVirtualAddress(shotDirectionAddr))
+                if (!shotDirectionAddr.IsValidUserVA())
                     return;
 
                 // The _shotDirection format: (yaw_radians, -1.0f, -pitch_radians)

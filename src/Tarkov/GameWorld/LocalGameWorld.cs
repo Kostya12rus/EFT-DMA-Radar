@@ -26,7 +26,6 @@ SOFTWARE.
  *
 */
 
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Misc.Workers;
 using LoneEftDmaRadar.Tarkov.Features.MemWrites;
@@ -287,9 +286,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             }
 
             using var scatter = Memory.CreateScatter(VmmFlags.NOCACHE);
-            if (MemDMA.CameraManager != null && localPlayer != null)
+            if (Memory.CameraManager != null && localPlayer != null)
             {
-                MemDMA.CameraManager.OnRealtimeLoop(scatter, localPlayer);
+                Memory.CameraManager.OnRealtimeLoop(scatter, localPlayer);
             }
             foreach (var player in players)
             {
