@@ -75,6 +75,8 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
 
             [JsonPropertyName("maps")]
             public List<object> Maps { get; set; }
+            [JsonPropertyName("playerLevels")]
+            public List<object> PlayerLevels { get; set; }
         }
         public class WarningMessage
         {
@@ -117,7 +119,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
 
         [JsonIgnore]
         public long HighestVendorPrice => SellFor?
-            .Where(x => x.Vendor.Name != "Flea Market" && x.PriceRub is long)?
+            .Where(x => x.Vendor.Name != "Flea Market" && x.Vendor.Name != "跳蚤市场" && x.PriceRub is long)?
             .Select(x => x.PriceRub)?
             .DefaultIfEmpty()?
             .Max() ?? 0;
@@ -127,6 +129,15 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
         {
             get
             {
+                // First try to get the actual flea market price from sellFor list
+                var fleaPrice = SellFor?
+                    .FirstOrDefault(x => x.Vendor.Name == "跳蚤市场" || x.Vendor.Name == "Flea Market")?
+                    .PriceRub;
+
+                if (fleaPrice is long price && price > 0)
+                    return price;
+
+                // Fallback to the original calculation if no flea price found
                 if (BasePrice == 0)
                     return 0;
                 if (Avg24HPrice is long avg24 && FleaTax.Calculate(avg24, BasePrice) < avg24)
@@ -172,5 +183,4 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
         [JsonPropertyName("name")]
         public string Name { get; set; }
     }
-
 }

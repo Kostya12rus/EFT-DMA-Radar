@@ -535,10 +535,10 @@ namespace LoneEftDmaRadar
         public float FOV { get; set; } = 50.0f;
 
         /// <summary>
-        /// Show Mines/Claymores in the Radar UI.
+        /// Show Hazards (mines,snipers,etc.) in the Radar UI.
         /// </summary>
-        [JsonPropertyName("showMines")]
-        public bool ShowMines { get; set; } = true;
+        [JsonPropertyName("showHazards")]
+        public bool ShowHazards { get; set; } = true;
 
         /// <summary>
         /// Hides player names & extended player info in Radar GUI.

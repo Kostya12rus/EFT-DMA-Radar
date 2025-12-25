@@ -262,18 +262,12 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             // Begin draw
             try
             {
-                Interlocked.Increment(ref _fps); // Increment FPS counter
-                SetMapName();
-                /// Check for map switch
-                string mapID = MapID; // Cache ref
-                if (mapID != null && !string.Equals(mapID, EftMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
-                {
-                    EftMapManager.LoadMap(mapID);
-                }
                 canvas.Clear(); // Clear canvas
-                if (inRaid && LocalPlayer is LocalPlayer localPlayer) // LocalPlayer is in a raid -> Begin Drawing...
+                Interlocked.Increment(ref _fps); // Increment FPS counter
+                string mapID = MapID; // Cache ref
+                if (inRaid && LocalPlayer is LocalPlayer localPlayer && EftMapManager.LoadMap(mapID) is IEftMap map) // LocalPlayer is in a raid -> Begin Drawing...
                 {
-                    var map = EftMapManager.Map; // Cache ref
+                    SetMapName();
                     if (map == null)
                     {
                         DebugLogger.LogDebug("[RadarViewModel] Map is null after loading, skipping render frame");
@@ -375,14 +369,14 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         }
                     }
 
-                    if (App.Config.UI.ShowMines &&
+                    if (App.Config.UI.ShowHazards &&
                         mapID != null &&
-                        StaticGameData.Mines.TryGetValue(mapID, out var mines)) // Draw Mines
+                        TarkovDataManager.MapData.TryGetValue(mapID, out var mapData) && mapData.Hazards is not null) // Draw Hazards
                     {
-                        foreach (ref var mine in mines.Span)
+                        foreach (var hazard in mapData.Hazards)
                         {
-                            var mineZoomedPos = mine.ToMapPos(map.Config).ToZoomedPos(mapParams);
-                            mineZoomedPos.DrawMineMarker(canvas);
+                            var mineZoomedPos = hazard.Position.AsVector3().ToMapPos(map.Config).ToZoomedPos(mapParams);
+                            mineZoomedPos.DrawHazardMarker(canvas);
                         }
                     }
 
@@ -460,11 +454,14 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     else if (!inRaid)
                         WaitingForRaidStatus(canvas);
                 }
-                canvas.Flush(); // commit frame to GPU
             }
             catch (Exception ex) // Log rendering errors
             {
                 DebugLogger.LogDebug($"***** CRITICAL RENDER ERROR: {ex}");
+            }
+            finally
+            {
+                canvas.Flush(); // commit frame to GPU
             }
         }
 

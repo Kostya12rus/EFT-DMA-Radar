@@ -213,9 +213,9 @@ namespace LoneEftDmaRadar.UI.Skia
         }
 
         /// <summary>
-        /// Draws a Mine/Explosive Marker on this zoomed location.
+        /// Draws a Hazard Marker on this zoomed location.
         /// </summary>
-        public static void DrawMineMarker(this SKPoint zoomedMapPos, SKCanvas canvas)
+        public static void DrawHazardMarker(this SKPoint zoomedMapPos, SKCanvas canvas)
         {
             float scale = App.Config.UI.UIScale;
 

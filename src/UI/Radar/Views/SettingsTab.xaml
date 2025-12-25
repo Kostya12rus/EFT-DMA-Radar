@@ -123,8 +123,8 @@ Toggle Fullscreen: F11
                                   ToolTip="Hides human player names from displaying in the Radar or Player Info Widget. Instead will show the (Height,Distance)."
                                   IsChecked="{Binding HideNames, Mode=TwoWay}"
                                   Margin="0,0,16,8" />
-                        <CheckBox Content="Show Mines"
-                                  IsChecked="{Binding ShowMines, Mode=TwoWay}"
+                        <CheckBox Content="Show Hazards"
+                                  IsChecked="{Binding ShowHazards, Mode=TwoWay}"
                                   Margin="0,0,16,8" />
                         <CheckBox Content="Teammate Aimlines"
                                   ToolTip="When enabled makes teammate aimlines the same length as the main player."
