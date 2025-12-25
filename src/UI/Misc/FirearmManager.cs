@@ -5,12 +5,12 @@
 
 using System;
 using System.Linq;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.Web.TarkovDev.Data;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.UI.Misc
 {
@@ -64,7 +64,7 @@ namespace LoneEftDmaRadar.UI.Misc
             try
             {
                 var hands = _localPlayer.HandsController;
-                if (!MemDMA.IsValidVirtualAddress(hands))
+                if (!hands.IsValidUserVA())
                     return;
 
                 if (hands != _hands)
@@ -81,7 +81,7 @@ namespace LoneEftDmaRadar.UI.Misc
                     {
                         try
                         {
-                            var v = MemoryInterface.Memory.ReadPtrChain(hands, false, Offsets.FirearmController.To_FirePortVertices);
+                            var v = Memory.ReadPtrChain(hands, false, Offsets.FirearmController.To_FirePortVertices);
                             if (fireportTransform.VerticesAddr != v)
                                 ResetFireport();
                         }
@@ -95,7 +95,7 @@ namespace LoneEftDmaRadar.UI.Misc
                     {
                         try
                         {
-                            var t = MemoryInterface.Memory.ReadPtrChain(hands, false, Offsets.FirearmController.To_FirePortTransformInternal);
+                            var t = Memory.ReadPtrChain(hands, false, Offsets.FirearmController.To_FirePortTransformInternal);
                             FireportTransform = new(t, false);
 
                             // ✅ Update position AND rotation once to validate
@@ -159,9 +159,9 @@ namespace LoneEftDmaRadar.UI.Misc
         /// </summary>
         private static CachedHandsInfo GetHandsInfo(ulong handsController)
         {
-            var itemBase = MemoryInterface.Memory.ReadPtr(handsController + Offsets.ItemHandsController.Item, false);
-            var itemTemp = MemoryInterface.Memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
-            var itemIdPtr = MemoryInterface.Memory.ReadValue<MongoID>(itemTemp + Offsets.ItemTemplate._id, false);
+            var itemBase = Memory.ReadPtr(handsController + Offsets.ItemHandsController.Item, false);
+            var itemTemp = Memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
+            var itemIdPtr = Memory.ReadValue<MongoID>(itemTemp + Offsets.ItemTemplate._id, false);
             var itemId = itemIdPtr.ReadString(64, false); // Use ReadString() method
             
             ArgumentOutOfRangeException.ThrowIfNotEqual(itemId.Length, 24, nameof(itemId));
@@ -193,7 +193,7 @@ namespace LoneEftDmaRadar.UI.Misc
             /// <returns>Ammo Template Ptr</returns>
             public static ulong GetAmmoTemplateFromWeapon(ulong lootItemBase)
             {
-                var chambersPtr = MemoryInterface.Memory.ReadValue<ulong>(lootItemBase + Offsets.LootItemWeapon.Chambers, false);
+                var chambersPtr = Memory.ReadValue<ulong>(lootItemBase + Offsets.LootItemWeapon.Chambers, false);
                 ulong firstRound = 0;
                 UnityArray<Chamber> chambers = null;
                 UnityArray<Chamber> magChambers = null;
@@ -209,16 +209,16 @@ namespace LoneEftDmaRadar.UI.Misc
                             var chamberWithBullet = chambers.Span.ToArray().FirstOrDefault(x => x.HasBullet(true));
                             if (chamberWithBullet._base != 0)
                             {
-                                firstRound = MemoryInterface.Memory.ReadPtr(chamberWithBullet._base + Offsets.Slot.ContainedItem, false);
-                                return MemoryInterface.Memory.ReadPtr(firstRound + Offsets.LootItem.Template, false);
+                                firstRound = Memory.ReadPtr(chamberWithBullet._base + Offsets.Slot.ContainedItem, false);
+                                return Memory.ReadPtr(firstRound + Offsets.LootItem.Template, false);
                             }
                         }
                     }
 
                     // Try magazine
-                    var magSlot = MemoryInterface.Memory.ReadPtr(lootItemBase + Offsets.LootItemWeapon._magSlotCache, false);
-                    var magItemPtr = MemoryInterface.Memory.ReadPtr(magSlot + Offsets.Slot.ContainedItem, false);
-                    var magChambersPtr = MemoryInterface.Memory.ReadPtr(magItemPtr + Offsets.LootItemMod.Slots, false);
+                    var magSlot = Memory.ReadPtr(lootItemBase + Offsets.LootItemWeapon._magSlotCache, false);
+                    var magItemPtr = Memory.ReadPtr(magSlot + Offsets.Slot.ContainedItem, false);
+                    var magChambersPtr = Memory.ReadPtr(magItemPtr + Offsets.LootItemMod.Slots, false);
 
                     magChambers = UnityArray<Chamber>.Create(magChambersPtr, true);
                     
@@ -227,20 +227,20 @@ namespace LoneEftDmaRadar.UI.Misc
                         var chamberWithBullet = magChambers.Span.ToArray().FirstOrDefault(x => x.HasBullet(true));
                         if (chamberWithBullet._base != 0)
                         {
-                            firstRound = MemoryInterface.Memory.ReadPtr(chamberWithBullet._base + Offsets.Slot.ContainedItem, false);
+                            firstRound = Memory.ReadPtr(chamberWithBullet._base + Offsets.Slot.ContainedItem, false);
                         }
                     }
                     else // Regular magazines
                     {
-                        var cartridges = MemoryInterface.Memory.ReadPtr(magItemPtr + Offsets.LootItemMagazine.Cartridges, false);
-                        var magStackPtr = MemoryInterface.Memory.ReadPtr(cartridges + Offsets.StackSlot._items, false);
+                        var cartridges = Memory.ReadPtr(magItemPtr + Offsets.LootItemMagazine.Cartridges, false);
+                        var magStackPtr = Memory.ReadPtr(cartridges + Offsets.StackSlot._items, false);
                         magStack = UnityList<ulong>.Create(magStackPtr, true);
                         if (magStack.Count > 0)
                             firstRound = magStack.Span[0];
                     }
 
                     if (firstRound != 0)
-                        return MemoryInterface.Memory.ReadPtr(firstRound + Offsets.LootItem.Template, false);
+                        return Memory.ReadPtr(firstRound + Offsets.LootItem.Template, false);
 
                     return 0;
                 }
@@ -264,7 +264,7 @@ namespace LoneEftDmaRadar.UI.Misc
                 {
                     if (_base == 0x0)
                         return false;
-                    return MemoryInterface.Memory.ReadValue<ulong>(_base + Offsets.Slot.ContainedItem, useCache) != 0x0;
+                    return Memory.ReadValue<ulong>(_base + Offsets.Slot.ContainedItem, useCache) != 0x0;
                 }
             }
         }

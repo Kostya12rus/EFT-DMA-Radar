@@ -122,7 +122,14 @@ namespace LoneEftDmaRadar.Tarkov
                 .DistinctBy(x => x.BsgId, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(k => k.BsgId, v => v, StringComparer.OrdinalIgnoreCase)
                 .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-            MapData = data.Maps?.ToFrozenDictionary(x => x.NameId, StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, MapElement>().ToFrozenDictionary();
+            var maps = data.Maps.ToDictionary(x => x.NameId, StringComparer.OrdinalIgnoreCase) ??
+                new Dictionary<string, MapElement>(StringComparer.OrdinalIgnoreCase);
+            maps.TryAdd("Terminal", new MapElement() // Preliminary terminal support
+            {
+                Name = "Terminal",
+                NameId = "Terminal"
+            });
+            MapData = maps.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, MapElement>().ToFrozenDictionary();
         }
 
         /// <summary>

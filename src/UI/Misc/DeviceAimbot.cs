@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov.GameWorld;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
@@ -18,6 +17,7 @@ using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc.Ballistics;
 using SkiaSharp;
 using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.UI.Misc
 {
@@ -29,7 +29,6 @@ namespace LoneEftDmaRadar.UI.Misc
         #region Fields
 
         private static DeviceAimbotConfig Config => App.Config.Device;
-        private readonly MemDMA _memory;
         private readonly Thread _worker;
         private bool _disposed;
         private BallisticsInfo _lastBallistics;
@@ -90,10 +89,8 @@ namespace LoneEftDmaRadar.UI.Misc
                   EProceduralAnimationMask.Breathing);
         #region Constructor / Disposal
 
-        public DeviceAimbot(MemDMA memory)
+        public DeviceAimbot()
         {
-            _memory = memory;
-
             // Try auto-connect if configured and device isn't ready.
             if (Config.AutoConnect && !Device.connected)
             {
@@ -147,7 +144,7 @@ namespace LoneEftDmaRadar.UI.Misc
                 try
                 {
                     // 1) Check if we're in raid with a valid local player
-                    if (!_memory.InRaid)
+                    if (!Memory.InRaid)
                     {
                         _debugStatus = "Not in raid";
                         ResetTarget();
@@ -155,7 +152,7 @@ namespace LoneEftDmaRadar.UI.Misc
                         continue;
                     }
 
-                    if (_memory.LocalPlayer is not LocalPlayer localPlayer)
+                    if (Memory.LocalPlayer is not LocalPlayer localPlayer)
                     {
                         _debugStatus = "LocalPlayer == null";
                         ResetTarget();
@@ -184,7 +181,7 @@ namespace LoneEftDmaRadar.UI.Misc
                         continue;
                     }
 
-                    if (_memory.Game is not LocalGameWorld game)
+                    if (Memory.Game is not LocalGameWorld game)
                     {
                         _debugStatus = "Game instance == null";
                         ResetTarget();
@@ -586,7 +583,7 @@ private void ApplyMemoryAim(LocalPlayer localPlayer, Vector3 targetPosition)
 
         // 5) Write to _shotDirection (same as old 0x22C)
         ulong shotDirectionAddr = localPlayer.PWA + Offsets.ProceduralWeaponAnimation._shotDirection;
-        if (!MemDMA.IsValidVirtualAddress(shotDirectionAddr))
+        if (!shotDirectionAddr.IsValidUserVA())
             return;
 
         // Keep the exact weird mapping you had before
@@ -649,7 +646,7 @@ private static float RadToDeg(float radians)
                 {
                     try
                     {
-                        targetVelocity = _memory.ReadValue<Vector3>(
+                        targetVelocity = Memory.ReadValue<Vector3>(
                             target.MovementContext + Offsets.ObservedMovementController.Velocity,
                             false);
                     }
@@ -704,20 +701,20 @@ private static float RadToDeg(float radians)
                 ulong itemBase = handsInfo.ItemAddr;
                 
                 // Validate itemBase before proceeding
-                if (!MemDMA.IsValidVirtualAddress(itemBase))
+                if (!itemBase.IsValidUserVA())
                     return CreateFallbackBallistics();
 
                 ulong itemTemplate;
                 try
                 {
-                    itemTemplate = _memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
+                    itemTemplate = Memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
                 }
                 catch
                 {
                     return CreateFallbackBallistics();
                 }
 
-                if (!MemDMA.IsValidVirtualAddress(itemTemplate))
+                if (!itemTemplate.IsValidUserVA())
                     return CreateFallbackBallistics();
 
                 // Get ammo template - wrap in try/catch since weapon may be empty
@@ -732,20 +729,20 @@ private static float RadToDeg(float radians)
                     return CreateFallbackBallistics();
                 }
 
-                if (ammoTemplate == 0 || !MemDMA.IsValidVirtualAddress(ammoTemplate))
+                if (ammoTemplate == 0 || !ammoTemplate.IsValidUserVA())
                     return CreateFallbackBallistics();
 
                 // Read ballistics data
                 var ballistics = new BallisticsInfo
                 {
-                    BulletMassGrams = _memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.BulletMassGram, false),
-                    BulletDiameterMillimeters = _memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.BulletDiameterMilimeters, false),
-                    BallisticCoefficient = _memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.BallisticCoeficient, false)
+                    BulletMassGrams = Memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.BulletMassGram, false),
+                    BulletDiameterMillimeters = Memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.BulletDiameterMilimeters, false),
+                    BallisticCoefficient = Memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.BallisticCoeficient, false)
                 };
 
                 // Calculate bullet velocity with mods
-                float baseSpeed = _memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.InitialSpeed, false);
-                float velMod = _memory.ReadValue<float>(itemTemplate + Offsets.WeaponTemplate.Velocity, false);
+                float baseSpeed = Memory.ReadValue<float>(ammoTemplate + Offsets.AmmoTemplate.InitialSpeed, false);
+                float velMod = Memory.ReadValue<float>(itemTemplate + Offsets.WeaponTemplate.Velocity, false);
 
                 // Recursively add attachment velocity modifiers
                 AddAttachmentVelocity(itemBase, ref velMod);
@@ -780,7 +777,7 @@ private static float RadToDeg(float radians)
         {
             try
             {
-                var slotsPtr = _memory.ReadPtr(itemBase + Offsets.LootItemMod.Slots, false);
+                var slotsPtr = Memory.ReadPtr(itemBase + Offsets.LootItemMod.Slots, false);
                 using var slots = UnityArray<ulong>.Create(slotsPtr, true);
 
                 if (slots.Count > 100) // Sanity check
@@ -788,12 +785,12 @@ private static float RadToDeg(float radians)
 
                 foreach (var slot in slots.Span)
                 {
-                    var containedItem = _memory.ReadPtr(slot + Offsets.Slot.ContainedItem, false);
+                    var containedItem = Memory.ReadPtr(slot + Offsets.Slot.ContainedItem, false);
                     if (containedItem == 0)
                         continue;
 
-                    var itemTemplate = _memory.ReadPtr(containedItem + Offsets.LootItem.Template, false);
-                    velocityModifier += _memory.ReadValue<float>(itemTemplate + Offsets.ModTemplate.Velocity, false);
+                    var itemTemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template, false);
+                    velocityModifier += Memory.ReadValue<float>(itemTemplate + Offsets.ModTemplate.Velocity, false);
 
                     // Recurse
                     AddAttachmentVelocity(containedItem, ref velocityModifier);
@@ -869,7 +866,7 @@ private static float RadToDeg(float radians)
                 bool devConnected = Device.connected || DeviceNetController.Connected;
                 lines.Add($"Device:       {(devConnected ? "Connected" : "Disconnected")}");
                 lines.Add($"Enabled:      {(Config.Enabled ? "TRUE" : "FALSE")}");
-                lines.Add($"InRaid:       {_memory.InRaid}");
+                lines.Add($"InRaid:       {Memory.InRaid}");
                 lines.Add("");
 
                 // LocalPlayer / Firearm / Fireport info
@@ -1055,7 +1052,7 @@ private static float RadToDeg(float radians)
         {
             try
             {
-                var localPlayer = _memory.LocalPlayer;
+                var localPlayer = Memory.LocalPlayer;
                 float? distanceToTarget = null;
                 if (localPlayer != null && _lockedTarget != null)
                     distanceToTarget = Vector3.Distance(localPlayer.Position, _lockedTarget.Position);
@@ -1066,7 +1063,7 @@ private static float RadToDeg(float radians)
                     KeyEngaged = IsEngaged,
                     Enabled = Config.Enabled,
                     DeviceConnected = Device.connected || DeviceNetController.Connected,
-                    InRaid = _memory.InRaid,
+                    InRaid = Memory.InRaid,
                     CandidateTotal = _dbgTotalPlayers,
                     CandidateTypeOk = _dbgEligibleType,
                     CandidateInDistance = _dbgWithinDistance,

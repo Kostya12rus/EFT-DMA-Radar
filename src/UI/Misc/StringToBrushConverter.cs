@@ -35,6 +35,7 @@ namespace LoneEftDmaRadar.UI.Misc
 
     /// <summary>
     /// Converts a hex/color‐name string ↔ SolidColorBrush.
+    /// Supports color inheritance for LootFilterEntry via parameter="inherit".
     /// </summary>
     public class StringToBrushConverter : IValueConverter
     {

@@ -13,7 +13,6 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using LoneEftDmaRadar.UI.Skia;
 using LoneEftDmaRadar.UI.Misc;
-using LoneEftDmaRadar.DMA;
 using SharpDX;
 using SharpDX.Mathematics.Interop;
 using System.Windows.Controls;
@@ -655,7 +654,7 @@ namespace LoneEftDmaRadar.UI.ESP
 
             // Get Color
             var color = GetPlayerColorForRender(player);
-            bool isDeviceAimbotLocked = MemDMA.DeviceAimbot?.LockedTarget == player;
+            bool isDeviceAimbotLocked = Memory.DeviceAimbot?.LockedTarget == player;
             if (isDeviceAimbotLocked)
             {
                 color = ToColor(new SKColor(0, 200, 255, 220));
@@ -1267,7 +1266,7 @@ namespace LoneEftDmaRadar.UI.ESP
 
         private void DrawDeviceAimbotTargetLine(Dx9RenderContext ctx, float width, float height)
         {
-            var DeviceAimbot = MemDMA.DeviceAimbot;
+            var DeviceAimbot = Memory.DeviceAimbot;
             if (DeviceAimbot?.LockedTarget is not { } target)
                 return;
 
@@ -1291,7 +1290,7 @@ namespace LoneEftDmaRadar.UI.ESP
             if (limit < 6f) return;
 
             float radius = Math.Clamp(cfg.FOV, 5f, limit);
-            bool engaged = MemDMA.DeviceAimbot?.IsEngaged == true;
+            bool engaged = Memory.DeviceAimbot?.IsEngaged == true;
 
             // Parse color from config using SKColor.Parse (supports #AARRGGBB and #RRGGBB formats)
             var colorStr = engaged ? cfg.FovCircleColorEngaged : cfg.FovCircleColorIdle;
@@ -1307,7 +1306,7 @@ namespace LoneEftDmaRadar.UI.ESP
             if (!App.Config.Device.ShowDebug)
                 return;
 
-            var snapshot = MemDMA.DeviceAimbot?.GetDebugSnapshot();
+            var snapshot = Memory.DeviceAimbot?.GetDebugSnapshot();
 
             var lines = snapshot == null
                 ? new[] { "Device Aimbot: no data" }

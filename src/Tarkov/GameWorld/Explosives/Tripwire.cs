@@ -26,13 +26,12 @@ SOFTWARE.
  *
 */
 
-using Collections.Pooled;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity;
 using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Skia;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Scatter;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
@@ -54,7 +53,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Explosives
 
         public Tripwire(ulong baseAddr, ConcurrentDictionary<ulong, IExplosiveItem> parent)
         {
-            baseAddr.ThrowIfInvalidVirtualAddress(nameof(baseAddr));
+            baseAddr.ThrowIfInvalidUserVA(nameof(baseAddr));
             Addr = baseAddr;
             _parent = parent;
             _position = Memory.ReadValue<Vector3>(baseAddr + Offsets.TripwireSynchronizableObject.ToPosition, false);

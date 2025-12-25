@@ -3,12 +3,12 @@
  * MIT License - Copyright (c) 2025 Lone DMA
  */
 
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 {
@@ -91,8 +91,8 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
         {
             var (staminaObj, oxygenObj) = GetStaminaObjects(localPlayer);
 
-            if (!MemDMA.IsValidVirtualAddress(staminaObj) ||
-                !MemDMA.IsValidVirtualAddress(oxygenObj))
+            if (!staminaObj.IsValidUserVA() ||
+                !oxygenObj.IsValidUserVA())
             {
                 return;
             }
@@ -127,7 +127,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
         private (ulong staminaObj, ulong oxygenObj) GetStaminaObjects(LocalPlayer localPlayer)
         {
             var physical = GetPhysical(localPlayer);
-            if (!MemDMA.IsValidVirtualAddress(physical))
+            if (!physical.IsValidUserVA())
                 return (0x0, 0x0);
 
             var staminaObj = GetStaminaObject(physical);
@@ -138,13 +138,13 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 
         private ulong GetPhysical(LocalPlayer localPlayer)
         {
-            if (MemDMA.IsValidVirtualAddress(_cachedPhysical))
+            if (_cachedPhysical.IsValidUserVA())
                 return _cachedPhysical;
 
             try
             {
                 var physical = Memory.ReadPtr(localPlayer + Offsets.Player.Physical, false);
-                if (MemDMA.IsValidVirtualAddress(physical))
+                if (physical.IsValidUserVA())
                     _cachedPhysical = physical;
 
                 return physical;
@@ -157,13 +157,13 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 
         private ulong GetStaminaObject(ulong physical)
         {
-            if (MemDMA.IsValidVirtualAddress(_cachedStaminaObj))
+            if (_cachedStaminaObj.IsValidUserVA())
                 return _cachedStaminaObj;
 
             try
             {
                 var staminaObj = Memory.ReadPtr(physical + Offsets.Physical.Stamina, false);
-                if (MemDMA.IsValidVirtualAddress(staminaObj))
+                if (staminaObj.IsValidUserVA())
                     _cachedStaminaObj = staminaObj;
 
                 return staminaObj;
@@ -176,13 +176,13 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 
         private ulong GetOxygenObject(ulong physical)
         {
-            if (MemDMA.IsValidVirtualAddress(_cachedOxygenObj))
+            if (_cachedOxygenObj.IsValidUserVA())
                 return _cachedOxygenObj;
 
             try
             {
                 var oxygenObj = Memory.ReadPtr(physical + Offsets.Physical.Oxygen, false);
-                if (MemDMA.IsValidVirtualAddress(oxygenObj))
+                if (oxygenObj.IsValidUserVA())
                     _cachedOxygenObj = oxygenObj;
 
                 return oxygenObj;
@@ -207,7 +207,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                     return;
                 }
 
-                if (!MemDMA.IsValidVirtualAddress(patchState))
+                if (!patchState.IsValidUserVA())
                     return;
 
                 var targetHash = Memory.ReadValue<int>(patchState + Offsets.MovementState.AnimatorStateHash, false);

@@ -27,7 +27,6 @@ SOFTWARE.
 */
 
 using Collections.Pooled;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot.Helpers;
@@ -41,6 +40,7 @@ using LoneEftDmaRadar.UI.Skia;
 using LoneEftDmaRadar.Web.TarkovDev.Data;
 using VmmSharpEx.Scatter;
 using static LoneEftDmaRadar.Tarkov.Unity.Structures.UnityTransform;
+using System.Buffers;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 {
@@ -56,15 +56,72 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         protected static readonly ConcurrentDictionary<string, int> _groups = new(StringComparer.OrdinalIgnoreCase);
         protected static int _lastGroupNumber;
 
+        /// <summary>
+        /// Set of temporary marked teammates (by player Base address).
+        /// Cleared on each raid end.
+        /// </summary>
+        protected static readonly HashSet<ulong> _tempTeammates = new();
+
         static AbstractPlayer()
         {
-            MemDMA.RaidStopped += MemDMA_RaidStopped;
+            Memory.RaidStopped += Memory_RaidStopped;
         }
 
-        private static void MemDMA_RaidStopped(object sender, EventArgs e)
+        private static void Memory_RaidStopped(object sender, EventArgs e)
         {
             _groups.Clear();
             _lastGroupNumber = default;
+            lock (_tempTeammates)
+            {
+                _tempTeammates.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Mark a player as a temporary teammate.
+        /// </summary>
+        public static void AddTempTeammate(AbstractPlayer player)
+        {
+            if (player == null) return;
+            lock (_tempTeammates)
+            {
+                _tempTeammates.Add(player.Base);
+            }
+            player.UpdateTypeForTeammate(true);
+        }
+
+        /// <summary>
+        /// Remove a player from temporary teammates.
+        /// </summary>
+        public static void RemoveTempTeammate(AbstractPlayer player)
+        {
+            if (player == null) return;
+            lock (_tempTeammates)
+            {
+                _tempTeammates.Remove(player.Base);
+            }
+            player.UpdateTypeForTeammate(false);
+        }
+
+        /// <summary>
+        /// Check if a player is marked as a temporary teammate.
+        /// </summary>
+        public static bool IsTempTeammate(AbstractPlayer player)
+        {
+            if (player == null) return false;
+            lock (_tempTeammates)
+            {
+                return _tempTeammates.Contains(player.Base);
+            }
+        }
+
+        /// <summary>
+        /// Updates the player's Type when temporary teammate status changes.
+        /// Override in derived classes to handle type updates.
+        /// </summary>
+        public virtual void UpdateTypeForTeammate(bool isTeammate)
+        {
+            // do nothing
         }
 
         #endregion
@@ -577,17 +634,17 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 bool successRot = s.ReadValue<Vector2>(RotationAddress, out var rotation) && SetRotation(rotation);
                 bool successPos = false;
 
-                if (s.ReadArray<TrsX>(SkeletonRoot.VerticesAddr, requestedVertices) is PooledMemory<TrsX> vertices)
+                if (s.ReadPooled<TrsX>(SkeletonRoot.VerticesAddr, requestedVertices) is IMemoryOwner<TrsX> vertices)
                 {
                     using (vertices)
                     {
                         try
                         {
-                            if (vertices.Span.Length >= requestedVertices)
+                            if (vertices.Memory.Span.Length >= requestedVertices)
                             {
                                 try
                                 {
-                                    _ = SkeletonRoot.UpdatePosition(vertices.Span);
+                                    _ = SkeletonRoot.UpdatePosition(vertices.Memory.Span);
                                     successPos = true;
                                 }
                                 catch (Exception ex)
@@ -601,13 +658,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                                 {
                                     try
                                     {
-                                        if (bonePair.Value.Count <= vertices.Span.Length)
+                                        if (bonePair.Value.Count <= vertices.Memory.Span.Length)
                                         {
-                                            bonePair.Value.UpdatePosition(vertices.Span);
+                                            bonePair.Value.UpdatePosition(vertices.Memory.Span);
                                         }
                                         else
                                         {
-                                            DebugLogger.LogDebug($"Bone '{bonePair.Key}' needs {bonePair.Value.Count} vertices but only {vertices.Span.Length} available for '{Name}'");
+                                            DebugLogger.LogDebug($"Bone '{bonePair.Key}' needs {bonePair.Value.Count} vertices but only {vertices.Memory.Span.Length} available for '{Name}'");
                                             ResetBoneTransform(bonePair.Key);
                                         }
                                     }
@@ -628,7 +685,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                             }
                             else
                             {
-                                DebugLogger.LogDebug($"Insufficient vertices for '{Name}': got {vertices.Span.Length}, expected {requestedVertices}");
+                                DebugLogger.LogDebug($"Insufficient vertices for '{Name}': got {vertices.Memory.Span.Length}, expected {requestedVertices}");
                                 _verticesCount = 0;
                                 successPos = false;
                             }
@@ -874,6 +931,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         Name = "Zombie",
                         Type = PlayerType.AIScav
                     };
+                default:
+                    break;
             }
             if (voiceLine.Contains("scav", StringComparison.OrdinalIgnoreCase))
                 return new AIRole
@@ -898,6 +957,24 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 {
                     Name = "Bear",
                     Type = PlayerType.AIRaider
+                };
+            if (voiceLine.Contains("black_division", StringComparison.OrdinalIgnoreCase))
+                return new AIRole
+                {
+                    Name = "BD",
+                    Type = PlayerType.AIRaider
+                };
+            if (voiceLine.Contains("vsrf", StringComparison.OrdinalIgnoreCase))
+                return new AIRole
+                {
+                    Name = "Vsrf",
+                    Type = PlayerType.AIRaider
+                };
+            if (voiceLine.Contains("civilian", StringComparison.OrdinalIgnoreCase))
+                return new AIRole
+                {
+                    Name = "Civ",
+                    Type = PlayerType.AIScav
                 };
             DebugLogger.LogDebug($"Unknown Voice Line: {voiceLine}");
             return new AIRole
@@ -939,6 +1016,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     var dist = Vector3.Distance(refPos, Position);
                     var roundedHeight = (int)Math.Round(height);
                     var roundedDist = (int)Math.Round(dist);
+
+                    // Draw height indicator on the left side
+                    if (roundedHeight != 0)
+                    {
+                        string heightIndicator = roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}";
+                        DrawHeightIndicator(canvas, point, heightIndicator);
+                    }
+
+                    // Draw name and distance on the right side
                     using var lines = new PooledList<string>();
                     if (!App.Config.UI.HideNames) // show full names & info
                     {
@@ -955,14 +1041,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                             else
                                 name = Name;
                         }
-                        string health = null; string level = null;
+                        string health = null;
                         if (this is ObservedPlayer observed)
                         {
                             health = observed.HealthStatus is Enums.ETagStatus.Healthy
                                 ? null
                                 : $" ({observed.HealthStatus})"; // Only display abnormal health status
-                            if (observed.Profile?.Level is int levelResult)
-                                level = $"{levelResult}:";
                         }
                         var isWhitelisted = App.Config.PlayerWhitelist
                             .Any(w => w.AcctID == AccountID && !string.IsNullOrEmpty(w.CustomName));
@@ -979,24 +1063,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                         if (!isFollowTarget)
                         {
-                            lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
-                        }
-                        else
-                        {
-                            if (roundedHeight != 0)
-                                lines.Add(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}");
+                            lines.Add($"{roundedDist}M");
                         }
                     }
-                    else // just height, distance
+                    else // just distance
                     {
                         if (!isFollowTarget)
                         {
-                            lines.Add(roundedHeight != 0 ? $"{roundedDist}M {(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}")}" : $"{roundedDist}M");
-                        }
-                        else
-                        {
-                            if (roundedHeight != 0)
-                                lines.Add(roundedHeight > 0 ? $"▲{roundedHeight}" : $"▼{Math.Abs(roundedHeight)}");
+                            lines.Add($"{roundedDist}M");
                         }
 
                         if (IsError)
@@ -1088,7 +1162,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             var paints = GetPaints();
             if (RadarViewModel.MouseoverGroup is int grp && grp == GroupID)
                 paints.Item2 = SKPaints.TextMouseoverGroup;
-            point.Offset(9.5f * App.Config.UI.UIScale, 0);
+            point.Offset(10.5f * App.Config.UI.UIScale, 0);
             foreach (var line in lines)
             {
                 if (string.IsNullOrEmpty(line?.Trim()))
@@ -1102,16 +1176,34 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             }
         }
 
+        /// <summary>
+        /// Draws Height Indicator on the left side of player pill.
+        /// </summary>
+        private void DrawHeightIndicator(SKCanvas canvas, SKPoint point, string heightIndicator)
+        {
+            var paints = GetPaints();
+            if (RadarViewModel.MouseoverGroup is int grp && grp == GroupID)
+                paints.Item2 = SKPaints.TextMouseoverGroup;
+            var leftPoint = new SKPoint(point.X - 10.5f * App.Config.UI.UIScale, point.Y + 5f * App.Config.UI.UIScale);
+
+            canvas.DrawText(heightIndicator, leftPoint, SKTextAlign.Right, SKFonts.UIRegular, SKPaints.TextOutline); // Draw outline
+            canvas.DrawText(heightIndicator, leftPoint, SKTextAlign.Right, SKFonts.UIRegular, paints.Item2); // draw text
+        }
+
+
         private ValueTuple<SKPaint, SKPaint> GetPaints()
         {
-            if (IsFocused)
-                return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintFocused, SKPaints.TextFocused);
             if (this is LocalPlayer)
                 return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintLocalPlayer, SKPaints.TextLocalPlayer);
+
+            if (Type == PlayerType.Teammate)
+                return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintTeammate, SKPaints.TextTeammate);
+
+            if (IsFocused)
+                return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintFocused, SKPaints.TextFocused);
+
             switch (Type)
             {
-                case PlayerType.Teammate:
-                    return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintTeammate, SKPaints.TextTeammate);
                 case PlayerType.PMC:
                     return PlayerSide switch
                     {

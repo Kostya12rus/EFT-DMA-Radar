@@ -27,7 +27,6 @@ SOFTWARE.
 */
 
 using LiteDB;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Misc.Services;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
@@ -77,11 +76,11 @@ namespace LoneEftDmaRadar.Web.ProfileApi
                     BoundedCapacity = DataflowBlockOptions.Unbounded,
                     EnsureOrdered = false
                 });
-                MemDMA.RaidStopped += MemDMA_RaidStopped;
+                Memory.RaidStopped += Memory_RaidStopped;
             }
         }
 
-        private static void MemDMA_RaidStopped(object sender, EventArgs e)
+        private static void Memory_RaidStopped(object sender, EventArgs e)
         {
             var old = Interlocked.Exchange(ref _cts, new CancellationTokenSource());
             old.Cancel();

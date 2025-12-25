@@ -29,7 +29,8 @@ SOFTWARE.
 using LoneEftDmaRadar.UI.Hotkeys;
 using LoneEftDmaRadar.UI.Radar.ViewModels;
 using LoneEftDmaRadar.UI.ESP;
-using LoneEftDmaRadar.DMA;
+using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.UI.Misc;
 
 namespace LoneEftDmaRadar
 {
@@ -124,6 +125,8 @@ namespace LoneEftDmaRadar
             toggleESPExfils.HotkeyStateChanged += ToggleESPExfils_HotkeyStateChanged;
             var toggleStaticContainers = new HotkeyActionController("Toggle Static Containers");
             toggleStaticContainers.HotkeyStateChanged += ToggleStaticContainers_HotkeyStateChanged;
+            var addNearbyTeammates = new HotkeyActionController("Add Nearby Players as Teammates");
+            addNearbyTeammates.HotkeyStateChanged += AddNearbyTeammates_HotkeyStateChanged;
 
             // Add to Static Collection:
             HotkeyAction.RegisterController(zoomIn);
@@ -143,6 +146,7 @@ namespace LoneEftDmaRadar
             HotkeyAction.RegisterController(toggleStaticContainers);
             HotkeyAction.RegisterController(engageAimbotDeviceAimbot);
             HotkeyAction.RegisterController(toggleDeviceAimbotEnabled);
+            HotkeyAction.RegisterController(addNearbyTeammates);
             HotkeyManagerViewModel.NotifyControllersRegistered();
         }
 
@@ -179,9 +183,9 @@ namespace LoneEftDmaRadar
             // Fallback to ViewModel-based approach if direct access fails.
             try
             {
-                if (MemDMA.DeviceAimbot != null)
+                if (Memory.DeviceAimbot != null)
                 {
-                    MemDMA.DeviceAimbot.IsEngaged = e.State;
+                    Memory.DeviceAimbot.IsEngaged = e.State;
                     return;
                 }
             }
@@ -303,6 +307,41 @@ namespace LoneEftDmaRadar
             {
                 vm.ShowStaticContainers = !vm.ShowStaticContainers;
             }
+        }
+
+        private void AddNearbyTeammates_HotkeyStateChanged(object sender, HotkeyEventArgs e)
+        {
+            if (!e.State)
+                return;
+
+            var localPlayer = Memory.LocalPlayer;
+            if (localPlayer == null)
+                return;
+
+            const float maxDistance = 15f;
+            int count = 0;
+
+            foreach (var player in Memory.Players ?? Enumerable.Empty<AbstractPlayer>())
+            {
+                if (player == localPlayer || player is LocalPlayer)
+                    continue;
+                if (!player.IsAlive || !player.IsActive)
+                    continue;
+                if (!player.IsHuman)
+                    continue;
+                if (AbstractPlayer.IsTempTeammate(player))
+                    continue;
+
+                float distance = Vector3.Distance(localPlayer.Position, player.Position);
+                if (distance <= maxDistance)
+                {
+                    AbstractPlayer.AddTempTeammate(player);
+                    count++;
+                    DebugLogger.LogDebug($"Added {player.Name ?? "Unknown"} (dist: {distance:F1}m) as temporary teammate");
+                }
+            }
+
+            DebugLogger.LogDebug($"Added {count} nearby players as temporary teammates");
         }
 
         #endregion

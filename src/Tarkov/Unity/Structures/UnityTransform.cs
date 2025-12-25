@@ -26,9 +26,9 @@ SOFTWARE.
  *
 */
 
-using Collections.Pooled;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
+using VmmSharpEx.Extensions;
+using System.Buffers;
 
 namespace LoneEftDmaRadar.Tarkov.Unity.Structures
 {
@@ -56,11 +56,11 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Structures
             var ta = Memory.ReadValue<TransformAccess>(transformInternal, useCache);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(ta.Index, 128000, nameof(ta.Index)); // Sanity check since this is used to size vertices reads
             _index = ta.Index;
-            ta.Hierarchy.ThrowIfInvalidVirtualAddress(nameof(ta.Hierarchy));
+            ta.Hierarchy.ThrowIfInvalidUserVA(nameof(ta.Hierarchy));
             _hierarchyAddr = ta.Hierarchy;
             var transformHierarchy = Memory.ReadValue<TransformHierarchy>(_hierarchyAddr, useCache);
-            transformHierarchy.Vertices.ThrowIfInvalidVirtualAddress(nameof(transformHierarchy.Vertices));
-            transformHierarchy.Indices.ThrowIfInvalidVirtualAddress(nameof(transformHierarchy.Indices));
+            transformHierarchy.Vertices.ThrowIfInvalidUserVA(nameof(transformHierarchy.Vertices));
+            transformHierarchy.Indices.ThrowIfInvalidUserVA(nameof(transformHierarchy.Indices));
             IndicesAddr = transformHierarchy.Indices;
             VerticesAddr = transformHierarchy.Vertices;
             /// Populate Indices once for the Life of the Transform.
@@ -97,13 +97,13 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Structures
         /// <returns>Ref to World Position</returns>
         public ref Vector3 UpdatePosition(Span<TrsX> vertices = default)
         {
-            PooledMemory<TrsX> standaloneVertices = null;
+            IMemoryOwner<TrsX> standaloneVertices = null;
             try
             {
                 if (vertices.IsEmpty)
                 {
                     standaloneVertices = ReadVertices();
-                    vertices = standaloneVertices.Span;
+                    vertices = standaloneVertices.Memory.Span;
                 }
 
                 var worldPos = vertices[_index].t;
@@ -137,13 +137,13 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Structures
         /// <returns>World Rotation</returns>
         public Quaternion GetRotation(Span<TrsX> vertices = default)
         {
-            PooledMemory<TrsX> standaloneVertices = null;
+            IMemoryOwner<TrsX> standaloneVertices = null;
             try
             {
                 if (vertices.IsEmpty)
                 {
                     standaloneVertices = ReadVertices();
-                    vertices = standaloneVertices.Span;
+                    vertices = standaloneVertices.Memory.Span;
                 }
 
                 var worldRot = vertices[_index].q;
@@ -218,13 +218,13 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Structures
         /// <returns>World Point.</returns>
         public Vector3 TransformPoint(Vector3 localPoint, Span<TrsX> vertices = default)
         {
-            PooledMemory<TrsX> standaloneVertices = null;
+            IMemoryOwner<TrsX> standaloneVertices = null;
             try
             {
                 if (vertices.IsEmpty)
                 {
                     standaloneVertices = ReadVertices();
-                    vertices = standaloneVertices.Span;
+                    vertices = standaloneVertices.Memory.Span;
                 }
 
                 var worldPos = localPoint;
@@ -258,13 +258,13 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Structures
         /// <returns>Local Point</returns>
         public Vector3 InverseTransformPoint(Vector3 worldPoint, Span<TrsX> vertices = default)
         {
-            PooledMemory<TrsX> standaloneVertices = null;
+            IMemoryOwner<TrsX> standaloneVertices = null;
             try
             {
                 if (vertices.IsEmpty)
                 {
                     standaloneVertices = ReadVertices();
-                    vertices = standaloneVertices.Span;
+                    vertices = standaloneVertices.Memory.Span;
                 }
 
                 var worldPos = vertices[_index].t;
@@ -346,9 +346,9 @@ namespace LoneEftDmaRadar.Tarkov.Unity.Structures
         /// <summary>
         /// Read Updated Vertices for this Transform.
         /// </summary>
-        public PooledMemory<TrsX> ReadVertices()
+        public IMemoryOwner<TrsX> ReadVertices()
         {
-            return Memory.ReadArray<TrsX>(VerticesAddr, Count, _useCache);
+            return Memory.ReadPooled<TrsX>(VerticesAddr, Count, _useCache);
         }
         #endregion
 

@@ -11,7 +11,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using LoneEftDmaRadar.DMA;
 using VmmSharpEx;
 using System.Threading.Tasks;
 
@@ -231,12 +230,12 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         /// </summary>
         public bool IsEngaged
         {
-            get => MemDMA.DeviceAimbot?.IsEngaged ?? false;
+            get => Memory.DeviceAimbot?.IsEngaged ?? false;
             set
             {
-                if (MemDMA.DeviceAimbot != null)
+                if (Memory.DeviceAimbot != null)
                 {
-                    MemDMA.DeviceAimbot.IsEngaged = value;
+                    Memory.DeviceAimbot.IsEngaged = value;
                     OnPropertyChanged();
                 }
             }

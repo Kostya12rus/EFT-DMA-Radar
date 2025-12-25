@@ -1,6 +1,5 @@
 using System;
 using System.Windows;
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 
 namespace LoneEftDmaRadar.UI.ESP
@@ -27,12 +26,12 @@ namespace LoneEftDmaRadar.UI.ESP
 
             if (!_raidHooked)
             {
-                MemDMA.RaidStopped += MemDMA_RaidStopped;
+                Memory.RaidStopped += Memory_RaidStopped;
                 _raidHooked = true;
             }
         }
 
-        private static void MemDMA_RaidStopped(object sender, EventArgs e)
+        private static void Memory_RaidStopped(object sender, EventArgs e)
         {
             // Reset ESP state on raid end so users don't need to restart the app.
             Application.Current?.Dispatcher.InvokeAsync(() => _espWindow?.OnRaidStopped());

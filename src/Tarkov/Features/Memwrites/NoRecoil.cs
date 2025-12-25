@@ -1,8 +1,8 @@
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using VmmSharpEx.Extensions;
 
 namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 {
@@ -82,7 +82,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                 //DebugLogger.LogDebug($"[NoRecoil] LocalPlayer.PWA: 0x{localPlayer.PWA:X}");
 
                 // Early-out if PWA is not valid (not in raid / no weapon)
-                if (!MemDMA.IsValidVirtualAddress(localPlayer.PWA))
+                if (!localPlayer.PWA.IsValidUserVA())
                 {
                     //DebugLogger.LogDebug("[NoRecoil] PWA is invalid - no weapon equipped?");
                     if (stateChanged)
@@ -282,9 +282,9 @@ private void ApplyNoRecoil(LocalPlayer localPlayer)
             }
 
             // Return cached if valid
-            if (MemDMA.IsValidVirtualAddress(_cachedBreathEffector) &&
-                MemDMA.IsValidVirtualAddress(_cachedShotEffector) &&
-                MemDMA.IsValidVirtualAddress(_cachedNewShotRecoil))
+            if (_cachedBreathEffector.IsValidUserVA() &&
+                _cachedShotEffector.IsValidUserVA() &&
+                _cachedNewShotRecoil.IsValidUserVA())
             {
                 //DebugLogger.LogDebug("[NoRecoil] Using cached pointers");
                 return (_cachedBreathEffector, _cachedShotEffector, _cachedNewShotRecoil);
@@ -292,7 +292,7 @@ private void ApplyNoRecoil(LocalPlayer localPlayer)
 
             //DebugLogger.LogDebug("[NoRecoil] Cache invalid, reading from memory...");
 
-            if (!MemDMA.IsValidVirtualAddress(pwa))
+            if (!pwa.IsValidUserVA())
             {
                 //DebugLogger.LogDebug("[NoRecoil] PWA invalid, returning zeros");
                 return (0, 0, 0);
@@ -303,8 +303,8 @@ private void ApplyNoRecoil(LocalPlayer localPlayer)
 
             //DebugLogger.LogDebug($"[NoRecoil] Read - BreathEffector: 0x{breathEffector:X}, ShotEffector: 0x{shotEffector:X}");
 
-            if (!MemDMA.IsValidVirtualAddress(breathEffector) ||
-                !MemDMA.IsValidVirtualAddress(shotEffector))
+            if (!breathEffector.IsValidUserVA() ||
+                !shotEffector.IsValidUserVA())
             {
                 //DebugLogger.LogDebug("[NoRecoil] Invalid breathEffector or shotEffector");
                 return (0, 0, 0);
@@ -315,7 +315,7 @@ private void ApplyNoRecoil(LocalPlayer localPlayer)
 
             //DebugLogger.LogDebug($"[NoRecoil] Read - NewShotRecoil: 0x{newShotRecoil:X}");
 
-            if (!MemDMA.IsValidVirtualAddress(newShotRecoil))
+            if (!newShotRecoil.IsValidUserVA())
             {
                 //DebugLogger.LogDebug("[NoRecoil] Invalid newShotRecoil");
                 return (0, 0, 0);
@@ -333,9 +333,9 @@ private void ApplyNoRecoil(LocalPlayer localPlayer)
 
         private static bool ValidatePointers(ulong breathEffector, ulong shotEffector, ulong newShotRecoil)
         {
-            return MemDMA.IsValidVirtualAddress(breathEffector) &&
-                   MemDMA.IsValidVirtualAddress(shotEffector)   &&
-                   MemDMA.IsValidVirtualAddress(newShotRecoil);
+            return breathEffector.IsValidUserVA() &&
+                   shotEffector.IsValidUserVA()   &&
+                   newShotRecoil.IsValidUserVA();
         }
 
         private void ClearCache()

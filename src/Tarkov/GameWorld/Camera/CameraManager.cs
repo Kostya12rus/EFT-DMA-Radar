@@ -3,7 +3,6 @@
  * MIT License - Copyright (c) 2025 Lone DMA
  */
 
-using LoneEftDmaRadar.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
@@ -26,12 +25,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 
         static CameraManager()
         {
-            MemDMA.ProcessStarting += MemDMA_ProcessStarting;
-            MemDMA.ProcessStopped += MemDMA_ProcessStopped;
+            Memory.ProcessStarting += Memory_ProcessStarting;
+            Memory.ProcessStopped += Memory_ProcessStopped;
         }
 
-        private static void MemDMA_ProcessStarting(object sender, EventArgs e) { }
-        private static void MemDMA_ProcessStopped(object sender, EventArgs e) { }
+        private static void Memory_ProcessStarting(object sender, EventArgs e) { }
+        private static void Memory_ProcessStopped(object sender, EventArgs e) { }
         public static ulong FPSCameraPtr { get; private set; }
         public static ulong OpticCameraPtr { get; private set; }
         public static ulong ActiveCameraPtr { get; private set; }
