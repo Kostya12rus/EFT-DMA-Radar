@@ -27,7 +27,6 @@ SOFTWARE.
 */
 
 global using LoneEftDmaRadar.DMA;
-using Collections.Pooled;
 using LoneEftDmaRadar.Common.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld;
@@ -43,7 +42,6 @@ using VmmSharpEx.Extensions;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
 using VmmSharpEx.Scatter;
-using System.Buffers;
 
 namespace LoneEftDmaRadar.DMA
 {
