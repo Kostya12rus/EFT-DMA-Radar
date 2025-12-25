@@ -212,9 +212,6 @@ Toggle Fullscreen: F11
                               IsChecked="{Binding QuestHelperEnabled, Mode=TwoWay}"
                               DockPanel.Dock="Left"
                               Margin="0,0,8,0" />
-                    <TextBlock Text="Tracked Quests"
-                               VerticalAlignment="Center"
-                               Margin="0,0,4,8" />
                     <ListBox ItemsSource="{Binding CurrentQuests}"
                              IsEnabled="{Binding QuestHelperEnabled}"
                              Height="250"

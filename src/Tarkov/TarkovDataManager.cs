@@ -67,6 +67,11 @@ namespace LoneEftDmaRadar.Tarkov
         public static FrozenDictionary<string, TaskElement> TaskData { get; private set; }
 
         /// <summary>
+        /// All Task Zones mapped by MapID -> ZoneID -> Position.
+        /// </summary>
+        public static FrozenDictionary<string, FrozenDictionary<string, Vector3>> TaskZones { get; private set; }
+
+        /// <summary>
         /// XP Table for Tarkov.
         /// </summary>
         public static IReadOnlyDictionary<int, int> XPTable { get; private set; }
@@ -138,13 +143,32 @@ namespace LoneEftDmaRadar.Tarkov
                 .DistinctBy(t => t.Id, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(t => t.Id, t => t, StringComparer.OrdinalIgnoreCase)
                 .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+            TaskZones = TaskData.Values
+                .Where(task => task.Objectives is not null) // Ensure the Objectives are not null
+                .SelectMany(task => task.Objectives)   // Flatten the Objectives from each TaskElement
+                .Where(objective => objective.Zones is not null) // Ensure the Zones are not null
+                .SelectMany(objective => objective.Zones)    // Flatten the Zones from each Objective
+                .Where(zone => zone.Position is not null && zone.Map?.NameId is not null) // Ensure Position and Map are not null
+                .GroupBy(zone => zone.Map.NameId, zone => new
+                {
+                    id = zone.Id,
+                    pos = new Vector3(zone.Position.X, zone.Position.Y, zone.Position.Z)
+                }, StringComparer.OrdinalIgnoreCase)
+                .DistinctBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key, // Map Id
+                    group => group
+                    .DistinctBy(x => x.id, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        zone => zone.id,
+                        zone => zone.pos,
+                        StringComparer.OrdinalIgnoreCase
+                    ).ToFrozenDictionary(StringComparer.OrdinalIgnoreCase),
+                    StringComparer.OrdinalIgnoreCase
+                )
+                .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
             var maps = data.Maps.ToDictionary(x => x.NameId, StringComparer.OrdinalIgnoreCase) ??
                 new Dictionary<string, MapElement>(StringComparer.OrdinalIgnoreCase);
-            maps.TryAdd("Terminal", new MapElement() // Preliminary terminal support
-            {
-                Name = "Terminal",
-                NameId = "Terminal"
-            });
             MapData = maps.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, MapElement>().ToFrozenDictionary();
             XPTable = data.PlayerLevels?.ToDictionary(x => x.Exp, x => x.Level) ?? new Dictionary<int, int>();
         }
@@ -278,6 +302,7 @@ namespace LoneEftDmaRadar.Tarkov
             [JsonPropertyName("z")]
             public float Z { get; set; }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Vector3 AsVector3() => new(X, Y, Z);
         }
 
@@ -396,10 +421,10 @@ namespace LoneEftDmaRadar.Tarkov
                 public List<List<MarkerItemClass>> RequiredKeys { get; set; }
 
                 [JsonPropertyName("maps")]
-                public List<BasicDataElement> Maps { get; set; }
+                public List<TaskMapElement> Maps { get; set; }
 
                 [JsonPropertyName("zones")]
-                public List<ZoneElement> Zones { get; set; }
+                public List<TaskZoneElement> Zones { get; set; }
 
                 [JsonPropertyName("count")]
                 public int Count { get; set; }
@@ -446,7 +471,7 @@ namespace LoneEftDmaRadar.Tarkov
                     public string Description { get; set; }
                 }
 
-                public class ZoneElement
+                public class TaskZoneElement
                 {
                     [JsonPropertyName("id")]
                     public string Id { get; set; }
@@ -455,13 +480,13 @@ namespace LoneEftDmaRadar.Tarkov
                     public PositionElement Position { get; set; }
 
                     [JsonPropertyName("map")]
-                    public BasicDataElement Map { get; set; }
+                    public TaskMapElement Map { get; set; }
                 }
 
-                public class BasicDataElement
+                public class TaskMapElement
                 {
-                    [JsonPropertyName("id")]
-                    public string Id { get; set; }
+                    [JsonPropertyName("nameId")]
+                    public string NameId { get; set; }
 
                     [JsonPropertyName("normalizedName")]
                     public string NormalizedName { get; set; }
