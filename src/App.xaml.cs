@@ -189,6 +189,7 @@ namespace LoneEftDmaRadar
             try
             {
                 ESPManager.CloseESP();
+                Memory.Dispose();
                 Config.Save();
             }
             finally

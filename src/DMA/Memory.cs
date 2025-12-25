@@ -62,6 +62,8 @@ namespace LoneEftDmaRadar.DMA
         private static readonly string _mmap = Path.Combine(App.ConfigPath.FullName, "mmap.txt");
         private static Vmm _vmm;
         private static InputManager _input;
+        private static CancellationTokenSource _memoryThreadCts;
+        private static Thread _memoryThread;
         private static uint _pid;
         public static string MapID => Game?.MapID;
         public static ulong UnityBase { get; private set; }
@@ -144,10 +146,12 @@ namespace LoneEftDmaRadar.DMA
                     ProcessStopped += Memory_ProcessStopped;
                     RaidStopped += Memory_RaidStopped;
                     // Start Memory Thread after successful startup
-                    new Thread(MemoryPrimaryWorker)
+                    _memoryThreadCts = new CancellationTokenSource();
+                    _memoryThread = new Thread(() => MemoryPrimaryWorker(_memoryThreadCts.Token))
                     {
                         IsBackground = true
-                    }.Start();
+                    };
+                    _memoryThread.Start();
                     return Task.CompletedTask;
                 }
                 catch (Exception ex)
@@ -173,18 +177,18 @@ namespace LoneEftDmaRadar.DMA
         /// <summary>
         /// Main worker thread to perform DMA Reads on.
         /// </summary>
-        private static void MemoryPrimaryWorker()
+        private static void MemoryPrimaryWorker(CancellationToken ct)
         {
             DebugLogger.LogDebug("Memory thread starting...");
-            while (MainWindow.Instance is null)
+            while (MainWindow.Instance is null && !ct.IsCancellationRequested)
                 Thread.Sleep(1);
-            while (true)
+            while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    while (true) // Main Loop
+                    while (!ct.IsCancellationRequested) // Main Loop
                     {
-                        RunStartupLoop();
+                        RunStartupLoop(ct);
                         OnProcessStarted();
                         try
                         {
@@ -194,7 +198,7 @@ namespace LoneEftDmaRadar.DMA
                         {
                             DebugLogger.LogDebug($"Failed to start DeviceAimbot: {ex}");
                         }
-                        RunGameLoop();
+                        RunGameLoop(ct);
                         OnProcessStopped();
                     }
                 }
@@ -205,6 +209,7 @@ namespace LoneEftDmaRadar.DMA
                     Thread.Sleep(1000);
                 }
             }
+            DebugLogger.LogDebug("Memory thread stopping...");
         }
 
         #endregion
@@ -235,10 +240,10 @@ namespace LoneEftDmaRadar.DMA
         /// Starts up the Game Process and all mandatory modules.
         /// Returns to caller when the Game is ready.
         /// </summary>
-        private static void RunStartupLoop()
+        private static void RunStartupLoop(CancellationToken shutdownCt)
         {
             DebugLogger.LogDebug("New Process Startup");
-            while (true) // Startup loop
+            while (!shutdownCt.IsCancellationRequested) // Startup loop
             {
                 try
                 {
@@ -265,9 +270,9 @@ namespace LoneEftDmaRadar.DMA
         /// Main Game Loop Method.
         /// Returns to caller when Game is no longer running.
         /// </summary>
-        private static void RunGameLoop()
+        private static void RunGameLoop(CancellationToken shutdownCt)
         {
-            while (true)
+            while (!shutdownCt.IsCancellationRequested)
             {
                 try
                 {
@@ -284,9 +289,10 @@ namespace LoneEftDmaRadar.DMA
                         var cameraInitStart = DateTime.MinValue;
                         var cameraInitTimeout = TimeSpan.FromSeconds(15);
 
-                        while (game.InRaid)
+                        while (game.InRaid && !shutdownCt.IsCancellationRequested)
                         {
                             ct.ThrowIfCancellationRequested();
+                            shutdownCt.ThrowIfCancellationRequested();
 
                             if (CameraManager == null && DateTime.UtcNow >= nextCameraAttempt)
                             {
@@ -757,6 +763,32 @@ namespace LoneEftDmaRadar.DMA
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong AlignAddress(ulong address) => (address + 7) & ~7ul;
+
+        #endregion
+
+        #region Cleanup
+
+        /// <summary>
+        /// Cleans up resources when the application is shutting down.
+        /// </summary>
+        public static void Dispose()
+        {
+            try
+            {
+                // Cancel the memory thread
+                _memoryThreadCts?.Cancel();
+                _memoryThreadCts?.Dispose();
+
+                // Dispose InputManager and its WorkerThread
+                _input?.Dispose();
+
+                DebugLogger.LogDebug("[Memory] Resources disposed successfully.");
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[Memory] Error during disposal: {ex}");
+            }
+        }
 
         #endregion
     }

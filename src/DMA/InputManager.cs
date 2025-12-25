@@ -22,7 +22,7 @@ namespace LoneEftDmaRadar.DMA
     /// - Primary source: VmmInputManager (Win32 keyboard/mouse via MemProcFS)
     /// - Failsafe / secondary source: DeviceAimbot device (mouse buttons)
     /// </summary>
-    public sealed class InputManager
+    public sealed class InputManager : IDisposable
     {
         private readonly VmmInputManager _input;   // may be null if Win32 backend failed
         private readonly WorkerThread _thread;
@@ -115,11 +115,11 @@ namespace LoneEftDmaRadar.DMA
         /// and returns whether that logical key is down according to DeviceAimbot.
         /// 
         /// This gives us:
-        /// - LBUTTON   ¡ú DeviceAimbotMouseButton.Left
-        /// - RBUTTON   ¡ú DeviceAimbotMouseButton.Right
-        /// - MBUTTON   ¡ú DeviceAimbotMouseButton.Middle
-        /// - XBUTTON1  ¡ú DeviceAimbotMouseButton.mouse4
-        /// - XBUTTON2  ¡ú DeviceAimbotMouseButton.mouse5
+        /// - LBUTTON   ï¿½ï¿½ DeviceAimbotMouseButton.Left
+        /// - RBUTTON   ï¿½ï¿½ DeviceAimbotMouseButton.Right
+        /// - MBUTTON   ï¿½ï¿½ DeviceAimbotMouseButton.Middle
+        /// - XBUTTON1  ï¿½ï¿½ DeviceAimbotMouseButton.mouse4
+        /// - XBUTTON2  ï¿½ï¿½ DeviceAimbotMouseButton.mouse5
         /// 
         /// So users can bind hotkeys to those keys in the hotkey UI ?????
         /// they will work even when VmmInputManager is unavailable, as long
@@ -176,6 +176,11 @@ namespace LoneEftDmaRadar.DMA
         {
             var state = GetAsyncKeyState((int)vk);
             return (state & 0x8000) != 0;
+        }
+
+        public void Dispose()
+        {
+            _thread?.Dispose();
         }
     }
 }
