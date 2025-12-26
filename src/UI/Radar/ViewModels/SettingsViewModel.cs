@@ -276,19 +276,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        public bool HideNames
-        {
-            get => App.Config.UI.HideNames;
-            set
-            {
-                if (App.Config.UI.HideNames != value)
-                {
-                    App.Config.UI.HideNames = value;
-                    OnPropertyChanged(nameof(HideNames));
-                }
-            }
-        }
-
         public bool ShowHazards
         {
             get => App.Config.UI.ShowHazards;
@@ -328,19 +315,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        public bool MarkSusPlayers
-        {
-            get => App.Config.UI.MarkSusPlayers;
-            set
-            {
-                if (App.Config.UI.MarkSusPlayers != value)
-                {
-                    App.Config.UI.MarkSusPlayers = value;
-                    OnPropertyChanged(nameof(MarkSusPlayers));
-                }
-            }
-        }
-        
         public bool ShowESP
         {
             get => UI.ESP.ESPWindow.ShowESP;

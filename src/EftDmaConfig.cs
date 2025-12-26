@@ -548,12 +548,6 @@ namespace LoneEftDmaRadar
         public bool ShowHazards { get; set; } = true;
 
         /// <summary>
-        /// Hides player names & extended player info in Radar GUI.
-        /// </summary>
-        [JsonPropertyName("hideNames")]
-        public bool HideNames { get; set; }
-
-        /// <summary>
         /// Connects grouped players together via a semi-transparent line.
         /// </summary>
         [JsonPropertyName("connectGroups")]
@@ -576,12 +570,6 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("aiAimlines")]
         public bool AIAimlines { get; set; } = true;
-
-        /// <summary>
-        /// Mark players with suspicious stats.
-        /// </summary>
-        [JsonPropertyName("markSusPlayers")]
-        public bool MarkSusPlayers { get; set; } = false;
 
         /// <summary>
         /// Automatically start ESP Fuser on application startup.
