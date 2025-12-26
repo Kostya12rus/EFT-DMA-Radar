@@ -337,12 +337,12 @@ namespace LoneEftDmaRadar.UI.ESP
 
                         if (Explosives is not null && App.Config.UI.EspTripwires)
                         {
-                            DrawTripwires(ctx, screenWidth, screenHeight);
+                            DrawTripwires(ctx, screenWidth, screenHeight, localPlayer);
                         }
 
                         if (Explosives is not null && App.Config.UI.EspGrenades)
                         {
-                            DrawGrenades(ctx, screenWidth, screenHeight);
+                            DrawGrenades(ctx, screenWidth, screenHeight, localPlayer);
                         }
 
                         // Render players
@@ -555,10 +555,13 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawTripwires(Dx9RenderContext ctx, float screenWidth, float screenHeight)
+        private void DrawTripwires(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
         {
             if (Explosives is null)
                 return;
+
+            var camPos = localPlayer?.Position ?? Vector3.Zero;
+            float maxDistance = App.Config.UI.EspTripwireMaxDistance;
 
             foreach (var explosive in Explosives)
             {
@@ -568,6 +571,11 @@ namespace LoneEftDmaRadar.UI.ESP
                 try
                 {
                     if (tripwire.Position == Vector3.Zero)
+                        continue;
+
+                    // Check distance to tripwire
+                    float distance = Vector3.Distance(camPos, tripwire.Position);
+                    if (maxDistance > 0 && distance > maxDistance)
                         continue;
 
                     if (!CameraManager.WorldToScreenWithScale(tripwire.Position, out var screen, out float scale, true, true))
@@ -588,10 +596,14 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawGrenades(Dx9RenderContext ctx, float screenWidth, float screenHeight)
+        private void DrawGrenades(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
         {
             if (Explosives is null)
                 return;
+
+            var camPos = localPlayer?.Position ?? Vector3.Zero;
+            float maxDistance = App.Config.UI.EspGrenadeMaxDistance;
+            var grenadeColor = GetGrenadeColorForRender();
 
             foreach (var explosive in Explosives)
             {
@@ -603,15 +615,76 @@ namespace LoneEftDmaRadar.UI.ESP
                     if (grenade.Position == Vector3.Zero)
                         continue;
 
+                    float distance = Vector3.Distance(camPos, grenade.Position);
+                    if (maxDistance > 0 && distance > maxDistance)
+                        continue;
+
                     if (!CameraManager.WorldToScreenWithScale(grenade.Position, out var screen, out float scale, true, true))
                         continue;
 
-                    var color = GetGrenadeColorForRender();
+                    // Draw blast radius circle
+                    if (App.Config.UI.EspGrenadeBlastRadius)
+                    {
+                        float blastRadiusWorld = 5f; // blast radius data should be read from memory or some other sources, for now it's hardcoded
+                        const int segments = 32;
+                        var blastColor = ToColor(new SKColor(
+                            grenadeColor.R, grenadeColor.G, grenadeColor.B, 255));
+
+                        var circlePoints = new List<SKPoint>();
+                        for (int i = 0; i <= segments; i++)
+                        {
+                            float angle = (i / (float)segments) * MathF.PI * 2;
+                            var offset = new Vector3(
+                                MathF.Cos(angle) * blastRadiusWorld,
+                                0,
+                                MathF.Sin(angle) * blastRadiusWorld);
+                            var worldPos = grenade.Position + offset;
+
+                            if (CameraManager.WorldToScreenWithScale(worldPos, out var screenPos, out _, true, true))
+                            {
+                                circlePoints.Add(screenPos);
+                            }
+                        }
+
+                        // Draw line segments between points
+                        for (int i = 0; i < circlePoints.Count - 1; i++)
+                        {
+                            ctx.DrawLine(ToRaw(circlePoints[i]), ToRaw(circlePoints[i + 1]), blastColor, 2f);
+                        }
+                    }
+
+                    // Draw trail
+                    if (App.Config.UI.EspGrenadeTrail && grenade.PositionHistory.Count > 1)
+                    {
+                        var trailColor = ToColor(new SKColor(
+                            grenadeColor.R, grenadeColor.G, grenadeColor.B, 255));
+
+                        var screenPoints = new List<SKPoint>();
+                        foreach (var pos in grenade.PositionHistory)
+                        {
+                            if (pos == Vector3.Zero)
+                                continue;
+                            if (CameraManager.WorldToScreenWithScale(pos, out var posScreen, out _, true, true))
+                            {
+                                screenPoints.Add(posScreen);
+                            }
+                        }
+
+                        // Draw trail segments with increasing thickness
+                        for (int i = 0; i < screenPoints.Count - 1; i++)
+                        {
+                            float progress = (float)i / (screenPoints.Count - 1);
+                            float thickness = 0.5f + (progress * 3.5f); // 0.5f to 4f
+
+                            ctx.DrawLine(ToRaw(screenPoints[i]), ToRaw(screenPoints[i + 1]), trailColor, thickness);
+                        }
+                    }
+
                     float radius = Math.Clamp(5f * App.Config.UI.UIScale * scale, 3f, 20f);
-                    ctx.DrawCircle(ToRaw(screen), radius, color, true);
+                    ctx.DrawCircle(ToRaw(screen), radius, grenadeColor, true);
 
                     DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
-                    ctx.DrawText("Grenade", screen.X + radius + 6, screen.Y, color, textSize);
+                    ctx.DrawText("Grenade", screen.X + radius + 6, screen.Y, grenadeColor, textSize);
                 }
                 catch
                 {
@@ -1129,10 +1202,14 @@ namespace LoneEftDmaRadar.UI.ESP
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static SKPaint GetPlayerColor(AbstractPlayer player)
         {
-             if (player.IsFocused)
-                return SKPaints.PaintAimviewWidgetFocused;
             if (player is LocalPlayer)
                 return SKPaints.PaintAimviewWidgetLocalPlayer;
+
+            if (player.Type == PlayerType.Teammate)
+                return SKPaints.PaintAimviewWidgetTeammate;
+
+            if (player.IsFocused)
+                return SKPaints.PaintAimviewWidgetFocused;
 
             if (player.Type == PlayerType.PMC)
             {
@@ -1164,13 +1241,10 @@ namespace LoneEftDmaRadar.UI.ESP
 
             return player.Type switch
             {
-                PlayerType.Teammate => SKPaints.PaintAimviewWidgetTeammate,
                 PlayerType.AIScav => SKPaints.PaintAimviewWidgetScav,
                 PlayerType.AIRaider => SKPaints.PaintAimviewWidgetRaider,
                 PlayerType.AIBoss => SKPaints.PaintAimviewWidgetBoss,
                 PlayerType.PScav => SKPaints.PaintAimviewWidgetPScav,
-                PlayerType.SpecialPlayer => SKPaints.PaintAimviewWidgetWatchlist,
-                PlayerType.Streamer => SKPaints.PaintAimviewWidgetStreamer,
                 _ => SKPaints.PaintAimviewWidgetPMC
             };
         }
@@ -1354,9 +1428,8 @@ namespace LoneEftDmaRadar.UI.ESP
             var cfg = App.Config.UI;
             var basePaint = GetPlayerColor(player);
 
-            // Preserve special colouring (local, focused, watchlist/streamer, teammates).
-            if (player is LocalPlayer || player.IsFocused ||
-                player.Type is PlayerType.SpecialPlayer or PlayerType.Streamer or PlayerType.Teammate)
+            // Preserve special colouring (local, focused, teammates).
+            if (player is LocalPlayer || player.IsFocused || player.Type is PlayerType.Teammate)
             {
                 return ToColor(basePaint);
             }
@@ -1470,16 +1543,7 @@ namespace LoneEftDmaRadar.UI.ESP
         /// <returns>Custom name from whitelist if available, otherwise the player's original name</returns>
         private static string GetPlayerDisplayName(AbstractPlayer player)
         {
-            if (player?.AccountID == null)
-                return player?.Name;
-
-            var whitelistEntry = App.Config.PlayerWhitelist
-                .FirstOrDefault(w => w.AcctID == player.AccountID);
-
-            if (whitelistEntry != null && !string.IsNullOrEmpty(whitelistEntry.CustomName))
-                return whitelistEntry.CustomName;
-
-            return player.Name;
+            return player?.Name;
         }
 
         private bool WorldToScreen2(in Vector3 world, out SKPoint scr, float screenWidth, float screenHeight)

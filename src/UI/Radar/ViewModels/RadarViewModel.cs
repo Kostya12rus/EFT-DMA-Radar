@@ -32,6 +32,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.UI.Loot;
 using LoneEftDmaRadar.UI.Misc;
 using LoneEftDmaRadar.UI.Radar.Maps;
@@ -131,12 +132,15 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 var containers = App.Config.Loot.Enabled && App.Config.Containers.Enabled ?
                     Containers ?? Enumerable.Empty<IMouseoverEntity>() : Enumerable.Empty<IMouseoverEntity>();
                 var exits = Exits ?? Enumerable.Empty<IMouseoverEntity>();
+                var quests = App.Config.QuestHelper.Enabled
+                    ? Memory.QuestManager?.LocationConditions?.Values?.OfType<IMouseoverEntity>() ?? Enumerable.Empty<IMouseoverEntity>()
+                    : Enumerable.Empty<IMouseoverEntity>();
 
                 if (FilterIsSet && !(MainWindow.Instance?.Radar?.Overlay?.ViewModel?.HideCorpses ?? false)) // Item Search
                     players = players.Where(x =>
                         x.LootObject is null || !loot.Contains(x.LootObject)); // Don't show both corpse objects
 
-                var result = loot.Concat(containers).Concat(players).Concat(exits);
+                var result = loot.Concat(containers).Concat(players).Concat(exits).Concat(quests);
                 return result.Any() ? result : null;
             }
         }
@@ -262,18 +266,12 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             // Begin draw
             try
             {
-                Interlocked.Increment(ref _fps); // Increment FPS counter
-                SetMapName();
-                /// Check for map switch
-                string mapID = MapID; // Cache ref
-                if (mapID != null && !string.Equals(mapID, EftMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
-                {
-                    EftMapManager.LoadMap(mapID);
-                }
                 canvas.Clear(); // Clear canvas
-                if (inRaid && LocalPlayer is LocalPlayer localPlayer) // LocalPlayer is in a raid -> Begin Drawing...
+                Interlocked.Increment(ref _fps); // Increment FPS counter
+                string mapID = MapID; // Cache ref
+                if (inRaid && LocalPlayer is LocalPlayer localPlayer && EftMapManager.LoadMap(mapID) is IEftMap map) // LocalPlayer is in a raid -> Begin Drawing...
                 {
-                    var map = EftMapManager.Map; // Cache ref
+                    SetMapName();
                     if (map == null)
                     {
                         DebugLogger.LogDebug("[RadarViewModel] Map is null after loading, skipping render frame");
@@ -375,14 +373,14 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         }
                     }
 
-                    if (App.Config.UI.ShowMines &&
+                    if (App.Config.UI.ShowHazards &&
                         mapID != null &&
-                        StaticGameData.Mines.TryGetValue(mapID, out var mines)) // Draw Mines
+                        TarkovDataManager.MapData.TryGetValue(mapID, out var mapData) && mapData.Hazards is not null) // Draw Hazards
                     {
-                        foreach (ref var mine in mines.Span)
+                        foreach (var hazard in mapData.Hazards)
                         {
-                            var mineZoomedPos = mine.ToMapPos(map.Config).ToZoomedPos(mapParams);
-                            mineZoomedPos.DrawMineMarker(canvas);
+                            var mineZoomedPos = hazard.Position.AsVector3().ToMapPos(map.Config).ToZoomedPos(mapParams);
+                            mineZoomedPos.DrawHazardMarker(canvas);
                         }
                     }
 
@@ -399,6 +397,17 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                         foreach (var exit in exits)
                         {
                             exit.Draw(canvas, mapParams, localPlayer);
+                        }
+                    }
+
+                    if (App.Config.QuestHelper.Enabled)
+                    {
+                        if (Memory.QuestManager?.LocationConditions?.Values is IEnumerable<QuestLocation> questLocations)
+                        {
+                            foreach (var loc in questLocations)
+                            {
+                                loc.Draw(canvas, mapParams, localPlayer);
+                            }
                         }
                     }
 
@@ -460,11 +469,14 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     else if (!inRaid)
                         WaitingForRaidStatus(canvas);
                 }
-                canvas.Flush(); // commit frame to GPU
             }
             catch (Exception ex) // Log rendering errors
             {
                 DebugLogger.LogDebug($"***** CRITICAL RENDER ERROR: {ex}");
+            }
+            finally
+            {
+                canvas.Flush(); // commit frame to GPU
             }
         }
 
@@ -722,18 +734,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             {
                 _lastMousePosition = mouse;
                 _mouseDown = true;
-                if (e.ClickCount >= 2 && _mouseOverItem is ObservedPlayer observed)
-                {
-                    if (InRaid && observed.IsStreaming)
-                    {
-                        Process.Start(new ProcessStartInfo()
-                        {
-                            FileName = observed.TwitchChannelURL,
-                            UseShellExecute = true
-                        });
-                    }
-
-                }
             }
             if (e.RightButton is System.Windows.Input.MouseButtonState.Pressed)
             {
@@ -840,6 +840,11 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
                     case IExitPoint exit:
                         _mouseOverItem = closest;
+                        MouseoverGroup = null;
+                        break;
+
+                    case QuestLocation quest:
+                        _mouseOverItem = quest;
                         MouseoverGroup = null;
                         break;
 

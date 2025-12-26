@@ -126,8 +126,6 @@ namespace LoneEftDmaRadar.UI.ColorPicker
                 [ColorPickerOption.PMCPlayer] = SKColors.Red.ToString(),
                 [ColorPickerOption.PMCBear] = SKColors.Red.ToString(),
                 [ColorPickerOption.PMCUsec] = SKColors.Blue.ToString(),
-                [ColorPickerOption.WatchlistPlayer] = SKColors.HotPink.ToString(),
-                [ColorPickerOption.StreamerPlayer] = SKColors.MediumPurple.ToString(),
                 [ColorPickerOption.HumanScavPlayer] = SKColors.White.ToString(),
                 [ColorPickerOption.ScavPlayer] = SKColors.Yellow.ToString(),
                 [ColorPickerOption.RaiderPlayer] = SKColor.Parse("ffc70f").ToString(),
@@ -139,11 +137,13 @@ namespace LoneEftDmaRadar.UI.ColorPicker
                 [ColorPickerOption.ContainerLoot] = SKColor.Parse("FFFFCC").ToString(),
                 [ColorPickerOption.QuestLoot] = SKColors.YellowGreen.ToString(),
                 [ColorPickerOption.StaticQuestItemsAndZones] = SKColors.DeepPink.ToString(),
+                [ColorPickerOption.QuestHelperItems] = SKColors.YellowGreen.ToString(),
                 [ColorPickerOption.Corpse] = SKColors.Silver.ToString(),
                 [ColorPickerOption.MedsFilterLoot] = SKColors.LightSalmon.ToString(),
                 [ColorPickerOption.FoodFilterLoot] = SKColors.CornflowerBlue.ToString(),
                 [ColorPickerOption.BackpacksFilterLoot] = SKColor.Parse("00b02c").ToString(),
                 [ColorPickerOption.Explosives] = SKColors.OrangeRed.ToString(),
+                [ColorPickerOption.QuestHelperZones] = SKColors.DeepPink.ToString()
             };
         }
 
@@ -183,18 +183,6 @@ namespace LoneEftDmaRadar.UI.ColorPicker
                         case ColorPickerOption.PMCUsec:
                             SKPaints.PaintPMCUsec.Color = skColor;
                             SKPaints.TextPMCUsec.Color = skColor;
-                            break;
-                        case ColorPickerOption.WatchlistPlayer:
-                            SKPaints.PaintWatchlist.Color = skColor;
-                            SKPaints.TextWatchlist.Color = skColor;
-                            SKPaints.PaintAimviewWidgetWatchlist.Color = skColor;
-                            SKPaints.TextPlayersOverlaySpecial.Color = skColor.AdjustBrightness(0.5f);
-                            break;
-                        case ColorPickerOption.StreamerPlayer:
-                            SKPaints.PaintStreamer.Color = skColor;
-                            SKPaints.TextStreamer.Color = skColor;
-                            SKPaints.PaintAimviewWidgetStreamer.Color = skColor;
-                            SKPaints.TextPlayersOverlayStreamer.Color = skColor.AdjustBrightness(0.5f);
                             break;
                         case ColorPickerOption.HumanScavPlayer:
                             SKPaints.PaintPScav.Color = skColor;
@@ -263,6 +251,14 @@ namespace LoneEftDmaRadar.UI.ColorPicker
                             break;
                         case ColorPickerOption.ContainerLoot:
                             SKPaints.PaintContainerLoot.Color = skColor;
+                            break;
+                        case ColorPickerOption.QuestHelperZones:
+                            SKPaints.PaintQuestZone.Color = skColor;
+                            SKPaints.TextQuestZone.Color = skColor;
+                            break;
+                        case ColorPickerOption.QuestHelperItems:
+                            SKPaints.PaintQuestItem.Color = skColor;
+                            SKPaints.TextQuestItem.Color = skColor;
                             break;
                     }
                 }

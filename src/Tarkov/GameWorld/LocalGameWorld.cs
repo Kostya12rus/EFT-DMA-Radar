@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Lone EFT DMA Radar
  * Brought to you by Lone (Lone DMA)
  * 
@@ -33,6 +33,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc;
 using VmmSharpEx.Options;
@@ -74,6 +75,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         public IReadOnlyCollection<IExitPoint> Exits => _exfilManager;
         public LocalPlayer LocalPlayer => _rgtPlayers?.LocalPlayer;
         public LootManager Loot { get; }
+        public QuestManager QuestManager { get; }
 
         private LocalGameWorld() { }
 
@@ -112,6 +114,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 var rgtPlayersAddr = Memory.ReadPtr(localGameWorld + Offsets.GameWorld.RegisteredPlayers, false);
                 _rgtPlayers = new RegisteredPlayers(rgtPlayersAddr, this);
                 ArgumentOutOfRangeException.ThrowIfLessThan(_rgtPlayers.GetPlayerCount(), 1, nameof(_rgtPlayers));
+                QuestManager = new(_rgtPlayers.LocalPlayer.Profile);
                 Loot = new(localGameWorld);
                 _exfilManager = new ExitManager(localGameWorld, mapID, _rgtPlayers.LocalPlayer);
                 _explosivesManager = new(localGameWorld);
@@ -241,11 +244,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             {
                 try
                 {
-                    if (!IsRaidActive())
-                        continue;
-                    return;
+                    if (IsRaidActive())
+                        return;
                 }
-                catch { Thread.Sleep(10); } // short delay between read attempts
+                catch { }
+                Thread.Sleep(50); // Small delay before retry
             }
             throw new OperationCanceledException("Raid has ended!"); // Still not valid? Raid must have ended.
         }
@@ -312,12 +315,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             // Sync FilteredLoot
             Loot.Refresh(ct);
              // Refresh player equipment
-            RefreshEquipment();
+            RefreshEquipment(ct);
+            RefreshQuestHelper(ct);
             // Refresh Exfil Status
             RefreshExfils();
         }
 
-        private void RefreshEquipment()
+        private void RefreshEquipment(CancellationToken ct)
         {
             var players = _rgtPlayers
                 .OfType<ObservedPlayer>()
@@ -325,7 +329,16 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                     && x.IsActive && x.IsAlive);
             foreach (var player in players)
             {
+                ct.ThrowIfCancellationRequested();
                 player.Equipment.Refresh();
+            }
+        }
+
+        private void RefreshQuestHelper(CancellationToken ct)
+        {
+            if (App.Config.QuestHelper.Enabled)
+            {
+                QuestManager.Refresh(ct);
             }
         }
 

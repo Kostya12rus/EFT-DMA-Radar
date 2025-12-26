@@ -42,6 +42,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
         private readonly ulong _lgw;
         private readonly Lock _filterSync = new();
         private readonly ConcurrentDictionary<ulong, LootItem> _loot = new();
+        private readonly HashSet<string> _loggedQuestItems = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// All loot (with filter applied).
@@ -253,7 +254,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                     var corpse = new LootCorpse(interactiveClass, pos);
                     _ = _loot.TryAdd(p.ItemBase, corpse);
                 }
-                if (isContainer)
+                else if (isContainer)
                 {
                     try
                     {
@@ -285,10 +286,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                     var id = mongoId.ReadString();
                     if (isQuestItem)
                     {
-                         var shortNamePtr = Memory.ReadPtr(itemTemplate + Offsets.ItemTemplate.ShortName);
-                        var shortName = Memory.ReadUnicodeString(shortNamePtr, 128);
-                        DebugLogger.LogDebug(shortName);
-                        _ = _loot.TryAdd(p.ItemBase, new LootItem(id, $"Q_{shortName}", pos, isQuestItem: true));
+                        if (!_loggedQuestItems.Contains(id))
+                        {
+                            var shortNamePtr = Memory.ReadPtr(itemTemplate + Offsets.ItemTemplate.ShortName);
+                            var shortName = Memory.ReadUnityString(shortNamePtr, 128);
+                            _ = _loot.TryAdd(p.ItemBase, new LootItem(id, $"Q_{shortName}", pos, true));
+                            _loggedQuestItems.Add(id);
+                        }
                     }
                     else
                     {

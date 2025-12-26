@@ -232,7 +232,7 @@
                         <CheckBox Content="Show Containers" IsChecked="{Binding EspContainers, Mode=TwoWay}" Margin="0,0,16,8" />
                      </WrapPanel>
                      <WrapPanel Margin="0,4,0,0" IsEnabled="{Binding EspContainers}">
-                        <TextBlock Text="Container Distance (ESP)"
+                        <TextBlock Text="Container Distance"
                                    VerticalAlignment="Center" />
                         <Slider x:Name="EspContainerDistanceSlider"
                                 Width="150"
@@ -245,6 +245,59 @@
                         <TextBlock Text="{Binding Value, ElementName=EspContainerDistanceSlider, StringFormat='{}{0:F0}'}"
                                    VerticalAlignment="Center"
                                    Margin="8,0,0,0" />
+                     </WrapPanel>
+                     <WrapPanel Margin="0,4,0,0" IsEnabled="{Binding EspTripwires}">
+                        <TextBlock Text="Tripwire Distance"
+                                   VerticalAlignment="Center" />
+                        <Slider x:Name="EspTripwireDistanceSlider"
+                                Width="200"
+                                Margin="8,0"
+                                Minimum="0"
+                                Maximum="500"
+                                SmallChange="10"
+                                LargeChange="50"
+                                Value="{Binding EspTripwireDistance, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding Value, ElementName=EspTripwireDistanceSlider, StringFormat='{}{0:F0}m'}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                     </WrapPanel>
+                     <WrapPanel Margin="0,4,0,0" IsEnabled="{Binding EspGrenades}">
+                        <TextBlock Text="Grenade Distance"
+                                   VerticalAlignment="Center" />
+                        <Slider x:Name="EspGrenadeDistanceSlider"
+                                Width="200"
+                                Margin="8,0"
+                                Minimum="0"
+                                Maximum="500"
+                                SmallChange="10"
+                                LargeChange="50"
+                                Value="{Binding EspGrenadeDistance, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding Value, ElementName=EspGrenadeDistanceSlider, StringFormat='{}{0:F0}m'}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                     </WrapPanel>
+                     <WrapPanel Margin="0,4,0,0" IsEnabled="{Binding EspGrenades}">
+                        <CheckBox Content="Show Grenade Trail"
+                                  IsChecked="{Binding EspGrenadeTrail, Mode=TwoWay}"
+                                  Margin="0,0,16,0" />
+                        <TextBlock Text="Trail Length:"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" />
+                        <Slider x:Name="EspGrenadeTrailLengthSlider"
+                                Width="120"
+                                Margin="8,0"
+                                Minimum="10"
+                                Maximum="200"
+                                SmallChange="5"
+                                LargeChange="20"
+                                Value="{Binding EspGrenadeTrailLength, Mode=TwoWay}"
+                                IsEnabled="{Binding EspGrenadeTrail}" />
+                        <TextBlock Text="{Binding Value, ElementName=EspGrenadeTrailLengthSlider, StringFormat='{}{0:F0}'}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                        <CheckBox Content="Show Blast Radius"
+                                  IsChecked="{Binding EspGrenadeBlastRadius, Mode=TwoWay}"
+                                  Margin="16,0,0,0" />
                      </WrapPanel>
                      <WrapPanel Margin="0,4,0,0" IsEnabled="{Binding EspLootConeEnabled}">
                         <TextBlock Text="Cone Angle"

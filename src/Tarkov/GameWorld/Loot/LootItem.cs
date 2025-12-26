@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Lone EFT DMA Radar
  * Brought to you by Lone (Lone DMA)
  * 
@@ -135,6 +135,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
         public bool IsQuestItem => _isQuestItem;
 
         /// <summary>
+        /// True if this item is needed for an active quest.
+        /// </summary>
+        public bool IsQuestHelperItem => App.Config.QuestHelper.Enabled && (Memory.QuestManager?.ItemConditions?.ContainsKey(ID) ?? false);
+
+        /// <summary>
         /// True if the item is blacklisted via the UI.
         /// </summary>
         public bool Blacklisted => CustomFilter?.Blacklisted ?? false;
@@ -182,16 +187,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                     return false;
                 return _item.Important;
             }
-        }
-
-        /// <summary>
-        /// True if this item contains the specified Search Predicate.
-        /// </summary>
-        /// <param name="predicate"></param>
-        /// <returns>True if search matches, otherwise False.</returns>
-        public bool ContainsSearchPredicate(Predicate<LootItem> predicate)
-        {
-            return predicate(this);
         }
 
         private Vector3 _position; // Allow position updates for items in case they start rolling around
@@ -282,6 +277,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
         {
             if (IsQuestItem)
                 return new(SKPaints.PaintQuestItem, SKPaints.TextQuestItem);
+            if (IsQuestHelperItem)
+                return new(SKPaints.PaintQuestHelperItem, SKPaints.TextQuestHelperItem);
             if (LootFilter.ShowBackpacks && IsBackpack)
                 return new(SKPaints.PaintBackpacks, SKPaints.TextBackpacks);
             if (LootFilter.ShowMeds && IsMeds)

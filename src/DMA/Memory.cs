@@ -27,7 +27,6 @@ SOFTWARE.
 */
 
 global using LoneEftDmaRadar.DMA;
-using Collections.Pooled;
 using LoneEftDmaRadar.Common.DMA;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld;
@@ -36,6 +35,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc;
 using VmmSharpEx;
@@ -43,7 +43,6 @@ using VmmSharpEx.Extensions;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
 using VmmSharpEx.Scatter;
-using System.Buffers;
 
 namespace LoneEftDmaRadar.DMA
 {
@@ -78,6 +77,7 @@ namespace LoneEftDmaRadar.DMA
         public static IReadOnlyCollection<IExitPoint> Exits => Game?.Exits;
         public static LocalPlayer LocalPlayer => Game?.LocalPlayer;
         public static LootManager Loot => Game?.Loot;
+        public static QuestManager QuestManager => Game?.QuestManager;
         public static LocalGameWorld Game { get; private set; }
 
         /// <summary>
@@ -623,17 +623,6 @@ namespace LoneEftDmaRadar.DMA
         }
 
         /// <summary>
-        /// Read null terminated Unicode string.
-        /// </summary>
-        public static string ReadUnicodeString(ulong addr, int cb = 128, bool useCache = true)
-        {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb));
-            var flags = useCache ? VmmFlags.NONE : VmmFlags.NOCACHE;
-            return _vmm.MemReadString(_pid, addr + 0x14, cb, Encoding.Unicode, flags) ??
-                throw new VmmException("Memory Read Failed!");
-        }
-
-        /// <summary>
         /// Read null terminated Unity string (Unicode Encoding).
         /// </summary>
         public static string ReadUnityString(ulong addr, int cb = 128, bool useCache = true)
@@ -715,54 +704,6 @@ namespace LoneEftDmaRadar.DMA
             {
             }
         }
-
-        #endregion
-
-        #region Memory Macros
-
-        /// <summary>
-        /// The PAGE_ALIGN macro returns a page-aligned virtual address for a given virtual address.
-        /// https://learn.microsoft.com/windows-hardware/drivers/ddi/wdm/nf-wdm-page_align
-        /// </summary>
-        /// <param name="va">Virtual address.</param>
-        /// <returns>Page-aligned virtual address.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong PAGE_ALIGN(ulong va) => va & ~(0x1000ul - 1);
-
-        /// <summary>
-        /// The BYTE_OFFSET macro takes a virtual address and returns the byte offset of that address within the page.
-        /// https://learn.microsoft.com/windows-hardware/drivers/ddi/wdm/nf-wdm-byte_offset
-        /// </summary>
-        /// <param name="va">virtual address.</param>
-        /// <returns>Offset portion of the virtual address within the page.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint BYTE_OFFSET(ulong va) => (uint)(va & (0x1000ul - 1));
-
-        /// <summary>
-        /// The ADDRESS_AND_SIZE_TO_SPAN_PAGES macro returns the number of pages that a virtual range spans.
-        /// The virtual range is defined by a virtual address and the size in bytes of a transfer request.
-        /// https://learn.microsoft.com/windows-hardware/drivers/ddi/wdm/nf-wdm-address_and_size_to_span_pages
-        /// </summary>
-        /// <param name="va">Virtual address that is the base of the range.</param>
-        /// <param name="size">Specifies the size in bytes.</param>
-        /// <returns>Returns the number of pages spanned by the virtual range starting at Va.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong ADDRESS_AND_SIZE_TO_SPAN_PAGES(ulong va, ulong size) =>
-            (BYTE_OFFSET(va) + size + (0x1000ul - 1)) >> 12;
-
-        /// <summary>
-        /// Returns a length aligned to 8 bytes.
-        /// Always rounds up.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint AlignLength(uint length) => (length + 7) & ~7u;
-
-        /// <summary>
-        /// Returns an address aligned to 8 bytes.
-        /// Always the next aligned address.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong AlignAddress(ulong address) => (address + 7) & ~7ul;
 
         #endregion
 

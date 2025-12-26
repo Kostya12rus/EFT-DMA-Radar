@@ -59,6 +59,8 @@ namespace LoneEftDmaRadar.UI.Loot
                 {
                     if (x.IsQuestItem && showQuestItems)
                         return true;
+                    if (App.Config.QuestHelper.Enabled && x.IsQuestHelperItem)
+                        return true;
                     return (x.IsRegularLoot || x.IsValuableLoot || x.IsImportant) ||
                                 (showBackpacks && x.IsBackpack) ||
                                 (showMeds && x.IsMeds) ||
@@ -89,26 +91,19 @@ namespace LoneEftDmaRadar.UI.Loot
             else // Loot Search
             {
                 var names = search!.Split(',').Select(a => a.Trim()).ToList(); // Pooled wasnt working well here
-                Predicate<LootItem> p = x => // Search Predicate
+                Predicate<LootItem> p = item => // Search Predicate
                 {
-                    return names.Any(a => x.Name.Contains(a, StringComparison.OrdinalIgnoreCase));
+                    if (item is LootAirdrop)
+                        return true;
+                    return names.Any(a => item.Name.Contains(a, StringComparison.OrdinalIgnoreCase));
                 };
                 return item =>
                 {
-                    if (item is LootAirdrop)
-                    {
-                        return true;
-                    }
                     if (item is StaticLootContainer container)
                     {
-                        // Show if SelectAll is enabled OR if this specific container is selected
                         return App.Config.Containers.SelectAll || App.Config.Containers.Selected.ContainsKey(container.ID);
                     }
-                    if (item.ContainsSearchPredicate(p))
-                    {
-                        return true;
-                    }
-                    return false;
+                    return p(item);
                 };
             }
         }

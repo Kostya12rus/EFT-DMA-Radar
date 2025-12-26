@@ -120,7 +120,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
     /// <summary>
     /// Class JSON Representation of Tarkov Market Data.
     /// </summary>
-    public class TarkovMarketItem
+    public sealed class TarkovMarketItem
     {
         /// <summary>
         /// Item ID.
@@ -175,27 +175,42 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
         /// Is a Medical Item.
         /// </summary>
         [JsonIgnore]
-        public bool IsMed => Tags.Contains("Meds");
+        public bool IsMed => Tags.Any(tag =>
+            tag.Equals("Meds", StringComparison.OrdinalIgnoreCase) ||
+            tag.Equals("药品", StringComparison.Ordinal));
+
         /// <summary>
         /// Is a Food Item.
         /// </summary>
         [JsonIgnore]
-        public bool IsFood => Tags.Contains("Food and drink");
+        public bool IsFood => Tags.Any(tag =>
+            tag.Equals("Food and drink", StringComparison.OrdinalIgnoreCase) ||
+            tag.Equals("食物和饮料", StringComparison.Ordinal));
+
         /// <summary>
         /// Is a backpack.
         /// </summary>
         [JsonIgnore]
-        public bool IsBackpack => Tags.Any(tag => tag.IndexOf("backpack", StringComparison.OrdinalIgnoreCase) >= 0);
+        public bool IsBackpack => Tags.Any(tag =>
+            tag.IndexOf("backpack", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            tag.Equals("背包", StringComparison.Ordinal) ||
+            tag.IndexOf("背包", StringComparison.Ordinal) >= 0);
+
         /// <summary>
         /// Is a Weapon Item.
         /// </summary>
         [JsonIgnore]
-        public bool IsWeapon => Tags.Contains("Weapon");
+        public bool IsWeapon => Tags.Any(tag =>
+            tag.Equals("Weapon", StringComparison.OrdinalIgnoreCase) ||
+            tag.Equals("武器", StringComparison.Ordinal));
+
         /// <summary>
         /// Is Currency (Roubles,etc.)
         /// </summary>
         [JsonIgnore]
-        public bool IsCurrency => Tags.Contains("Money");
+        public bool IsCurrency => Tags.Any(tag =>
+            tag.Equals("Money", StringComparison.OrdinalIgnoreCase) ||
+            tag.Equals("钱", StringComparison.Ordinal));
 
         /// <summary>
         /// This field is set if this item has a special filter.

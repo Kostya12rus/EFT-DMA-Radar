@@ -114,7 +114,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
             using var lines = new PooledList<string>();
             if (Player is AbstractPlayer player)
             {
-                var name = App.Config.UI.HideNames && player.IsHuman ? "<Hidden>" : player.Name;
+                var name = player.Name;
                 lines.Add($"{player.Type.ToString()}:{name}");
                 string g = null;
                 if (player.GroupID != -1) g = $"G:{player.GroupID} ";

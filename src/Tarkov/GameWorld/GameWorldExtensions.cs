@@ -146,9 +146,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                             mapPtr = Memory.ReadPtr(localPlayer + Offsets.Player.Location);
                         }
 
-                        string map = Memory.ReadUnicodeString(mapPtr, 128);
+                        string map = Memory.ReadUnityString(mapPtr, 128);
 
-                        if (!StaticGameData.MapNames.ContainsKey(map))
+                        if (!TarkovDataManager.MapData.ContainsKey(map))
                         {
                             if (map.Equals("hideout", StringComparison.OrdinalIgnoreCase))
                             {

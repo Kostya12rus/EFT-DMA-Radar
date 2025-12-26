@@ -52,9 +52,7 @@ using LoneEftDmaRadar.UI.Misc;
 using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Skia;
 using LoneEftDmaRadar.UI.ESP;
-using LoneEftDmaRadar.Web.EftApiTech;
 using LoneEftDmaRadar.Web.TarkovDev.Data;
-using LoneEftDmaRadar.Web.TarkovDev.Profiles;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
 using Velopack;
@@ -240,8 +238,6 @@ namespace LoneEftDmaRadar
             var services = new ServiceCollection();
             services.AddHttpClient(); // Add default HttpClientFactory
             TarkovDevGraphQLApi.Configure(services);
-            TarkovDevProfileProvider.Configure(services);
-            EftApiTechProvider.Configure(services);
             return services.BuildServiceProvider();
         }
 

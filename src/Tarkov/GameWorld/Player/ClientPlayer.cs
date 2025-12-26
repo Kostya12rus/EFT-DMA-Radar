@@ -46,9 +46,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         public override string Name { get; set; }
         /// <summary>
-        /// Account UUID for Human Controlled Players.
+        /// Account UUID for Human Controlled Players (not available).
         /// </summary>
-        public override string AccountID { get; }
+        public override string AccountID => "";
         /// <summary>
         /// Group that the player belongs to.
         /// </summary>
@@ -222,7 +222,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             try
             {
                 var groupIdPtr = Memory.ReadPtr(Info + Offsets.PlayerInfo.GroupId);
-                string groupId = Memory.ReadUnicodeString(groupIdPtr);
+                string groupId = Memory.ReadUnityString(groupIdPtr);
                 return _groups.GetOrAdd(
                     groupId,
                     _ => Interlocked.Increment(ref _lastGroupNumber));

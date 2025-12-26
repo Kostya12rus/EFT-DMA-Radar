@@ -1026,55 +1026,19 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                     // Draw name and distance on the right side
                     using var lines = new PooledList<string>();
-                    if (!App.Config.UI.HideNames) // show full names & info
+                    string name = IsError ? "ERROR" : Name;
+                    string health = null;
+                    if (this is ObservedPlayer observed)
                     {
-                        string name = null;
-                        if (IsError)
-                            name = "ERROR"; // In case POS stops updating, let us know!
-                        else
-                        {
-                            var whitelistEntry = App.Config.PlayerWhitelist
-                                .FirstOrDefault(w => w.AcctID == AccountID);
-
-                            if (whitelistEntry != null && !string.IsNullOrEmpty(whitelistEntry.CustomName))
-                                name = whitelistEntry.CustomName;
-                            else
-                                name = Name;
-                        }
-                        string health = null;
-                        if (this is ObservedPlayer observed)
-                        {
-                            health = observed.HealthStatus is Enums.ETagStatus.Healthy
-                                ? null
-                                : $" ({observed.HealthStatus})"; // Only display abnormal health status
-                        }
-                        var isWhitelisted = App.Config.PlayerWhitelist
-                            .Any(w => w.AcctID == AccountID && !string.IsNullOrEmpty(w.CustomName));
-
-                        if (IsPmc && !isWhitelisted)
-                        {
-                            char faction = PlayerSide.ToString()[0]; // Get faction letter (U/B)
-                            lines.Add($"[{faction}] {name}{health}");
-                        }
-                        else
-                        {
-                            lines.Add($"{name}{health}");
-                        }
-
-                        if (!isFollowTarget)
-                        {
-                            lines.Add($"{roundedDist}M");
-                        }
+                        health = observed.HealthStatus is Enums.ETagStatus.Healthy
+                            ? null
+                            : $" ({observed.HealthStatus})"; // Only display abnormal health status
                     }
-                    else // just distance
-                    {
-                        if (!isFollowTarget)
-                        {
-                            lines.Add($"{roundedDist}M");
-                        }
+                    lines.Add($"{name}{health}");
 
-                        if (IsError)
-                            lines[0] = "ERROR"; // In case POS stops updating, let us know!
+                    if (!isFollowTarget)
+                    {
+                        lines.Add($"{roundedDist}M");
                     }
 
                     DrawPlayerText(canvas, point, lines);
@@ -1219,10 +1183,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintBoss, SKPaints.TextBoss);
                 case PlayerType.PScav:
                     return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintPScav, SKPaints.TextPScav);
-                case PlayerType.SpecialPlayer:
-                    return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintWatchlist, SKPaints.TextWatchlist);
-                case PlayerType.Streamer:
-                    return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintStreamer, SKPaints.TextStreamer);
                 default:
                     return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintPMC, SKPaints.TextPMC);
             }
@@ -1233,21 +1193,19 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (this == localPlayer)
                 return;
             using var lines = new PooledList<string>();
-            var name = App.Config.UI.HideNames && IsHuman ? "<Hidden>" : Name;
+            var name = Name;
             string health = null;
             if (this is ObservedPlayer observed)
                 health = observed.HealthStatus is Enums.ETagStatus.Healthy
                     ? null
                     : $" ({observed.HealthStatus.ToString()})"; // Only display abnormal health status
-            if (this is ObservedPlayer obs && obs.IsStreaming) // Streamer Notice
-                lines.Add("[LIVE TTV - Double Click]");
             string alert = Alerts?.Trim();
             if (!string.IsNullOrEmpty(alert)) // Special Players,etc.
                 lines.Add(alert);
             if (IsHostileActive) // Enemy Players, display information
             {
-                lines.Add($"{name}{health} {AccountID}".Trim());
-                var faction = PlayerSide.ToString();
+                lines.Add($"{name}{health}");
+                var faction = PlayerSide.ToString().ToUpper();
                 string g = null;
                 if (GroupID != -1)
                     g = $" G:{GroupID} ";

@@ -56,26 +56,18 @@ namespace LoneEftDmaRadar.UI.Skia
                 return;
             }
 
-            static string MakeRow(string c1, string c2, string c3, string c4,
-                                  string c5, string c6, string c7, string c8)
+            static string MakeRow(string c1, string c2, string c3)
             {
-                // known widths
-                const int W1 = 21, W2 = 5, W3 = 6, W4 = 6, W5 = 6,
-                          W6 = 6, W7 = 4, W8 = 7;
+                // known widths: Name (10), Group (4), Value (10)
+                const int W1 = 10, W2 = 4, W3 = 10;
+                const int len = W1 + W2 + W3;
 
-                const int len = W1 + W2 + W3 + W4 + W5 + W6 + W7 + W8;
-
-                return string.Create(len, (c1, c2, c3, c4, c5, c6, c7, c8), static (span, cols) =>
+                return string.Create(len, (c1, c2, c3), static (span, cols) =>
                 {
                     int pos = 0;
                     WriteAligned(span, ref pos, cols.c1, W1);
                     WriteAligned(span, ref pos, cols.c2, W2);
                     WriteAligned(span, ref pos, cols.c3, W3);
-                    WriteAligned(span, ref pos, cols.c4, W4);
-                    WriteAligned(span, ref pos, cols.c5, W5);
-                    WriteAligned(span, ref pos, cols.c6, W6);
-                    WriteAligned(span, ref pos, cols.c7, W7);
-                    WriteAligned(span, ref pos, cols.c8, W8);
                 });
             }
 
@@ -109,15 +101,7 @@ namespace LoneEftDmaRadar.UI.Skia
                 ClientRectangle.Left + pad,
                 ClientRectangle.Top + font.Spacing / 2 + pad);
 
-            string header = MakeRow(
-                "Fac / Lvl / Name", // c1
-                "Acct",             // c2
-                "K/D",              // c3
-                "Hours",            // c4
-                "Raids",            // c5
-                "S/R%",             // c6
-                "Grp",              // c7
-                "Value");           // c8      
+            string header = MakeRow("Name", "Grp", "Value");
 
             var len = font.MeasureText(header);
             if (len > maxLength) maxLength = len;
@@ -134,53 +118,16 @@ namespace LoneEftDmaRadar.UI.Skia
 
             foreach (var player in filteredPlayers)
             {
-                string name = (App.Config.UI.HideNames && player.IsHuman) ? "<Hidden>" : player.Name;
-                char faction = player.PlayerSide.ToString()[0];
-
-                // Defaults
-                string edition = null;
-                string level = null;
-                string kd = null;
-                string raidCount = null;
-                string survivePercent = null;
-                string hours = null;
-                string value = null;
+                string name = player.Name;
+                string grp = player.GroupID != -1 ? player.GroupID.ToString() : "--";
+                string value = "--";
 
                 if (player is ObservedPlayer obs)
                 {
-                    if (!string.IsNullOrEmpty(obs.Profile.Acct))
-                        edition = obs.Profile.Acct;
-
-                    if (obs.Profile.Level is int lvl)
-                        level = lvl.ToString();
-
-                    if (obs.Profile.Overall_KD is float kdVal)
-                        kd = kdVal.ToString("n1");
-
-                    if (obs.Profile.RaidCount is int rc)
-                        raidCount = Utilities.FormatNumberKM(rc);
-
-                    if (obs.Profile.SurvivedRate is float sr)
-                        survivePercent = sr.ToString("n1");
-
-                    if (obs.Profile.Hours is int hrs)
-                        hours = Utilities.FormatNumberKM(hrs);
-
                     value = Utilities.FormatNumberKM(obs.Equipment.Value);
                 }
 
-                string grp = player.GroupID != -1 ? player.GroupID.ToString() : "--";
-                string facLvlName = $"{faction}{level ?? "0"}:{name}";
-
-                string line = MakeRow(
-                    facLvlName,
-                    edition ?? "--",
-                    kd ?? "--",
-                    hours ?? "--",
-                    raidCount ?? "--",
-                    survivePercent ?? "--",
-                    grp,
-                    value);
+                string line = MakeRow(name, grp, value);
 
                 canvas.DrawText(line,
                     drawPt,
@@ -201,10 +148,6 @@ namespace LoneEftDmaRadar.UI.Skia
                     return SKPaints.TextPlayersOverlayPMC;
                 case PlayerType.PScav:
                     return SKPaints.TextPlayersOverlayPScav;
-                case PlayerType.Streamer:
-                    return SKPaints.TextPlayersOverlayStreamer;
-                case PlayerType.SpecialPlayer:
-                    return SKPaints.TextPlayersOverlaySpecial;
                 default:
                     return SKPaints.TextPlayersOverlay;
             }

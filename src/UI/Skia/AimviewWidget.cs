@@ -193,8 +193,6 @@ namespace LoneEftDmaRadar.UI.Skia
             SKPaints.PaintAimviewWidgetCrosshair.StrokeWidth = std;
             SKPaints.PaintAimviewWidgetLocalPlayer.StrokeWidth = std;
             SKPaints.PaintAimviewWidgetPMC.StrokeWidth = std;
-            SKPaints.PaintAimviewWidgetWatchlist.StrokeWidth = std;
-            SKPaints.PaintAimviewWidgetStreamer.StrokeWidth = std;
             SKPaints.PaintAimviewWidgetTeammate.StrokeWidth = std;
             SKPaints.PaintAimviewWidgetBoss.StrokeWidth = std;
             SKPaints.PaintAimviewWidgetScav.StrokeWidth = std;
@@ -225,8 +223,6 @@ namespace LoneEftDmaRadar.UI.Skia
                 PlayerType.AIRaider => SKPaints.PaintAimviewWidgetRaider,
                 PlayerType.AIBoss => SKPaints.PaintAimviewWidgetBoss,
                 PlayerType.PScav => SKPaints.PaintAimviewWidgetPScav,
-                PlayerType.SpecialPlayer => SKPaints.PaintAimviewWidgetWatchlist,
-                PlayerType.Streamer => SKPaints.PaintAimviewWidgetStreamer,
                 _ => SKPaints.PaintAimviewWidgetPMC
             };
         }

@@ -169,40 +169,6 @@ namespace LoneEftDmaRadar.UI.Skia
             IsAntialias = true,
         };
 
-        public static SKPaint PaintWatchlist { get; } = new()
-        {
-            Color = SKColors.HotPink,
-            StrokeWidth = 1.66f,
-            Style = SKPaintStyle.Stroke,
-            IsAntialias = true,
-            StrokeJoin = SKStrokeJoin.Round,
-            StrokeCap = SKStrokeCap.Round
-        };
-
-        public static SKPaint TextWatchlist { get; } = new()
-        {
-            Color = SKColors.HotPink,
-            IsStroke = false,
-            IsAntialias = true,
-        };
-
-        public static SKPaint PaintStreamer { get; } = new()
-        {
-            Color = SKColors.MediumPurple,
-            StrokeWidth = 1.66f,
-            Style = SKPaintStyle.Stroke,
-            IsAntialias = true,
-            StrokeJoin = SKStrokeJoin.Round,
-            StrokeCap = SKStrokeCap.Round
-        };
-
-        public static SKPaint TextStreamer { get; } = new()
-        {
-            Color = SKColors.MediumPurple,
-            IsStroke = false,
-            IsAntialias = true,
-        };
-
         public static SKPaint PaintScav { get; } = new()
         {
             Color = SKColors.Yellow,
@@ -456,6 +422,21 @@ namespace LoneEftDmaRadar.UI.Skia
             IsAntialias = true,
         };
 
+        public static SKPaint PaintQuestHelperItem { get; } = new()
+        {
+            Color = SKColors.DeepPink,
+            StrokeWidth = 0.25f,
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true,
+        };
+
+        public static SKPaint TextQuestHelperItem { get; } = new()
+        {
+            Color = SKColors.DeepPink,
+            IsStroke = false,
+            IsAntialias = true,
+        };
+
         #endregion
 
         #region Render/Misc Paints
@@ -536,6 +517,20 @@ namespace LoneEftDmaRadar.UI.Skia
             IsAntialias = true,
         };
 
+        public static SKPaint PaintQuestZone { get; } = new()
+        {
+            Color = SKColors.Gold,
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true,
+        };
+
+        public static SKPaint TextQuestZone { get; } = new()
+        {
+            Color = SKColors.Gold,
+            IsStroke = false,
+            IsAntialias = true,
+        };
+
         public static SKPaint TextOutline { get; } = new()
         {
             IsAntialias = true,
@@ -580,18 +575,6 @@ namespace LoneEftDmaRadar.UI.Skia
             IsAntialias = true
         };
 
-        public static SKPaint TextPlayersOverlayStreamer { get; } = new()
-        {
-            IsStroke = false,
-            IsAntialias = true
-        };
-
-        public static SKPaint TextPlayersOverlaySpecial { get; } = new()
-        {
-            IsStroke = false,
-            IsAntialias = true
-        };
-
         public static SKPaint TextPlayersOverlayFocused { get; } = new()
         {
             IsStroke = false,
@@ -620,20 +603,6 @@ namespace LoneEftDmaRadar.UI.Skia
         public static SKPaint PaintAimviewWidgetPMC { get; } = new()
         {
             Color = SKColors.Red,
-            StrokeWidth = 1,
-            Style = SKPaintStyle.Stroke
-        };
-
-        public static SKPaint PaintAimviewWidgetWatchlist { get; } = new()
-        {
-            Color = SKColors.HotPink,
-            StrokeWidth = 1,
-            Style = SKPaintStyle.Stroke
-        };
-
-        public static SKPaint PaintAimviewWidgetStreamer { get; } = new()
-        {
-            Color = SKColors.MediumPurple,
             StrokeWidth = 1,
             Style = SKPaintStyle.Stroke
         };

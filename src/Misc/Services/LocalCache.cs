@@ -1,7 +1,7 @@
 ﻿/*
  * Lone EFT DMA Radar
  * Brought to you by Lone (Lone DMA)
- * 
+ *
 MIT License
 
 Copyright (c) 2025 Lone DMA
@@ -27,7 +27,6 @@ SOFTWARE.
 */
 
 using LiteDB;
-using LoneEftDmaRadar.Web.ProfileApi.Schema;
 
 namespace LoneEftDmaRadar.Misc.Services
 {
@@ -51,17 +50,6 @@ namespace LoneEftDmaRadar.Misc.Services
         private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
             _db.Dispose();
-        }
-
-        /// <summary>
-        /// Returns the Local DB collection for Player Profiles.
-        /// </summary>
-        /// <returns></returns>
-        public static ILiteCollection<EftProfileDto> GetProfileCollection()
-        {
-            var profiles = _db.GetCollection<EftProfileDto>("profiles");
-            profiles.EnsureIndex(x => x.Id, unique: true);
-            return profiles;
         }
     }
 }

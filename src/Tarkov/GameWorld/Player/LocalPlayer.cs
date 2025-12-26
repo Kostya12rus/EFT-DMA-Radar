@@ -98,12 +98,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (IsPmc)
             {
                 var entryPtr = Memory.ReadPtr(Info + Offsets.PlayerInfo.EntryPoint);
-                EntryPoint = Memory.ReadUnicodeString(entryPtr);
+                EntryPoint = Memory.ReadUnityString(entryPtr);
             }
             else if (IsScav)
             {
                 var profileIdPtr = Memory.ReadPtr(Profile + Offsets.Profile.Id);
-                ProfileId = Memory.ReadUnicodeString(profileIdPtr);
+                ProfileId = Memory.ReadUnityString(profileIdPtr);
             }
         }
 

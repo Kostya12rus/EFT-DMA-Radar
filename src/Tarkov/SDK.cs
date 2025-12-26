@@ -128,6 +128,14 @@ namespace SDK
             public const uint Id = 0x10; // String
             public const uint AccountId = 0x18; // String
             public const uint Info = 0x48; // -.\uE9AD
+            public const uint QuestsData = 0x98; // object
+        }
+
+        public readonly partial struct QuestsData
+        {
+            public const uint Id = 0x10; // string
+            public const uint Status = 0x1C; // object
+            public const uint CompletedConditions = 0x28; // object
         }
 
         public readonly partial struct PlayerInfo // EFT, class: ProfileInfo

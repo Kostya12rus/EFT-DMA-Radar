@@ -98,8 +98,6 @@ namespace LoneEftDmaRadar
             toggleLoot.HotkeyStateChanged += ToggleLoot_HotkeyStateChanged;
             var toggleAimviewWidget = new HotkeyActionController("Toggle Aimview Widget");
             toggleAimviewWidget.HotkeyStateChanged += ToggleAimviewWidget_HotkeyStateChanged;
-            var toggleNames = new HotkeyActionController("Toggle Player Names");
-            toggleNames.HotkeyStateChanged += ToggleNames_HotkeyStateChanged;
             var toggleInfo = new HotkeyActionController("Toggle Game Info Tab");
             toggleInfo.HotkeyStateChanged += ToggleInfo_HotkeyStateChanged;
             var toggleShowFood = new HotkeyActionController("Toggle Show Food");
@@ -110,19 +108,8 @@ namespace LoneEftDmaRadar
             toggleShowQuestItems.HotkeyStateChanged += ToggleShowQuestItems_HotkeyStateChanged;
             var engageAimbotDeviceAimbot = new HotkeyActionController("Engage Aimbot");
             engageAimbotDeviceAimbot.HotkeyStateChanged += EngageAimbotDeviceAimbot_HotkeyStateChanged;
-            var toggleDeviceAimbotEnabled = new HotkeyActionController("Toggle Device Aimbot");
-            toggleDeviceAimbotEnabled.HotkeyStateChanged += ToggleDeviceAimbotEnabled_HotkeyStateChanged;
-            
-            var toggleESP = new HotkeyActionController("Toggle ESP Overlay");
-            toggleESP.HotkeyStateChanged += ToggleESP_HotkeyStateChanged;
-            var toggleESPPlayers = new HotkeyActionController("Toggle ESP Players");
-            toggleESPPlayers.HotkeyStateChanged += ToggleESPPlayers_HotkeyStateChanged;
-            var toggleESPScavs = new HotkeyActionController("Toggle ESP Scavs/AI");
-            toggleESPScavs.HotkeyStateChanged += ToggleESPScavs_HotkeyStateChanged;
             var toggleESPLoot = new HotkeyActionController("Toggle ESP Loot");
             toggleESPLoot.HotkeyStateChanged += ToggleESPLoot_HotkeyStateChanged;
-            var toggleESPExfils = new HotkeyActionController("Toggle ESP Exfils");
-            toggleESPExfils.HotkeyStateChanged += ToggleESPExfils_HotkeyStateChanged;
             var toggleStaticContainers = new HotkeyActionController("Toggle Static Containers");
             toggleStaticContainers.HotkeyStateChanged += ToggleStaticContainers_HotkeyStateChanged;
             var addNearbyTeammates = new HotkeyActionController("Add Nearby Players as Teammates");
@@ -133,19 +120,13 @@ namespace LoneEftDmaRadar
             HotkeyAction.RegisterController(zoomOut);
             HotkeyAction.RegisterController(toggleLoot);
             HotkeyAction.RegisterController(toggleAimviewWidget);
-            HotkeyAction.RegisterController(toggleNames);
             HotkeyAction.RegisterController(toggleInfo);
             HotkeyAction.RegisterController(toggleShowFood);
             HotkeyAction.RegisterController(toggleShowMeds);
             HotkeyAction.RegisterController(toggleShowQuestItems);
-            HotkeyAction.RegisterController(toggleESP);
-            HotkeyAction.RegisterController(toggleESPPlayers);
-            HotkeyAction.RegisterController(toggleESPScavs);
             HotkeyAction.RegisterController(toggleESPLoot);
-            HotkeyAction.RegisterController(toggleESPExfils);
             HotkeyAction.RegisterController(toggleStaticContainers);
             HotkeyAction.RegisterController(engageAimbotDeviceAimbot);
-            HotkeyAction.RegisterController(toggleDeviceAimbotEnabled);
             HotkeyAction.RegisterController(addNearbyTeammates);
             HotkeyManagerViewModel.NotifyControllersRegistered();
         }
@@ -198,17 +179,6 @@ namespace LoneEftDmaRadar
             }
         }
 
-        private void ToggleDeviceAimbotEnabled_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (!e.State)
-                return;
-
-            if (_parent.DeviceAimbot?.ViewModel is DeviceAimbotViewModel vm)
-            {
-                vm.Enabled = !vm.Enabled;
-            }
-        }
-
         private void ToggleShowFood_HotkeyStateChanged(object sender, HotkeyEventArgs e)
         {
             if (e.State && _parent.Radar?.Overlay?.ViewModel is RadarOverlayViewModel vm)
@@ -221,12 +191,6 @@ namespace LoneEftDmaRadar
         {
             if (e.State && _parent.Settings?.ViewModel is SettingsViewModel vm)
                 vm.PlayerInfoWidget = !vm.PlayerInfoWidget;
-        }
-
-        private void ToggleNames_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && _parent.Settings?.ViewModel is SettingsViewModel vm)
-                vm.HideNames = !vm.HideNames;
         }
 
         private void ToggleLoot_HotkeyStateChanged(object sender, HotkeyEventArgs e)
@@ -253,51 +217,11 @@ namespace LoneEftDmaRadar
             }
         }
 
-        private void ToggleESP_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                ESPManager.ToggleESP();
-            }
-        }
-
-        private void ToggleESPPlayers_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                bool newState = !App.Config.UI.EspPlayerSkeletons;
-                App.Config.UI.EspPlayerSkeletons = newState;
-                App.Config.UI.EspPlayerBoxes = newState;
-                App.Config.UI.EspPlayerNames = newState;
-                App.Config.UI.EspPlayerDistance = newState;
-            }
-        }
-
-        private void ToggleESPScavs_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                bool newState = !App.Config.UI.EspAISkeletons;
-                App.Config.UI.EspAISkeletons = newState;
-                App.Config.UI.EspAIBoxes = newState;
-                App.Config.UI.EspAINames = newState;
-                App.Config.UI.EspAIDistance = newState;
-            }
-        }
-
         private void ToggleESPLoot_HotkeyStateChanged(object sender, HotkeyEventArgs e)
         {
             if (e.State)
             {
                 App.Config.UI.EspLoot = !App.Config.UI.EspLoot;
-            }
-        }
-
-        private void ToggleESPExfils_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                App.Config.UI.EspExfils = !App.Config.UI.EspExfils;
             }
         }
 
