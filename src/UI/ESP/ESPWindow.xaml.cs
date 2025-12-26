@@ -527,8 +527,6 @@ namespace LoneEftDmaRadar.UI.ESP
 
             var color = ToColor(SKPaints.PaintAimviewWidgetPMC);
 
-            // будем хранить уже занятые прямоугольники с подписями,
-            // чтобы новые не налезали друг на друга
             var usedLabelRects = new List<RectangleF>();
 
             foreach (var item in allLoot)
@@ -544,8 +542,20 @@ namespace LoneEftDmaRadar.UI.ESP
                     continue;
 
                 int price = item.Price;
-                if (price > 0)
+                if (price <= 0)
+                {
+                    color = ToColor(SKPaints.PaintAimviewWidgetPMC);
+                }
+                else if (price > 100000)
+                {
+                    color = ToColor(SKPaints.PaintAirdrop);
+                }
+                else
+                {
                     continue;
+                }
+                //if (price > 0 || price < 100000)
+                //    continue;
 
                 var itemType = item.GetType().Name;
                 if (itemType != "LootItem")
@@ -568,45 +578,30 @@ namespace LoneEftDmaRadar.UI.ESP
                 if (item.IsWeapon) flags.Add("weapon");
                 if (item.IsCurrency) flags.Add("currency");
 
-                if (flags.Count > 0)
+                if (flags.Count > 0 && price <= 0)
                     continue;
 
-                // Кружок на самом предмете
                 ctx.DrawCircle(ToRaw(screen), 3f, color, true);
-
-                //string flagText = flags.Count > 0 ? string.Join(", ", flags) : "-";
-
-                //var lines = new List<string>
-                //{
-                //    $"{shortName} [{itemType}] | Dist: {distance:F1}m | Pos: {pos.X:F1},{pos.Y:F1},{pos.Z:F1}",
-                //    $"ID: {item.ID} | Price: {(price > 0 ? price.ToString() : "?")} | Slots: {item.GridCount}",
-                //    $"Flags: {flagText}"
-                //};
 
                 var lines = new List<string>
                 {
                     $"{shortName} [{itemType}]"
                 };
 
-                // -------- размещение текста наверху экрана без пересечений --------
-
                 float lineStep = 14f;
-                float labelHeight = lineStep * lines.Count + 4f; // небольшой запас по высоте
+                float labelHeight = lineStep * lines.Count + 4f;
 
-                // грубая оценка ширины по длине самой длинной строки
                 int maxLen = 0;
                 foreach (var l in lines)
                     if (l.Length > maxLen) maxLen = l.Length;
-                float labelWidth = maxLen * 6f + 10f; // 6px на символ условно
+                float labelWidth = maxLen * 6f + 10f;
 
                 float topMargin = 10f;
                 float sideMargin = 10f;
 
-                // X по горизонтали – примерно над предметом, но в пределах экрана
                 float labelX = Math.Clamp(screen.X, sideMargin, screenWidth - labelWidth - sideMargin);
                 float labelY = topMargin;
 
-                // сдвигаем по Y вниз, пока не перестанем пересекаться с уже занятыми прямоугольниками
                 bool overlapped;
                 int safetyCounter = 0;
                 do
@@ -616,20 +611,17 @@ namespace LoneEftDmaRadar.UI.ESP
 
                     foreach (var rect in usedLabelRects)
                     {
-                        // проверяем горизонтальное и вертикальное пересечение
                         bool horizontal = candidate.Right > rect.Left && candidate.Left < rect.Right;
                         bool vertical = candidate.Bottom > rect.Top && candidate.Top < rect.Bottom;
 
                         if (horizontal && vertical)
                         {
-                            // пересекаемся – сдвигаем блок ниже и попробуем ещё раз
                             labelY = rect.Bottom + 4f;
                             overlapped = true;
                             break;
                         }
                     }
 
-                    // на всякий случай не уезжаем за экран бесконечно
                     if (labelY + labelHeight > screenHeight - topMargin)
                         break;
 
@@ -637,16 +629,12 @@ namespace LoneEftDmaRadar.UI.ESP
                 }
                 while (overlapped && safetyCounter < 100);
 
-                // фиксируем прямоугольник этой подписи
                 var labelRect = new RectangleF(labelX, labelY, labelWidth, labelHeight);
                 usedLabelRects.Add(labelRect);
 
-                // линия от предмета к подписи
-                // можно тянуть к верхнему левому углу текста или к середине по высоте
-                var lineEnd = new Vector2(labelX, labelY); // к левому верхнему углу
+                var lineEnd = new Vector2(labelX, labelY);
                 ctx.DrawLine(ToRaw(screen), ToRaw(lineEnd), color, 1f);
 
-                // рисуем текст уже в labelX/labelY
                 float drawX = labelX + 4f;
                 float drawY = labelY + 4f;
 
