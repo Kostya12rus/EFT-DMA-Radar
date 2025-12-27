@@ -85,6 +85,7 @@ namespace SDK
             public const uint Corpse = 0x680; // EFT.Interactive.Corpse
             public const uint Location = 0x870; // String
             public const uint RaidId = 0x8D8; // Int32
+            public const uint PlayerId = 0x8F8; // Int32
             public const uint Profile = 0x900; // EFT.Profile
             public const uint ProceduralWeaponAnimation = 0x338; // EFT.Animations.ProceduralWeaponAnimation
             public const uint _inventoryController = 0x978; // EFT.PlayerInventoryController update
@@ -94,14 +95,15 @@ namespace SDK
 
         public readonly partial struct ObservedPlayerView
         {
-            public const uint RaidId = 0x20;
+            public const uint RaidId = 0x20; // Int32
             public const uint ObservedPlayerController = 0x28; // EFT.NextObservedPlayer.ObservedPlayerController
 			public const uint Voice = 0x40; // string
+            public const uint WorldTime = 0x68; // single
             public const uint Id = 0x7C; // int32_t
             public const uint GroupID = 0x80; // string
 			public const uint Side = 0x94; // EFT.EPlayerSide
 			public const uint IsAI = 0xA0; // bool
-			public const uint AccountId = 0xC0; // string
+            public const uint AccountId = 0xC0; // string
 			public const uint PlayerBody = 0xD8; // EFT.PlayerBody
         }
 

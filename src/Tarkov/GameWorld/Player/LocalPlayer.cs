@@ -37,9 +37,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
     public sealed class LocalPlayer : ClientPlayer
     {
         /// <summary>
-        /// Raid ID for this player session.
+        /// Raid ID for this player session (persistent across reconnects).
         /// </summary>
         public int RaidId { get; private set; }
+
+        /// <summary>
+        /// Player ID for this player session.
+        /// </summary>
+        public int PlayerId { get; private set; }
 
         /// <summary>
         /// Firearm Manager for tracking weapon/ammo/ballistics.
@@ -100,7 +105,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             IsHuman = true;
 
             RaidId = Memory.ReadValue<int>(this + Offsets.Player.RaidId);
-            DebugLogger.LogDebug($"[LocalPlayer] LocalPlayer RaidId: {RaidId}");
+            PlayerId = Memory.ReadValue<int>(this + Offsets.Player.PlayerId);
 
             FirearmManager = new FirearmManager(this);
 

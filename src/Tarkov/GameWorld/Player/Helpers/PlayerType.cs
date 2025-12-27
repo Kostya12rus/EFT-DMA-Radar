@@ -50,6 +50,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
         /// </summary>
         AIScav,
         /// <summary>
+        /// Boss Guard (follower).
+        /// </summary>
+        AIGuard,
+        /// <summary>
         /// Difficult AI Raider.
         /// </summary>
         AIRaider,
