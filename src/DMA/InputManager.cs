@@ -63,14 +63,15 @@ namespace LoneEftDmaRadar.DMA
             if (!hotkeys.Any())
                 return;
 
-            bool haveWin32 = _input is not null;
+            var input = _input;
+            bool haveWin32 = input is not null;
 
             // Update Win32 state if backend is present.
             if (haveWin32)
             {
                 try
                 {
-                    _input.UpdateKeys();
+                    input!.UpdateKeys();
                 }
                 catch (Exception ex)
                 {
@@ -91,7 +92,7 @@ namespace LoneEftDmaRadar.DMA
                 {
                     try
                     {
-                        isDownWin32 = _input.IsKeyDown(vk);
+                        isDownWin32 = input!.IsKeyDown(vk);
                     }
                     catch
                     {

@@ -67,19 +67,20 @@ namespace LoneEftDmaRadar.UI.ESP
         public static void StartESP()
         {
             if (!_isInitialized || _espWindow == null) Initialize();
-            
+
+            var espWindow = _espWindow;
             ESPWindow.ShowESP = true;
-            _espWindow?.Show();
+            espWindow?.Show();
             // Force Fullscreen
-            if (_espWindow.WindowStyle != WindowStyle.None)
+            if (espWindow != null && espWindow.WindowStyle != WindowStyle.None)
             {
-                _espWindow.ToggleFullscreen();
+                espWindow.ToggleFullscreen();
             }
             else
             {
-                _espWindow.ApplyResolutionOverride();
+                espWindow?.ApplyResolutionOverride();
             }
-            _espWindow?.RefreshESP();
+            espWindow?.RefreshESP();
         }
 
         public static void HideESP()

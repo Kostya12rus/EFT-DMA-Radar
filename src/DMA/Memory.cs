@@ -302,6 +302,16 @@ namespace LoneEftDmaRadar.DMA
                                     CameraManager.UpdateViewportRes();
                                     DebugLogger.LogDebug("[Memory] CameraManager initialized for raid");
                                     cameraInitStart = DateTime.UtcNow;
+
+                                    // Run distance-based team detection
+                                    try
+                                    {
+                                        Tarkov.GameWorld.Player.AbstractPlayer.DetectTeams(game.LocalPlayer, game.Players);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        DebugLogger.LogDebug($"[Memory] Team detection failed: {ex.Message}");
+                                    }
                                 }
                                 catch (Exception ex)
                                 {

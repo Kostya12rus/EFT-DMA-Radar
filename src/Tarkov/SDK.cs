@@ -84,6 +84,7 @@ namespace SDK
             public const uint Physical = 0x918; // -.\uE399 <Physical> Physical
             public const uint Corpse = 0x680; // EFT.Interactive.Corpse
             public const uint Location = 0x870; // String
+            public const uint RaidId = 0x8D8; // Int32
             public const uint Profile = 0x900; // EFT.Profile
             public const uint ProceduralWeaponAnimation = 0x338; // EFT.Animations.ProceduralWeaponAnimation
             public const uint _inventoryController = 0x978; // EFT.PlayerInventoryController update
@@ -93,7 +94,8 @@ namespace SDK
 
         public readonly partial struct ObservedPlayerView
         {
-			public const uint ObservedPlayerController = 0x28; // EFT.NextObservedPlayer.ObservedPlayerController
+            public const uint RaidId = 0x20;
+            public const uint ObservedPlayerController = 0x28; // EFT.NextObservedPlayer.ObservedPlayerController
 			public const uint Voice = 0x40; // string
             public const uint Id = 0x7C; // int32_t
             public const uint GroupID = 0x80; // string

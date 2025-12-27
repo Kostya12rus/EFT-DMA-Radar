@@ -126,11 +126,20 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// Player's Current Health Status
         /// </summary>
         public Enums.ETagStatus HealthStatus { get; private set; } = Enums.ETagStatus.Healthy;
+        /// <summary>
+        /// Raid ID for this player session.
+        /// </summary>
+        public int RaidId { get; private set; }
 
         internal ObservedPlayer(ulong playerBase) : base(playerBase)
         {
             var localPlayer = Memory.LocalPlayer;
             ArgumentNullException.ThrowIfNull(localPlayer, nameof(localPlayer));
+
+            // Read RaidId for debugging
+            RaidId = Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.RaidId);
+            DebugLogger.LogDebug($"[ObservedPlayer] Player at 0x{playerBase:X} - RaidId: {RaidId}");
+
             ObservedPlayerController = Memory.ReadPtr(this + Offsets.ObservedPlayerView.ObservedPlayerController);
             ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedPlayerController + Offsets.ObservedPlayerController.PlayerView), nameof(ObservedPlayerController));
             InventoryControllerAddr = ObservedPlayerController + Offsets.ObservedPlayerController.InventoryController;

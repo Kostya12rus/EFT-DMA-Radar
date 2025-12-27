@@ -106,7 +106,7 @@ namespace LoneEftDmaRadar.UI.Loot
             set { if (_comment != value) { _comment = value; OnPropertyChanged(); } }
         }
 
-        private string? _color = null;
+        private string _color = null;
         /// <summary>
         /// Hex value of the rgba color.
         /// </summary>
@@ -135,13 +135,13 @@ namespace LoneEftDmaRadar.UI.Loot
         /// Reference to parent UserLootFilter (not serialized).
         /// </summary>
         [JsonIgnore]
-        public UserLootFilter? ParentFilter { get; set; }
+        public UserLootFilter ParentFilter { get; set; }
 
         /// <summary>
         /// For UI display: shows the explicit color or null if inheriting.
         /// </summary>
         [JsonIgnore]
-        public string? ExplicitColor
+        public string ExplicitColor
         {
             get => _color;
             set
