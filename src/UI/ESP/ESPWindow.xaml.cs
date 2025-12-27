@@ -5,6 +5,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System.Drawing;
 using System.Linq;
@@ -353,6 +354,12 @@ namespace LoneEftDmaRadar.UI.ESP
                             }
                         }
 
+                        // Render Quest Helper Zones
+                        if (App.Config.QuestHelper.Enabled)
+                        {
+                            DrawQuestHelperZones(ctx, screenWidth, screenHeight, localPlayer);
+                        }
+
                         if (Explosives is not null && App.Config.UI.EspTripwires)
                         {
                             DrawTripwires(ctx, screenWidth, screenHeight, localPlayer);
@@ -405,8 +412,8 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 // Filter based on ESP settings
                 bool isCorpse = item is LootCorpse;
-                bool isQuest = item.IsQuestItem;
-                if (isQuest && !App.Config.UI.EspQuestLoot)
+                bool isQuestHelper = item.IsQuestHelperItem; // Use quest helper (active quests) instead of static quest items
+                if (isCorpse && !App.Config.UI.EspCorpses)
                     continue;
                 if (isCorpse && !App.Config.UI.EspCorpses)
                     continue;
@@ -460,9 +467,9 @@ namespace LoneEftDmaRadar.UI.ESP
                      DxColor circleColor = GetLootColorForRender();
                      DxColor textColor = circleColor;
 
-                     if (isQuest)
+                     if (isQuestHelper)
                      {
-                         circleColor = ToColor(SKPaints.PaintQuestItem);
+                         circleColor = ToColor(SKPaints.PaintQuestHelperItem);
                          textColor = circleColor;
                      }
                      else if (item.Important)
@@ -530,6 +537,51 @@ namespace LoneEftDmaRadar.UI.ESP
                          DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
                          ctx.DrawText(text, screen.X + radius + 4, screen.Y + 4, textColor, textSize);
                     }
+                }
+            }
+        }
+
+        private void DrawQuestHelperZones(ImGuiRenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        {
+            var questLocations = Memory.QuestManager?.LocationConditions?.Values;
+            if (questLocations is null) return;
+
+            var camPos = localPlayer?.Position ?? Vector3.Zero;
+            var zoneColor = ToColor(SKPaints.PaintQuestZone);
+            
+            foreach (var loc in questLocations)
+            {
+                float distance = Vector3.Distance(camPos, loc.Position);
+                
+                // Skip if too far (use same distance as loot for consistency)
+                if (App.Config.UI.EspLootMaxDistance > 0 && distance > App.Config.UI.EspLootMaxDistance)
+                    continue;
+
+                if (CameraManager.WorldToScreenWithScale(loc.Position, out var screen, out float scale, true, true))
+                {
+                    // Draw a distinctive marker for quest zones (diamond shape simulated with rotated square)
+                    float size = Math.Clamp(6f * App.Config.UI.UIScale * scale, 3f, 20f);
+                    
+                    // Draw diamond shape (using lines)
+                    var center = ToRaw(screen);
+                    var top = new SharpDX.Mathematics.Interop.RawVector2(center.X, center.Y - size);
+                    var right = new SharpDX.Mathematics.Interop.RawVector2(center.X + size, center.Y);
+                    var bottom = new SharpDX.Mathematics.Interop.RawVector2(center.X, center.Y + size);
+                    var left = new SharpDX.Mathematics.Interop.RawVector2(center.X - size, center.Y);
+                    
+                    ctx.DrawLine(top, right, zoneColor, 2f);
+                    ctx.DrawLine(right, bottom, zoneColor, 2f);
+                    ctx.DrawLine(bottom, left, zoneColor, 2f);
+                    ctx.DrawLine(left, top, zoneColor, 2f);
+                    
+                    // Draw quest name + type
+                    DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
+                    string label = $"{loc.Name}";
+                    if (loc.Type != Tarkov.GameWorld.Quests.QuestObjectiveType.Unknown)
+                    {
+                        label += $" ({loc.Type})";
+                    }
+                    ctx.DrawText(label, screen.X + size + 4, screen.Y + 4, zoneColor, textSize);
                 }
             }
         }
@@ -1013,11 +1065,10 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 // Basic filtering consistent with DrawLoot
                  bool isCorpse = item is LootCorpse;
-                 bool isQuest = item.IsQuestItem;
-                 if (isQuest && !App.Config.UI.EspQuestLoot) continue;
+                 bool isQuestHelper = item.IsQuestHelperItem;
                  if (isCorpse && !App.Config.UI.EspCorpses) continue;
 
-                 var color = isQuest ? SKColors.YellowGreen :
+                 var color = isQuestHelper ? SKPaints.PaintQuestHelperItem.Color :
                              isCorpse ? SKColors.Gray :
                              item.Important ? SKColors.Turquoise : SKColors.White;
 
