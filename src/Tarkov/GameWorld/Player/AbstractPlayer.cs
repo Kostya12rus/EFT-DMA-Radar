@@ -60,6 +60,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         private static int _currentRaidId;
 
         /// <summary>
+        /// Track the current PlayerId to detect raid changes.
+        /// </summary>
+        private static int _currentPlayerId;
+
+        /// <summary>
         /// Set of temporary marked teammates (by player Base address).
         /// Cleared on each raid end.
         /// </summary>
@@ -74,6 +79,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         {
             _groups.Clear();
             _lastGroupNumber = default;
+            _currentRaidId = 0;
+            _currentPlayerId = 0;
             lock (_tempTeammates)
             {
                 _tempTeammates.Clear();
@@ -149,21 +156,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// Detects teams based on player proximity at raid start.
         /// Players within 20m of each other are considered teammates.
         /// Players within 20m of LocalPlayer are automatically marked as friendly.
-        /// Uses cached team data if available for the same RaidId and LocalPlayer Base.
-        /// Clears cache only when RaidId changes (new raid).
+        /// Uses cached team data if available for the same RaidId and PlayerId.
+        /// Clears cache only when RaidId/PlayerId changes (new raid).
         /// </summary>
         public static void DetectTeams(LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers)
         {
             if (localPlayer == null || allPlayers == null)
                 return;
 
-            // Check if RaidId has changed - clear cache if it's a new raid
-            if (_currentRaidId != 0 && _currentRaidId != localPlayer.RaidId)
+            if (_currentRaidId != 0 && (_currentRaidId != localPlayer.RaidId || _currentPlayerId != localPlayer.PlayerId))
             {
-                DebugLogger.LogDebug($"[TeamDetection] RaidId changed from {_currentRaidId} to {localPlayer.RaidId}, clearing old cache");
-                TeamCache.Clear();
+                DebugLogger.LogDebug($"[TeamDetection] RaidId/PlayerId changed from {_currentRaidId}/{_currentPlayerId} to {localPlayer.RaidId}/{localPlayer.PlayerId}, clearing old cache");
+                RaidInfoCache.Clear();
             }
             _currentRaidId = localPlayer.RaidId;
+            _currentPlayerId = localPlayer.PlayerId;
 
             _lastGroupNumber = 0;
 
@@ -176,7 +183,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 return;
             }
 
-            var cachedTeams = TeamCache.Load(localPlayer.RaidId, localPlayer.Base);
+            var cachedTeams = RaidInfoCache.LoadTeams(localPlayer.RaidId, localPlayer.PlayerId);
             if (cachedTeams != null && cachedTeams.Count > 0)
             {
                 ApplyCache(cachedTeams, candidates);
@@ -186,13 +193,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             var teams = ClusterPlayers(candidates, TeammateDetectionDistance);
             var assignedTeams = AssignGroups(teams, localPlayer);
 
-            TeamCache.Save(localPlayer.RaidId, localPlayer.Base, assignedTeams);
+            RaidInfoCache.SaveTeams(localPlayer.RaidId, localPlayer.PlayerId, assignedTeams);
         }
 
         /// <summary>
         /// Apply cached team data directly to players without re-running detection.
         /// </summary>
-        private static void ApplyCache(Dictionary<ulong, int> cachedTeams, List<AbstractPlayer> candidates)
+        private static void ApplyCache(Dictionary<int, int> cachedTeams, List<AbstractPlayer> candidates)
         {
             int appliedCount = 0;
             int teammateCount = 0;
@@ -201,7 +208,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             {
                 if (player is ObservedPlayer obs)
                 {
-                    if (cachedTeams.TryGetValue(obs.Base, out int groupId))
+                    if (cachedTeams.TryGetValue(obs.PlayerId, out int groupId))
                     {
                         bool isTeammate = (groupId == LocalPlayerTeamGroupId);
 
@@ -293,13 +300,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// <summary>
         /// Assigns GroupIDs to detected teams and marks teammates.
         /// </summary>
-        private static Dictionary<ulong, int> AssignGroups(
+        private static Dictionary<int, int> AssignGroups(
             List<List<AbstractPlayer>> teams,
             LocalPlayer localPlayer)
         {
             int totalTeammates = 0;
             int totalEnemyTeams = 0;
-            var assignedTeams = new Dictionary<ulong, int>();
+            var assignedTeams = new Dictionary<int, int>();
 
             foreach (var team in teams)
             {
@@ -322,7 +329,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         {
                             obs.SetGroupId(LocalPlayerTeamGroupId);
                             obs.UpdateTypeForTeammate(true);
-                            assignedTeams[obs.Base] = LocalPlayerTeamGroupId;
+                            assignedTeams[obs.PlayerId] = LocalPlayerTeamGroupId;
                             totalTeammates++;
                         }
                     }
@@ -339,7 +346,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         if (player is ObservedPlayer obs)
                         {
                             obs.SetGroupId(enemyGroupId);
-                            assignedTeams[obs.Base] = enemyGroupId;
+                            assignedTeams[obs.PlayerId] = enemyGroupId;
                         }
                     }
                 }
@@ -347,6 +354,131 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
             DebugLogger.LogDebug($"[TeamDetection] {totalTeammates} teammate(s), {totalEnemyTeams} enemy team(s)");
             return assignedTeams;
+        }
+
+        /// <summary>
+        /// Detects Boss guards by proximity to Boss characters.
+        /// Scavs within a certain distance of a Boss are marked as Guards.
+        /// Uses cached boss/guard data if available.
+        /// </summary>
+        public static void DetectBossGuards(LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers)
+        {
+            if (localPlayer == null || allPlayers == null)
+                return;
+
+            var cachedBossGuards = RaidInfoCache.LoadBossGuards(localPlayer.RaidId, localPlayer.PlayerId);
+            if (cachedBossGuards != null && cachedBossGuards.Count > 0)
+            {
+                ApplyBossGuardCache(cachedBossGuards, allPlayers);
+                return;
+            }
+
+            const float GuardDetectionDistance = 5.0f;
+            float thresholdSq = GuardDetectionDistance * GuardDetectionDistance;
+
+            var bosses = allPlayers.Where(p => p.Type == PlayerType.AIBoss && p.IsActive && p.IsAlive).ToList();
+            var potentialGuards = allPlayers.Where(p => p.Type == PlayerType.AIScav && p.IsActive && p.IsAlive).ToList();
+
+            if (bosses.Count == 0 || potentialGuards.Count == 0)
+                return;
+
+            int guardsFound = 0;
+            var bossGuardData = new Dictionary<int, string>();
+
+            foreach (var boss in bosses)
+            {
+                if (boss is ObservedPlayer bossObs)
+                {
+                    bossGuardData[bossObs.PlayerId] = "Boss";
+                }
+            }
+
+            foreach (var boss in bosses)
+            {
+                if (!ValidPosition(boss.Position))
+                    continue;
+
+                foreach (var scavenger in potentialGuards)
+                {
+                    if (scavenger.Type == PlayerType.AIGuard)
+                        continue;
+
+                    if (!ValidPosition(scavenger.Position))
+                        continue;
+
+                    var distSq = Vector3.DistanceSquared(boss.Position, scavenger.Position);
+
+                    if (distSq <= thresholdSq)
+                    {
+                        if (scavenger is ObservedPlayer obs)
+                        {
+                            obs.Type = PlayerType.AIGuard;
+                            obs.Name = "Guard";
+                            bossGuardData[obs.PlayerId] = "Guard";
+                            guardsFound++;
+                            DebugLogger.LogDebug($"[BossGuard] Detected guard '{obs.Name}' near boss '{boss.Name}' ({MathF.Sqrt(distSq):F1}m)");
+                        }
+                    }
+                }
+            }
+
+            if (bossGuardData.Count > 0)
+            {
+                RaidInfoCache.SaveBossGuards(localPlayer.RaidId, localPlayer.PlayerId, bossGuardData);
+            }
+
+            if (guardsFound > 0)
+            {
+                DebugLogger.LogDebug($"[BossGuard] Total guards detected: {guardsFound}");
+            }
+        }
+
+        /// <summary>
+        /// Apply cached boss/guard data to players.
+        /// </summary>
+        private static void ApplyBossGuardCache(Dictionary<int, string> cachedBossGuards, IEnumerable<AbstractPlayer> allPlayers)
+        {
+            int bossCount = 0;
+            int guardCount = 0;
+
+            foreach (var player in allPlayers)
+            {
+                if (player is ObservedPlayer obs && cachedBossGuards.TryGetValue(obs.PlayerId, out string role))
+                {
+                    if (role == "Boss")
+                    {
+                        bossCount++;
+                    }
+                    else if (role == "Guard" && obs.Type == PlayerType.AIScav)
+                    {
+                        obs.Type = PlayerType.AIGuard;
+                        obs.Name = "Guard";
+                        guardCount++;
+                    }
+                }
+            }
+
+            DebugLogger.LogDebug($"[BossGuard] Applied cached data: {bossCount} boss(es), {guardCount} guard(s)");
+        }
+
+        /// <summary>
+        /// Detects Santa Claus by checking equipment IDs.
+        /// Santa has a specific backpack (61b9e1aaef9a1b5d6a79899a).
+        /// </summary>
+        public static void DetectSanta(IEnumerable<AbstractPlayer> allPlayers)
+        {
+            if (allPlayers == null)
+                return;
+
+            foreach (var player in allPlayers)
+            {
+                if (player is ObservedPlayer obs)
+                {
+                    obs.CheckSanta();
+                    if (obs.Name == "Santa")
+                        return;
+                }
+            }
         }
 
         #endregion
@@ -458,7 +590,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// <summary>
         /// Type of player unit.
         /// </summary>
-        public virtual PlayerType Type { get; protected set; }
+        public virtual PlayerType Type { get; set; }
 
         private Vector2 _rotation;
         /// <summary>
@@ -1401,6 +1533,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     };
                 case PlayerType.AIScav:
                     return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintScav, SKPaints.TextScav);
+                case PlayerType.AIGuard:
+                    return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintGuard, SKPaints.TextGuard);
                 case PlayerType.AIRaider:
                     return new ValueTuple<SKPaint, SKPaint>(SKPaints.PaintRaider, SKPaints.TextRaider);
                 case PlayerType.AIBoss:

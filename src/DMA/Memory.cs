@@ -312,6 +312,26 @@ namespace LoneEftDmaRadar.DMA
                                     {
                                         DebugLogger.LogDebug($"[Memory] Team detection failed: {ex.Message}");
                                     }
+
+                                    // Run boss guard detection
+                                    try
+                                    {
+                                        Tarkov.GameWorld.Player.AbstractPlayer.DetectBossGuards(game.LocalPlayer, game.Players);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        DebugLogger.LogDebug($"[Memory] Boss guard detection failed: {ex.Message}");
+                                    }
+
+                                    // Run Santa detection
+                                    try
+                                    {
+                                        Tarkov.GameWorld.Player.AbstractPlayer.DetectSanta(game.Players);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        DebugLogger.LogDebug($"[Memory] Santa detection failed: {ex.Message}");
+                                    }
                                 }
                                 catch (Exception ex)
                                 {

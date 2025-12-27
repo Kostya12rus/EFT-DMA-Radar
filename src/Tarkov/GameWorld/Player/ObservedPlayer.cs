@@ -76,7 +76,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         public override PlayerType Type
         {
             get => _type;
-            protected set => _type = value;
+            set => _type = value;
         }
         /// <summary>
         /// Player Alerts.
@@ -131,14 +131,18 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         public int RaidId { get; private set; }
 
+        /// <summary>
+        /// Player ID for this player session.
+        /// </summary>
+        public int PlayerId { get; private set; }
+
         internal ObservedPlayer(ulong playerBase) : base(playerBase)
         {
             var localPlayer = Memory.LocalPlayer;
             ArgumentNullException.ThrowIfNull(localPlayer, nameof(localPlayer));
 
-            // Read RaidId for debugging
             RaidId = Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.RaidId);
-            DebugLogger.LogDebug($"[ObservedPlayer] Player at 0x{playerBase:X} - RaidId: {RaidId}");
+            PlayerId = Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.Id);
 
             ObservedPlayerController = Memory.ReadPtr(this + Offsets.ObservedPlayerView.ObservedPlayerController);
             ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedPlayerController + Offsets.ObservedPlayerController.PlayerView), nameof(ObservedPlayerController));
@@ -332,6 +336,58 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             catch (Exception ex)
             {
                 DebugLogger.LogDebug($"ERROR updating Health Status for '{Name}': {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Check if this player is Santa Claus by checking equipment IDs.
+        /// Santa has a specific backpack (61b9e1aaef9a1b5d6a79899a).
+        /// </summary>
+        public void CheckSanta()
+        {
+            if (!IsAI || Type != PlayerType.AIBoss)
+                return;
+
+            try
+            {
+                var inventorycontroller = Memory.ReadPtr(InventoryControllerAddr);
+                var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController.Inventory);
+                var equipment = Memory.ReadPtr(inventory + Offsets.Inventory.Equipment);
+                var slotsPtr = Memory.ReadPtr(equipment + Offsets.InventoryEquipment._cachedSlots);
+
+                using var slotsArray = UnityArray<ulong>.Create(slotsPtr, true);
+                if (slotsArray.Count < 1)
+                    return;
+
+                foreach (var slotPtr in slotsArray)
+                {
+                    var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot.ID);
+                    var slotName = Memory.ReadUnityString(namePtr);
+
+                    if (slotName != "Backpack")
+                        continue;
+
+                    var containedItem = Memory.ReadPtr(slotPtr + Offsets.Slot.ContainedItem);
+                    if (containedItem == 0)
+                        continue;
+
+                    var inventorytemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
+                    var mongoId = Memory.ReadValue<MongoID>(inventorytemplate + Offsets.ItemTemplate._id);
+                    var itemId = mongoId.ReadString();
+
+                    if (itemId == "61b9e1aaef9a1b5d6a79899a") // Santa's backpack!
+                    {
+                        if (Name != "Santa")
+                        {
+                            Name = "Santa";
+                        }
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[SantaDetection] Error checking for Santa: {ex.Message}");
             }
         }
 

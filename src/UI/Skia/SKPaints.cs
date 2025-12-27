@@ -188,7 +188,7 @@ namespace LoneEftDmaRadar.UI.Skia
 
         public static SKPaint PaintRaider { get; } = new()
         {
-            Color = SKColor.Parse("ffc70f"),
+            Color = SKColor.Parse("FFC70F"),
             StrokeWidth = 1.66f,
             Style = SKPaintStyle.Stroke,
             IsAntialias = true,
@@ -198,7 +198,7 @@ namespace LoneEftDmaRadar.UI.Skia
 
         public static SKPaint TextRaider { get; } = new()
         {
-            Color = SKColor.Parse("ffc70f"),
+            Color = SKColor.Parse("FFC70F"),
             IsStroke = false,
             IsAntialias = true,
         };
@@ -216,6 +216,23 @@ namespace LoneEftDmaRadar.UI.Skia
         public static SKPaint TextBoss { get; } = new()
         {
             Color = SKColors.Fuchsia,
+            IsStroke = false,
+            IsAntialias = true,
+        };
+
+        public static SKPaint PaintGuard { get; } = new()
+        {
+            Color = SKColor.Parse("FFC70F"),
+            StrokeWidth = 1.66f,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            StrokeJoin = SKStrokeJoin.Round,
+            StrokeCap = SKStrokeCap.Round
+        };
+
+        public static SKPaint TextGuard { get; } = new()
+        {
+            Color = SKColor.Parse("FFC70F"),
             IsStroke = false,
             IsAntialias = true,
         };
