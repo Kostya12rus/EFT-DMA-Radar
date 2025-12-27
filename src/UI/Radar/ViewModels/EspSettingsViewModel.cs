@@ -897,6 +897,32 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 }
             }
         }
+        
+        public bool MiniRadarSelfLock
+        {
+            get => App.Config.UI.MiniRadar.SelfLock;
+            set
+            {
+                if (App.Config.UI.MiniRadar.SelfLock != value)
+                {
+                    App.Config.UI.MiniRadar.SelfLock = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        
+        public float MiniRadarZoomLevel
+        {
+            get => App.Config.UI.MiniRadar.ZoomLevel;
+            set
+            {
+                if (Math.Abs(App.Config.UI.MiniRadar.ZoomLevel - value) > float.Epsilon)
+                {
+                    App.Config.UI.MiniRadar.ZoomLevel = Math.Max(0.5f, Math.Min(10f, value)); // Clamp between 0.5 and 10
+                    OnPropertyChanged();
+                }
+            }
+        }
         #endregion
 
         public string EspFontFamily

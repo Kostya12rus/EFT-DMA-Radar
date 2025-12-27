@@ -66,6 +66,17 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
         void RenderThumbnail(SKCanvas canvas, int width, int height);
 
         /// <summary>
+        /// Renders a player-centered zoomed thumbnail to the provided canvas.
+        /// </summary>
+        /// <param name="canvas">Target canvas.</param>
+        /// <param name="width">Output width in pixels.</param>
+        /// <param name="height">Output height in pixels.</param>
+        /// <param name="centerX">Center X position in map coordinates.</param>
+        /// <param name="centerY">Center Y position in map coordinates.</param>
+        /// <param name="zoom">Zoom level (1.0 = full map, 2.0 = 2x zoomed in, etc).</param>
+        void RenderThumbnailCentered(SKCanvas canvas, int width, int height, float centerX, float centerY, float zoom);
+
+        /// <summary>
         /// Gets the map boundaries (0, 0, Width, Height) in Map Space.
         /// </summary>
         SKRect GetBounds();

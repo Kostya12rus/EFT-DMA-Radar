@@ -1029,6 +1029,18 @@ namespace LoneEftDmaRadar
 
         [JsonPropertyName("invertColors")]
         public bool InvertColors { get; set; } = true;
+        
+        /// <summary>
+        /// Lock mini radar to follow local player (player always centered).
+        /// </summary>
+        [JsonPropertyName("selfLock")]
+        public bool SelfLock { get; set; } = false;
+        
+        /// <summary>
+        /// Zoom level for mini radar when SelfLock is enabled. 1.0 = full map, higher = more zoomed in.
+        /// </summary>
+        [JsonPropertyName("zoomLevel")]
+        public float ZoomLevel { get; set; } = 2.0f;
     }
 
     public sealed class QuestHelperConfig

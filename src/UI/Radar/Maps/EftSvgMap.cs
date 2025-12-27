@@ -284,6 +284,80 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
             canvas.Restore();
         }
 
+        public void RenderThumbnailCentered(SKCanvas canvas, int width, int height, float centerX, float centerY, float zoom)
+        {
+            if (_layers.Length == 0) return;
+
+            var baseLayer = _layers[0];
+            float mapW = baseLayer.RawWidth * Config.SvgScale;
+            float mapH = baseLayer.RawHeight * Config.SvgScale;
+
+            if (mapW <= 0 || mapH <= 0) return;
+
+            // Calculate the visible area size based on zoom
+            // zoom = 1.0 means show entire map, zoom = 2.0 means show half the map (2x zoomed in)
+            float visibleW = mapW / zoom;
+            float visibleH = mapH / zoom;
+
+            // Calculate the source rectangle (what part of the map to show)
+            float srcLeft = centerX - (visibleW / 2f);
+            float srcTop = centerY - (visibleH / 2f);
+
+            // Clamp to map bounds
+            srcLeft = Math.Max(0, Math.Min(srcLeft, mapW - visibleW));
+            srcTop = Math.Max(0, Math.Min(srcTop, mapH - visibleH));
+
+            // Scale factor to fit the visible area into the output size
+            float scaleX = width / visibleW;
+            float scaleY = height / visibleH;
+            float scale = Math.Min(scaleX, scaleY);
+
+            // Center in output
+            float scaledW = visibleW * scale;
+            float scaledH = visibleH * scale;
+            float dx = (width - scaledW) / 2f;
+            float dy = (height - scaledH) / 2f;
+
+            canvas.Save();
+            canvas.Translate(dx, dy);
+            canvas.Scale(scale, scale);
+            // Translate to show the correct portion of the map
+            canvas.Translate(-srcLeft, -srcTop);
+            canvas.Scale(Config.SvgScale, Config.SvgScale);
+
+            // Create paint with color inversion filter if enabled
+            using var paint = new SKPaint();
+            if (App.Config.UI.MiniRadar.InvertColors)
+            {
+                paint.ColorFilter = SKColorFilter.CreateColorMatrix(new float[]
+                {
+                    -1,  0,  0, 0, 1,
+                     0, -1,  0, 0, 1,
+                     0,  0, -1, 0, 1,
+                     0,  0,  0, 1, 0
+                });
+            }
+
+            // Draw all layers
+            foreach (var layer in _layers)
+            {
+                var picture = layer.Picture;
+                if (picture != null && !picture.Handle.Equals(IntPtr.Zero))
+                {
+                    try
+                    {
+                        canvas.DrawPicture(picture, paint);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugLogger.LogError($"[EftSvgMap] Failed to draw centered thumbnail layer: {ex.Message}");
+                    }
+                }
+            }
+
+            canvas.Restore();
+        }
+
         public SKRect GetBounds()
         {
             if (_layers.Length == 0) return SKRect.Empty;

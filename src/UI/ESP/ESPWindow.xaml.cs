@@ -5,6 +5,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
+using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System.Drawing;
 using System.Linq;
@@ -44,6 +45,15 @@ namespace LoneEftDmaRadar.UI.ESP
             public float ScreenY;
             public float DrawSize;
             public bool IsValid;
+            // Self-lock mode: player position in map coords
+            public float PlayerWorldX;
+            public float PlayerWorldY;
+            public bool SelfLockEnabled;
+            public float ZoomLevel;
+            // Last rendered position (for texture update throttling)
+            public float LastRenderedX;
+            public float LastRenderedY;
+            public float LastRenderedZoom;
         }
 
         public static bool ShowESP { get; set; } = true;
@@ -57,7 +67,7 @@ namespace LoneEftDmaRadar.UI.ESP
         private int _renderPending;
 
         // Render surface
-        private Dx9OverlayControl _dxOverlay;
+        private ImGuiOverlayControl _dxOverlay;
         private WindowsFormsHost _dxHost;
         private bool _isClosing;
 
@@ -170,18 +180,19 @@ namespace LoneEftDmaRadar.UI.ESP
             _fpsSw.Start();
             _lastFrameTicks = System.Diagnostics.Stopwatch.GetTimestamp();
 
+            // Use dedicated timer for independent FPS from WPF
             _highFrequencyTimer = new System.Threading.Timer(
                 callback: HighFrequencyRenderCallback,
                 state: null,
                 dueTime: 0,
-                period: 4); // 4ms = ~250 FPS max capability, actual FPS controlled by EspMaxFPS setting
+                period: 1); // 1ms period for max ~1000 FPS capability, actual FPS controlled by EspMaxFPS
         }
 
         private void InitializeRenderSurface()
         {
             RenderRoot.Children.Clear();
 
-            _dxOverlay = new Dx9OverlayControl
+            _dxOverlay = new ImGuiOverlayControl
             {
                 Dock = WinForms.DockStyle.Fill
             };
@@ -208,32 +219,40 @@ namespace LoneEftDmaRadar.UI.ESP
                 if (_isClosing || _dxOverlay == null)
                     return;
 
-                int maxFPS = App.Config.UI.EspMaxFPS;
                 long currentTicks = System.Diagnostics.Stopwatch.GetTimestamp();
-
-                // FPS limiting: Skip frame if not enough time has elapsed
+                int maxFPS = App.Config.UI.EspMaxFPS;
+                
+                // Calculate time since last frame
+                double elapsedMs = (currentTicks - _lastFrameTicks) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                
+                // FPS limiting: Check if we've waited long enough
                 if (maxFPS > 0)
                 {
-                    double elapsedMs = (currentTicks - _lastFrameTicks) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                     double targetMs = 1000.0 / maxFPS;
                     if (elapsedMs < targetMs)
-                        return; // Skip this frame to maintain FPS cap
+                    {
+                        // Not ready yet - wait for next timer tick
+                        return;
+                    }
                 }
 
-                _lastFrameTicks = currentTicks;
-
-                // Render DirectX on dedicated timer thread (DirectX 9 is thread-safe)
-                // This removes WPF Dispatcher bottleneck - ESP no longer competes with Radar for UI thread
+                // Only render if no render is currently pending
                 if (System.Threading.Interlocked.CompareExchange(ref _renderPending, 1, 0) == 0)
                 {
-                    try
+                    _lastFrameTicks = currentTicks;
+                    
+                    // BeginInvoke to marshal to UI thread
+                    _dxOverlay.BeginInvoke(new Action(() =>
                     {
-                        _dxOverlay.Render(); // DirectX render happens on timer thread
-                    }
-                    finally
-                    {
-                        System.Threading.Interlocked.Exchange(ref _renderPending, 0);
-                    }
+                        try
+                        {
+                            _dxOverlay?.Render();
+                        }
+                        finally
+                        {
+                            System.Threading.Interlocked.Exchange(ref _renderPending, 0);
+                        }
+                    }));
                 }
             }
             catch { /* Ignore errors during shutdown */ }
@@ -263,7 +282,7 @@ namespace LoneEftDmaRadar.UI.ESP
         /// <summary>
         /// Main ESP Render Event.
         /// </summary>
-        private void RenderSurface(Dx9RenderContext ctx)
+        private void RenderSurface(ImGuiRenderContext ctx)
         {
             if (_dxInitFailed)
                 return;
@@ -335,6 +354,12 @@ namespace LoneEftDmaRadar.UI.ESP
                             }
                         }
 
+                        // Render Quest Helper Zones
+                        if (App.Config.QuestHelper.Enabled)
+                        {
+                            DrawQuestHelperZones(ctx, screenWidth, screenHeight, localPlayer);
+                        }
+
                         if (Explosives is not null && App.Config.UI.EspTripwires)
                         {
                             DrawTripwires(ctx, screenWidth, screenHeight, localPlayer);
@@ -376,7 +401,7 @@ namespace LoneEftDmaRadar.UI.ESP
 
         }
 
-        private void DrawLoot(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        private void DrawLoot(ImGuiRenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
         {
             var lootItems = Memory.Game?.Loot?.FilteredLoot;
             if (lootItems is null) return;
@@ -387,8 +412,8 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 // Filter based on ESP settings
                 bool isCorpse = item is LootCorpse;
-                bool isQuest = item.IsQuestItem;
-                if (isQuest && !App.Config.UI.EspQuestLoot)
+                bool isQuestHelper = item.IsQuestHelperItem; // Use quest helper (active quests) instead of static quest items
+                if (isCorpse && !App.Config.UI.EspCorpses)
                     continue;
                 if (isCorpse && !App.Config.UI.EspCorpses)
                     continue;
@@ -442,9 +467,9 @@ namespace LoneEftDmaRadar.UI.ESP
                      DxColor circleColor = GetLootColorForRender();
                      DxColor textColor = circleColor;
 
-                     if (isQuest)
+                     if (isQuestHelper)
                      {
-                         circleColor = ToColor(SKPaints.PaintQuestItem);
+                         circleColor = ToColor(SKPaints.PaintQuestHelperItem);
                          textColor = circleColor;
                      }
                      else if (item.Important)
@@ -516,7 +541,52 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawStaticContainers(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        private void DrawQuestHelperZones(ImGuiRenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        {
+            var questLocations = Memory.QuestManager?.LocationConditions?.Values;
+            if (questLocations is null) return;
+
+            var camPos = localPlayer?.Position ?? Vector3.Zero;
+            var zoneColor = ToColor(SKPaints.PaintQuestZone);
+            
+            foreach (var loc in questLocations)
+            {
+                float distance = Vector3.Distance(camPos, loc.Position);
+                
+                // Skip if too far (use same distance as loot for consistency)
+                if (App.Config.UI.EspLootMaxDistance > 0 && distance > App.Config.UI.EspLootMaxDistance)
+                    continue;
+
+                if (CameraManager.WorldToScreenWithScale(loc.Position, out var screen, out float scale, true, true))
+                {
+                    // Draw a distinctive marker for quest zones (diamond shape simulated with rotated square)
+                    float size = Math.Clamp(6f * App.Config.UI.UIScale * scale, 3f, 20f);
+                    
+                    // Draw diamond shape (using lines)
+                    var center = ToRaw(screen);
+                    var top = new SharpDX.Mathematics.Interop.RawVector2(center.X, center.Y - size);
+                    var right = new SharpDX.Mathematics.Interop.RawVector2(center.X + size, center.Y);
+                    var bottom = new SharpDX.Mathematics.Interop.RawVector2(center.X, center.Y + size);
+                    var left = new SharpDX.Mathematics.Interop.RawVector2(center.X - size, center.Y);
+                    
+                    ctx.DrawLine(top, right, zoneColor, 2f);
+                    ctx.DrawLine(right, bottom, zoneColor, 2f);
+                    ctx.DrawLine(bottom, left, zoneColor, 2f);
+                    ctx.DrawLine(left, top, zoneColor, 2f);
+                    
+                    // Draw quest name + type
+                    DxTextSize textSize = scale > 1.5f ? DxTextSize.Medium : DxTextSize.Small;
+                    string label = $"{loc.Name}";
+                    if (loc.Type != Tarkov.GameWorld.Quests.QuestObjectiveType.Unknown)
+                    {
+                        label += $" ({loc.Type})";
+                    }
+                    ctx.DrawText(label, screen.X + size + 4, screen.Y + 4, zoneColor, textSize);
+                }
+            }
+        }
+
+        private void DrawStaticContainers(ImGuiRenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
         {
             if (!App.Config.Containers.Enabled)
                 return;
@@ -555,7 +625,7 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawTripwires(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        private void DrawTripwires(ImGuiRenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
         {
             if (Explosives is null)
                 return;
@@ -596,7 +666,7 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawGrenades(Dx9RenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
+        private void DrawGrenades(ImGuiRenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)
         {
             if (Explosives is null)
                 return;
@@ -698,7 +768,7 @@ namespace LoneEftDmaRadar.UI.ESP
         /// Renders player on ESP
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void DrawPlayerESP(Dx9RenderContext ctx, AbstractPlayer player, LocalPlayer localPlayer, float screenWidth, float screenHeight)
+        private void DrawPlayerESP(ImGuiRenderContext ctx, AbstractPlayer player, LocalPlayer localPlayer, float screenWidth, float screenHeight)
         {
             if (player is null || player == localPlayer || !player.IsAlive || !player.IsActive)
                 return;
@@ -722,8 +792,8 @@ namespace LoneEftDmaRadar.UI.ESP
                 return;
 
             // Fallback to old MaxDistance if the new settings aren't configured
-            if (maxDistance == 0 && distance > App.Config.UI.MaxDistance)
-                return;
+            // if (maxDistance == 0 && distance > App.Config.UI.MaxDistance)
+            //    return;
 
             // Get Color
             var color = GetPlayerColorForRender(player);
@@ -795,7 +865,7 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawMiniRadar(Dx9RenderContext ctx, LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers, float screenWidth, float screenHeight)
+        private void DrawMiniRadar(ImGuiRenderContext ctx, LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers, float screenWidth, float screenHeight)
         {
              try
              {
@@ -816,10 +886,49 @@ namespace LoneEftDmaRadar.UI.ESP
 
                  if (map is null) return;
 
-                 // Check if map changed or size changed
-                 if (_lastMapId != map.ID || _lastMiniRadarSize != cfg.Size)
+                 // Check if map changed or size changed (null-safe comparison)
+                 bool mapChanged = !string.Equals(_lastMapId, map.ID, StringComparison.Ordinal);
+                 bool sizeChanged = _lastMiniRadarSize != cfg.Size;
+                 
+                 // Get current player position for self-lock mode
+                 float currentPlayerX = 0, currentPlayerY = 0;
+                 if (cfg.SelfLock && localPlayer != null)
                  {
-                     UpdateMiniRadarTexture(map, cfg.Size);
+                     var playerMapPos = localPlayer.Position.ToMapPos(map.Config);
+                     currentPlayerX = playerMapPos.X;
+                     currentPlayerY = playerMapPos.Y;
+                 }
+                 
+                 // Check if we need to update texture in self-lock mode
+                 bool selfLockNeedsUpdate = false;
+                 bool selfLockModeChanged = cfg.SelfLock != _lastSelfLock;
+                 
+                 if (cfg.SelfLock && localPlayer != null)
+                 {
+                     // Update if player moved more than 5 map units (balance smoothness vs perf)
+                     float dx = currentPlayerX - _miniRadarParams.LastRenderedX;
+                     float dy = currentPlayerY - _miniRadarParams.LastRenderedY;
+                     float distMoved = MathF.Sqrt(dx * dx + dy * dy);
+                     
+                     // Also update if zoom changed
+                     bool zoomChanged = MathF.Abs(_miniRadarParams.LastRenderedZoom - cfg.ZoomLevel) > 0.01f;
+                     
+                     selfLockNeedsUpdate = distMoved > 5f || zoomChanged || !_miniRadarParams.IsValid;
+                 }
+                 
+                 // Force update when self-lock mode changes
+                 if (mapChanged || sizeChanged || selfLockNeedsUpdate || selfLockModeChanged)
+                 {
+                     _lastSelfLock = cfg.SelfLock;
+                     
+                     if (cfg.SelfLock && localPlayer != null)
+                     {
+                         UpdateMiniRadarTextureCentered(map, cfg.Size, currentPlayerX, currentPlayerY, cfg.ZoomLevel);
+                     }
+                     else
+                     {
+                         UpdateMiniRadarTexture(map, cfg.Size);
+                     }
                  }
 
                  if (!_miniRadarParams.IsValid)
@@ -837,6 +946,15 @@ namespace LoneEftDmaRadar.UI.ESP
                  _miniRadarParams.DrawSize = cfg.Size;
                  _miniRadarParams.ScreenX = radarScreenX;
                  _miniRadarParams.ScreenY = radarScreenY;
+                 _miniRadarParams.SelfLockEnabled = cfg.SelfLock;
+                 _miniRadarParams.ZoomLevel = cfg.ZoomLevel;
+                 
+                 // If self-lock is enabled, track local player position for centering
+                 if (cfg.SelfLock && localPlayer != null)
+                 {
+                     _miniRadarParams.PlayerWorldX = currentPlayerX;
+                     _miniRadarParams.PlayerWorldY = currentPlayerY;
+                 }
 
                  // Draw Background Texture
                  // Draw Map Texture (No background, no border)
@@ -892,7 +1010,7 @@ namespace LoneEftDmaRadar.UI.ESP
              }
         }
 
-        private void DrawMiniRadarExplosives(Dx9RenderContext ctx, IEftMap map)
+        private void DrawMiniRadarExplosives(ImGuiRenderContext ctx, IEftMap map)
         {
             if (Explosives is null) return;
 
@@ -916,7 +1034,7 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawMiniRadarContainers(Dx9RenderContext ctx, IEftMap map)
+        private void DrawMiniRadarContainers(ImGuiRenderContext ctx, IEftMap map)
         {
              if (!App.Config.Containers.Enabled) return;
              var containers = Memory.Game?.Loot?.StaticContainers;
@@ -938,7 +1056,7 @@ namespace LoneEftDmaRadar.UI.ESP
              }
         }
 
-        private void DrawMiniRadarLoot(Dx9RenderContext ctx, IEftMap map)
+        private void DrawMiniRadarLoot(ImGuiRenderContext ctx, IEftMap map)
         {
             var lootItems = Memory.Game?.Loot?.FilteredLoot;
             if (lootItems is null) return;
@@ -947,11 +1065,10 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 // Basic filtering consistent with DrawLoot
                  bool isCorpse = item is LootCorpse;
-                 bool isQuest = item.IsQuestItem;
-                 if (isQuest && !App.Config.UI.EspQuestLoot) continue;
+                 bool isQuestHelper = item.IsQuestHelperItem;
                  if (isCorpse && !App.Config.UI.EspCorpses) continue;
 
-                 var color = isQuest ? SKColors.YellowGreen :
+                 var color = isQuestHelper ? SKPaints.PaintQuestHelperItem.Color :
                              isCorpse ? SKColors.Gray :
                              item.Important ? SKColors.Turquoise : SKColors.White;
 
@@ -959,7 +1076,7 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawMiniRadarExits(Dx9RenderContext ctx, IEftMap map)
+        private void DrawMiniRadarExits(ImGuiRenderContext ctx, IEftMap map)
         {
             if (Exits is null) return;
 
@@ -973,26 +1090,44 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawMiniRadarDot(Dx9RenderContext ctx, Vector3 worldPos, IEftMap map, SKColor color, float size)
+        private void DrawMiniRadarDot(ImGuiRenderContext ctx, Vector3 worldPos, IEftMap map, SKColor color, float size)
         {
             var unused = Vector2.Zero; // Dummy rotation
             DrawMiniRadarDot(ctx, worldPos, unused, map, color, size, false);
         }
 
-        private void DrawMiniRadarDot(Dx9RenderContext ctx, Vector3 worldPos, Vector2 rotation, IEftMap map, SKColor color, float size, bool drawLookDir)
+        private void DrawMiniRadarDot(ImGuiRenderContext ctx, Vector3 worldPos, Vector2 rotation, IEftMap map, SKColor color, float size, bool drawLookDir)
         {
-             // Transform
+             // Transform world pos to map coordinates
              var mapPos = worldPos.ToMapPos(map.Config);
              
-             // Use pre-calculated params from UpdateMiniRadarTexture (already scaled to size)
-             float miniX = mapPos.X * _miniRadarParams.Scale + _miniRadarParams.OffsetX;
-             float miniY = mapPos.Y * _miniRadarParams.Scale + _miniRadarParams.OffsetY;
+             float screenX, screenY;
+             
+             if (_miniRadarParams.SelfLockEnabled)
+             {
+                 // Self-lock mode: player is always at center, positions are relative
+                 float halfSize = _miniRadarParams.DrawSize / 2f;
+                 
+                 // Calculate relative position from player
+                 float relX = mapPos.X - _miniRadarParams.PlayerWorldX;
+                 float relY = mapPos.Y - _miniRadarParams.PlayerWorldY;
+                 
+                 // The Scale already includes the zoom factor from UpdateMiniRadarTextureCentered
+                 // So we just apply the scale directly
+                 screenX = _miniRadarParams.ScreenX + halfSize + (relX * _miniRadarParams.Scale);
+                 screenY = _miniRadarParams.ScreenY + halfSize + (relY * _miniRadarParams.Scale);
+             }
+             else
+             {
+                 // Standard mode: use pre-calculated params from UpdateMiniRadarTexture
+                 float miniX = mapPos.X * _miniRadarParams.Scale + _miniRadarParams.OffsetX;
+                 float miniY = mapPos.Y * _miniRadarParams.Scale + _miniRadarParams.OffsetY;
+                 
+                 screenX = _miniRadarParams.ScreenX + miniX;
+                 screenY = _miniRadarParams.ScreenY + miniY;
+             }
 
-             // Screen relative
-             float screenX = _miniRadarParams.ScreenX + miniX;
-             float screenY = _miniRadarParams.ScreenY + miniY;
-
-             // Clip to radar bounds (optional, but good)
+             // Clip to radar bounds
              if (screenX < _miniRadarParams.ScreenX || screenX > _miniRadarParams.ScreenX + _miniRadarParams.DrawSize ||
                  screenY < _miniRadarParams.ScreenY || screenY > _miniRadarParams.ScreenY + _miniRadarParams.DrawSize)
                  return;
@@ -1005,7 +1140,7 @@ namespace LoneEftDmaRadar.UI.ESP
              ctx.DrawCircle(new SharpDX.Mathematics.Interop.RawVector2(screenX, screenY), size, ToColor(color), true);
         }
 
-        private void DrawMiniRadarLookDirection(Dx9RenderContext ctx, float screenX, float screenY, Vector2 rotation, SKColor color)
+        private void DrawMiniRadarLookDirection(ImGuiRenderContext ctx, float screenX, float screenY, Vector2 rotation, SKColor color)
         {
              float rX = rotation.X; // Yaw
              float rad = (rX - 90) * (MathF.PI / 180f);
@@ -1021,6 +1156,7 @@ namespace LoneEftDmaRadar.UI.ESP
         }
 
         private int _lastMiniRadarSize = -1;
+        private bool _lastSelfLock = false;
         private DateTime _lastMiniRadarErrorTime = DateTime.MinValue;
 
         private void UpdateMiniRadarTexture(IEftMap map, int size)
@@ -1109,7 +1245,86 @@ namespace LoneEftDmaRadar.UI.ESP
              }
         }
 
-        private void DrawSkeleton(Dx9RenderContext ctx, AbstractPlayer player, float w, float h, DxColor color, float thickness)
+        private void UpdateMiniRadarTextureCentered(IEftMap map, int size, float centerX, float centerY, float zoom)
+        {
+             try 
+             {
+                 // Get Map Bounds
+                 var bounds = map.GetBounds();
+                 if (bounds.IsEmpty) 
+                 {
+                     if ((DateTime.Now - _lastMiniRadarErrorTime).TotalSeconds > 5)
+                     {
+                         DebugLogger.LogDebug($"[MiniRadar] Map bounds empty for '{map.ID}'. Retrying...");
+                         _lastMiniRadarErrorTime = DateTime.Now;
+                     }
+                     return;
+                 }
+
+                 const int TEXTURE_SIZE = 512;
+                 
+                 float mapW = bounds.Width;
+                 float mapH = bounds.Height;
+                 
+                 if (mapW <= 0 || mapH <= 0) return;
+
+                 // Render to Bitmap
+                 using var bitmap = new SKBitmap(TEXTURE_SIZE, TEXTURE_SIZE, SKColorType.Bgra8888, SKAlphaType.Premul);
+                 using var canvas = new SKCanvas(bitmap);
+                 
+                 canvas.Clear(SKColors.Transparent);
+
+                 // Render map centered on player with zoom
+                 try
+                 {
+                     map.RenderThumbnailCentered(canvas, TEXTURE_SIZE, TEXTURE_SIZE, centerX, centerY, zoom);
+                 }
+                 catch (Exception ex)
+                 {
+                     DebugLogger.LogError($"[ESPWindow] Failed to render centered mini-radar: {ex.Message}");
+                     return;
+                 }
+
+                 var bytes = bitmap.Bytes; 
+                 _dxOverlay.RequestMapTextureUpdate(TEXTURE_SIZE, TEXTURE_SIZE, bytes);
+                 
+                 // For self-lock mode, scale is based on zoom and the dot positions are calculated differently
+                 // The texture shows a zoomed portion, so dots need to be positioned relative to player center
+                 float visibleW = mapW / zoom;
+                 float visibleH = mapH / zoom;
+                 float renderScale = Math.Min((float)TEXTURE_SIZE / visibleW, (float)TEXTURE_SIZE / visibleH);
+                 float screenScale = renderScale * ((float)size / TEXTURE_SIZE);
+                 
+                 _miniRadarParams = new MiniRadarParams
+                 {
+                     Scale = screenScale,
+                     OffsetX = 0, // Not used in self-lock mode
+                     OffsetY = 0,
+                     DrawSize = size,
+                     IsValid = true,
+                     PlayerWorldX = centerX,
+                     PlayerWorldY = centerY,
+                     SelfLockEnabled = true,
+                     ZoomLevel = zoom,
+                     LastRenderedX = centerX,
+                     LastRenderedY = centerY,
+                     LastRenderedZoom = zoom
+                 };
+                 
+                 _lastMapId = map.ID;
+                 _lastMiniRadarSize = size;
+             }
+             catch (Exception ex)
+             {
+                 if ((DateTime.Now - _lastMiniRadarErrorTime).TotalSeconds > 5)
+                 {
+                     DebugLogger.LogDebug($"[MiniRadar] Centered update failed: {ex.Message}");
+                     _lastMiniRadarErrorTime = DateTime.Now;
+                 }
+             }
+        }
+
+        private void DrawSkeleton(ImGuiRenderContext ctx, AbstractPlayer player, float w, float h, DxColor color, float thickness)
         {
             foreach (var (from, to) in _boneConnections)
             {
@@ -1191,7 +1406,7 @@ namespace LoneEftDmaRadar.UI.ESP
             return true;
         }
 
-        private void DrawBoundingBox(Dx9RenderContext ctx, RectangleF rect, DxColor color, float thickness)
+        private void DrawBoundingBox(ImGuiRenderContext ctx, RectangleF rect, DxColor color, float thickness)
         {
             ctx.DrawRect(rect, color, thickness);
         }
@@ -1253,7 +1468,7 @@ namespace LoneEftDmaRadar.UI.ESP
         /// Draws player label (name/distance) relative to the bounding box or head fallback.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void DrawPlayerLabel(Dx9RenderContext ctx, AbstractPlayer player, float distance, DxColor color, RectangleF? bbox, float screenWidth, float screenHeight, bool showName, bool showDistance, bool showHealth, bool showGroup)
+        private void DrawPlayerLabel(ImGuiRenderContext ctx, AbstractPlayer player, float distance, DxColor color, RectangleF? bbox, float screenWidth, float screenHeight, bool showName, bool showDistance, bool showHealth, bool showGroup)
         {
             if (!showName && !showDistance && !showHealth && !showGroup)
                 return;
@@ -1322,12 +1537,12 @@ namespace LoneEftDmaRadar.UI.ESP
         /// Draw 'ESP Hidden' notification.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void DrawNotShown(Dx9RenderContext ctx, float width, float height)
+        private void DrawNotShown(ImGuiRenderContext ctx, float width, float height)
         {
             ctx.DrawText("ESP Hidden", width / 2f, height / 2f, new DxColor(255, 255, 255, 255), DxTextSize.Large, centerX: true, centerY: true);
         }
 
-        private void DrawCrosshair(Dx9RenderContext ctx, float width, float height)
+        private void DrawCrosshair(ImGuiRenderContext ctx, float width, float height)
         {
             float centerX = width / 2f;
             float centerY = height / 2f;
@@ -1338,7 +1553,7 @@ namespace LoneEftDmaRadar.UI.ESP
             ctx.DrawLine(new RawVector2(centerX, centerY - length), new RawVector2(centerX, centerY + length), color, _crosshairPaint.StrokeWidth);
         }
 
-        private void DrawDeviceAimbotTargetLine(Dx9RenderContext ctx, float width, float height)
+        private void DrawDeviceAimbotTargetLine(ImGuiRenderContext ctx, float width, float height)
         {
             var DeviceAimbot = Memory.DeviceAimbot;
             if (DeviceAimbot?.LockedTarget is not { } target)
@@ -1354,7 +1569,7 @@ namespace LoneEftDmaRadar.UI.ESP
             ctx.DrawLine(center, ToRaw(screen), ToColor(skColor), 2f);
         }
 
-        private void DrawDeviceAimbotFovCircle(Dx9RenderContext ctx, float width, float height)
+        private void DrawDeviceAimbotFovCircle(ImGuiRenderContext ctx, float width, float height)
         {
             var cfg = App.Config.Device;
             if (!cfg.ShowFovCircle || cfg.FOV <= 0)
@@ -1375,7 +1590,7 @@ namespace LoneEftDmaRadar.UI.ESP
             ctx.DrawCircle(new RawVector2(width / 2f, height / 2f), radius, ToColor(skColor), filled: false);
         }
 
-        private void DrawDeviceAimbotDebugOverlay(Dx9RenderContext ctx, float width, float height)
+        private void DrawDeviceAimbotDebugOverlay(ImGuiRenderContext ctx, float width, float height)
         {
             if (!App.Config.Device.ShowDebug)
                 return;
@@ -1409,7 +1624,7 @@ namespace LoneEftDmaRadar.UI.ESP
             }
         }
 
-        private void DrawFPS(Dx9RenderContext ctx, float width, float height)
+        private void DrawFPS(ImGuiRenderContext ctx, float width, float height)
         {
             var fpsText = $"FPS: {_fps}";
             ctx.DrawText(fpsText, 10, 10, new DxColor(255, 255, 255, 255), DxTextSize.Small);
