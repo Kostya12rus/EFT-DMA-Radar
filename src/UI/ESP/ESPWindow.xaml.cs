@@ -792,8 +792,8 @@ namespace LoneEftDmaRadar.UI.ESP
                 return;
 
             // Fallback to old MaxDistance if the new settings aren't configured
-            if (maxDistance == 0 && distance > App.Config.UI.MaxDistance)
-                return;
+            // if (maxDistance == 0 && distance > App.Config.UI.MaxDistance)
+            //    return;
 
             // Get Color
             var color = GetPlayerColorForRender(player);
