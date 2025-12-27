@@ -37,6 +37,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
     public sealed class LocalPlayer : ClientPlayer
     {
         /// <summary>
+        /// Raid ID for this player session.
+        /// </summary>
+        public int RaidId { get; private set; }
+
+        /// <summary>
         /// Firearm Manager for tracking weapon/ammo/ballistics.
         /// </summary>
         public FirearmManager FirearmManager { get; private set; }
@@ -93,6 +98,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (!(classType == "LocalPlayer" || classType == "ClientPlayer"))
                 throw new ArgumentOutOfRangeException(nameof(classType));
             IsHuman = true;
+
+            RaidId = Memory.ReadValue<int>(this + Offsets.Player.RaidId);
+            DebugLogger.LogDebug($"[LocalPlayer] LocalPlayer RaidId: {RaidId}");
+
             FirearmManager = new FirearmManager(this);
 
             if (IsPmc)
