@@ -162,6 +162,7 @@ namespace LoneEftDmaRadar
             {
                 base.OnStartup(e);
                 using var loading = new LoadingWindow();
+                loading.Show();
                 await ConfigureProgramAsync(loadingWindow: loading);
 
                 //DebugLogger.Toggle(); // Auto-open debug console

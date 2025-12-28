@@ -96,128 +96,188 @@
             </GroupBox>
 
             <GroupBox Header="Player ESP" Margin="0,0,0,12">
-                <StackPanel>
-                    <WrapPanel>
-                        <CheckBox Content="Box" IsChecked="{Binding EspPlayerBoxes, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Skeleton" IsChecked="{Binding EspPlayerSkeletons, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Names" IsChecked="{Binding EspPlayerNames, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Group IDs" IsChecked="{Binding EspGroupIds, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Group Colors" IsChecked="{Binding EspGroupColors, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Faction Text" IsChecked="{Binding EspPlayerFaction, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Faction Color" IsChecked="{Binding EspFactionColors, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Health Status" IsChecked="{Binding EspPlayerHealth, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Weapon" IsChecked="{Binding EspPlayerWeapon, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Distance" IsChecked="{Binding EspPlayerDistance, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Head Circle" IsChecked="{Binding EspHeadCirclePlayers, Mode=TwoWay}" Margin="0,0,16,8" />
-                     </WrapPanel>
-                     <WrapPanel Margin="0,4,0,0">
-                        <TextBlock Text="Max Distance (0 = Unlimited):" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <Slider x:Name="PlayerDistanceSlider"
-                                Width="300"
-                                Margin="0,0,8,0"
-                                Minimum="0"
-                                Maximum="1000"
-                                SmallChange="10"
-                                LargeChange="100"
-                                Value="{Binding EspPlayerMaxDistance, Mode=TwoWay}"/>
-                        <TextBlock Text="{Binding Value, ElementName=PlayerDistanceSlider, StringFormat='{}{0:F0}m'}"
-                                   VerticalAlignment="Center"
-                                   MinWidth="50"/>
-                    </WrapPanel>
-                    <WrapPanel Margin="0,8,0,0">
-                        <TextBlock Text="Label Position (Players):" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <ComboBox Width="140"
-                                  ItemsSource="{Binding LabelPositions}"
-                                  SelectedItem="{Binding EspLabelPosition, Mode=TwoWay}"
-                                  ToolTip="Choose where the player label is drawn relative to the bounding box."/>
-                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <xctk:ColorPicker Width="42" Height="26"
-                                              SelectedColor="{Binding EspColorPlayers, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
-                                              UsingAlphaChannel="True"
-                                              ShowRecentColors="False"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="16,4,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="BEAR Faction:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <xctk:ColorPicker Width="42" Height="26"
-                                              SelectedColor="{Binding EspColorFactionBear, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
-                                              UsingAlphaChannel="True"
-                                              ShowRecentColors="False"/>
-                            <TextBlock Text="USEC:" VerticalAlignment="Center" Margin="10,0,6,0"/>
-                            <xctk:ColorPicker Width="42" Height="26"
-                                              SelectedColor="{Binding EspColorFactionUsec, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
-                                              UsingAlphaChannel="True"
-                                              ShowRecentColors="False"/>
-                        </StackPanel>
-                    </WrapPanel>
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <WrapPanel>
+                            <CheckBox Content="Box" IsChecked="{Binding EspPlayerBoxes, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Skeleton" IsChecked="{Binding EspPlayerSkeletons, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Names" IsChecked="{Binding EspPlayerNames, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Group IDs" IsChecked="{Binding EspGroupIds, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Group Colors" IsChecked="{Binding EspGroupColors, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Faction Text" IsChecked="{Binding EspPlayerFaction, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Faction Color" IsChecked="{Binding EspFactionColors, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Health Status" IsChecked="{Binding EspPlayerHealth, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Weapon" IsChecked="{Binding EspPlayerWeapon, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Distance" IsChecked="{Binding EspPlayerDistance, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Head Circle" IsChecked="{Binding EspHeadCirclePlayers, Mode=TwoWay}" Margin="0,0,16,8" />
+                         </WrapPanel>
+                         <WrapPanel Margin="0,4,0,0">
+                            <TextBlock Text="Max Distance (0 = Unlimited):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Slider x:Name="PlayerDistanceSlider"
+                                    Width="300"
+                                    Margin="0,0,8,0"
+                                    Minimum="0"
+                                    Maximum="1000"
+                                    SmallChange="10"
+                                    LargeChange="100"
+                                    Value="{Binding EspPlayerMaxDistance, Mode=TwoWay}"/>
+                            <TextBlock Text="{Binding Value, ElementName=PlayerDistanceSlider, StringFormat='{}{0:F0}m'}"
+                                       VerticalAlignment="Center"
+                                       MinWidth="50"/>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,8,0,0">
+                            <TextBlock Text="Label Position (Players):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox Width="140"
+                                      ItemsSource="{Binding LabelPositions}"
+                                      SelectedItem="{Binding EspLabelPosition, Mode=TwoWay}"
+                                      ToolTip="Choose where the player label is drawn relative to the bounding box."/>
+                            <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <xctk:ColorPicker Width="42" Height="26"
+                                                  SelectedColor="{Binding EspColorPlayers, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                                  UsingAlphaChannel="True"
+                                                  ShowRecentColors="False"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="16,4,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="BEAR Faction:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <xctk:ColorPicker Width="42" Height="26"
+                                                  SelectedColor="{Binding EspColorFactionBear, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                                  UsingAlphaChannel="True"
+                                                  ShowRecentColors="False"/>
+                                <TextBlock Text="USEC:" VerticalAlignment="Center" Margin="10,0,6,0"/>
+                                <xctk:ColorPicker Width="42" Height="26"
+                                                  SelectedColor="{Binding EspColorFactionUsec, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                                  UsingAlphaChannel="True"
+                                                  ShowRecentColors="False"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </StackPanel>
+                    
+                    <!-- ESP Preview Panel -->
+                    <Border Grid.Column="1" 
+                            Width="240" Height="320"
+                            Margin="16,0,0,0"
+                            CornerRadius="8"
+                            BorderBrush="{DynamicResource App.BorderBrush}"
+                            BorderThickness="1"
+                            Background="#0F1115">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" 
+                                       Text="Preview" 
+                                       FontSize="11"
+                                       Foreground="{DynamicResource App.TextMutedBrush}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,6,0,0"/>
+                            <local:EspPreviewControl Grid.Row="1" Margin="4"/>
+                        </Grid>
+                    </Border>
+                </Grid>
             </GroupBox>
             
             <GroupBox Header="AI ESP" Margin="0,0,0,12">
-                <StackPanel>
-                    <WrapPanel>
-                        <CheckBox Content="Box" IsChecked="{Binding EspAIBoxes, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Skeleton" IsChecked="{Binding EspAISkeletons, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Names" IsChecked="{Binding EspAINames, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Health Status" IsChecked="{Binding EspAIHealth, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Weapon" IsChecked="{Binding EspAIWeapon, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Distance" IsChecked="{Binding EspAIDistance, Mode=TwoWay}" Margin="0,0,16,8" />
-                        <CheckBox Content="Head Circle" IsChecked="{Binding EspHeadCircleAI, Mode=TwoWay}" Margin="0,0,16,8" />
-                     </WrapPanel>
-                    <WrapPanel Margin="0,8,0,0">
-                        <TextBlock Text="Label Position (AI/Scav):" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <ComboBox Width="140"
-                                  ItemsSource="{Binding LabelPositions}"
-                                  SelectedItem="{Binding EspLabelPositionAI, Mode=TwoWay}"
-                                  ToolTip="Choose where the AI/scav label is drawn relative to the bounding box."/>
-                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="AI/Scav Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <xctk:ColorPicker Width="42" Height="26"
-                                              SelectedColor="{Binding EspColorAI, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
-                                              UsingAlphaChannel="True"
-                                              ShowRecentColors="False"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="Player Scav Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <xctk:ColorPicker Width="42" Height="26"
-                                              SelectedColor="{Binding EspColorPlayerScavs, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
-                                              UsingAlphaChannel="True"
-                                              ShowRecentColors="False"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="Raider Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <xctk:ColorPicker Width="42" Height="26"
-                                              SelectedColor="{Binding EspColorRaiders, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
-                                              UsingAlphaChannel="True"
-                                              ShowRecentColors="False"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="Boss Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <xctk:ColorPicker Width="42" Height="26"
-                                              SelectedColor="{Binding EspColorBosses, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
-                                              UsingAlphaChannel="True"
-                                              ShowRecentColors="False"/>
-                        </StackPanel>
-                     </WrapPanel>
-                     <WrapPanel Margin="0,4,0,0">
-                        <TextBlock Text="Max Distance (0 = Unlimited):" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <Slider x:Name="AIDistanceSlider"
-                                Width="300"
-                                Margin="0,0,8,0"
-                                Minimum="0"
-                                Maximum="1000"
-                                SmallChange="10"
-                                LargeChange="100"
-                                Value="{Binding EspAIMaxDistance, Mode=TwoWay}"/>
-                        <TextBlock Text="{Binding Value, ElementName=AIDistanceSlider, StringFormat='{}{0:F0}m'}"
-                                   VerticalAlignment="Center"
-                                   MinWidth="50"/>
-                     </WrapPanel>
-                    <TextBlock Text="Head circles inherit the entity color (players, scavs, raiders, bosses)."
-                               Foreground="Gray"
-                               FontSize="10"
-                               Margin="0,8,0,0"/>
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <WrapPanel>
+                            <CheckBox Content="Box" IsChecked="{Binding EspAIBoxes, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Skeleton" IsChecked="{Binding EspAISkeletons, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Names" IsChecked="{Binding EspAINames, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Health Status" IsChecked="{Binding EspAIHealth, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Weapon" IsChecked="{Binding EspAIWeapon, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Distance" IsChecked="{Binding EspAIDistance, Mode=TwoWay}" Margin="0,0,16,8" />
+                            <CheckBox Content="Head Circle" IsChecked="{Binding EspHeadCircleAI, Mode=TwoWay}" Margin="0,0,16,8" />
+                         </WrapPanel>
+                        <WrapPanel Margin="0,8,0,0">
+                            <TextBlock Text="Label Position (AI/Scav):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox Width="140"
+                                      ItemsSource="{Binding LabelPositions}"
+                                      SelectedItem="{Binding EspLabelPositionAI, Mode=TwoWay}"
+                                      ToolTip="Choose where the AI/scav label is drawn relative to the bounding box."/>
+                            <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="AI/Scav Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <xctk:ColorPicker Width="42" Height="26"
+                                                  SelectedColor="{Binding EspColorAI, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                                  UsingAlphaChannel="True"
+                                                  ShowRecentColors="False"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Player Scav Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <xctk:ColorPicker Width="42" Height="26"
+                                                  SelectedColor="{Binding EspColorPlayerScavs, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                                  UsingAlphaChannel="True"
+                                                  ShowRecentColors="False"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Raider Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <xctk:ColorPicker Width="42" Height="26"
+                                                  SelectedColor="{Binding EspColorRaiders, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                                  UsingAlphaChannel="True"
+                                                  ShowRecentColors="False"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Boss Color:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <xctk:ColorPicker Width="42" Height="26"
+                                                  SelectedColor="{Binding EspColorBosses, Mode=TwoWay, Converter={StaticResource StringToColorConverter}}"
+                                                  UsingAlphaChannel="True"
+                                                  ShowRecentColors="False"/>
+                            </StackPanel>
+                         </WrapPanel>
+                         <WrapPanel Margin="0,4,0,0">
+                            <TextBlock Text="Max Distance (0 = Unlimited):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Slider x:Name="AIDistanceSlider"
+                                    Width="300"
+                                    Margin="0,0,8,0"
+                                    Minimum="0"
+                                    Maximum="1000"
+                                    SmallChange="10"
+                                    LargeChange="100"
+                                    Value="{Binding EspAIMaxDistance, Mode=TwoWay}"/>
+                            <TextBlock Text="{Binding Value, ElementName=AIDistanceSlider, StringFormat='{}{0:F0}m'}"
+                                       VerticalAlignment="Center"
+                                       MinWidth="50"/>
+                         </WrapPanel>
+                        <TextBlock Text="Head circles inherit the entity color (players, scavs, raiders, bosses)."
+                                   Foreground="Gray"
+                                   FontSize="10"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- AI ESP Preview Panel -->
+                    <Border Grid.Column="1" 
+                            Width="240" Height="320"
+                            Margin="16,0,0,0"
+                            CornerRadius="8"
+                            BorderBrush="{DynamicResource App.BorderBrush}"
+                            BorderThickness="1"
+                            Background="#0F1115">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" 
+                                       Text="Preview" 
+                                       FontSize="11"
+                                       Foreground="{DynamicResource App.TextMutedBrush}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,6,0,0"/>
+                            <local:EspPreviewControl Grid.Row="1" Margin="4" PreviewMode="AI"/>
+                        </Grid>
+                    </Border>
+                </Grid>
             </GroupBox>
             
             <GroupBox Header="Loot, Exfils &amp; Explosives" Margin="0,0,0,12">

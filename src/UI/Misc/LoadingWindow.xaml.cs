@@ -36,7 +36,6 @@ namespace LoneEftDmaRadar.UI.Misc
         {
             InitializeComponent();
             DataContext = ViewModel = new LoadingViewModel(this);
-            this.Show();
         }
 
         private bool _disposed;

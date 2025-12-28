@@ -26,6 +26,7 @@ SOFTWARE.
  *
 */
 
+using System.Collections.Generic;
 using LoneEftDmaRadar.Misc.Services;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
@@ -393,6 +394,63 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             catch (Exception ex)
             {
                 DebugLogger.LogDebug($"[SantaDetection] Error checking for Santa: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Check if this player is Zryachiy (Lighthouse Boss) by checking equipment IDs.
+        /// Zryachiy has specific equipment items.
+        /// </summary>
+        public void CheckZryachiy()
+        {
+            if (!IsAI || Type != PlayerType.AIBoss)
+                return;
+
+            try
+            {
+                var inventorycontroller = Memory.ReadPtr(InventoryControllerAddr);
+                var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController.Inventory);
+                var equipment = Memory.ReadPtr(inventory + Offsets.Inventory.Equipment);
+                var slotsPtr = Memory.ReadPtr(equipment + Offsets.InventoryEquipment._cachedSlots);
+
+                using var slotsArray = UnityArray<ulong>.Create(slotsPtr, true);
+                if (slotsArray.Count < 1)
+                    return;
+
+                // Zryachiy equipment IDs to check
+                var zryachiyItems = new HashSet<string>
+                {
+                    "63626d904aa74b8fe30ab426",
+                    "636270263f2495c26f00b007"
+                };
+
+                bool hasZryachiyEquipment = false;
+
+                foreach (var slotPtr in slotsArray)
+                {
+                    var containedItem = Memory.ReadPtr(slotPtr + Offsets.Slot.ContainedItem);
+                    if (containedItem == 0)
+                        continue;
+
+                    var inventorytemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
+                    var mongoId = Memory.ReadValue<MongoID>(inventorytemplate + Offsets.ItemTemplate._id);
+                    var itemId = mongoId.ReadString();
+
+                    if (zryachiyItems.Contains(itemId))
+                    {
+                        hasZryachiyEquipment = true;
+                        break;
+                    }
+                }
+
+                if (hasZryachiyEquipment && Name != "Zryachiy")
+                {
+                    Name = "Zryachiy";
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[ZryachiyDetection] Error checking for Zryachiy: {ex.Message}");
             }
         }
 

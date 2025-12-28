@@ -332,6 +332,16 @@ namespace LoneEftDmaRadar.DMA
                                     {
                                         DebugLogger.LogDebug($"[Memory] Santa detection failed: {ex.Message}");
                                     }
+
+                                    // Run Zryachiy detection
+                                    try
+                                    {
+                                        Tarkov.GameWorld.Player.AbstractPlayer.DetectZryachiy(game.Players);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        DebugLogger.LogDebug($"[Memory] Zryachiy detection failed: {ex.Message}");
+                                    }
                                 }
                                 catch (Exception ex)
                                 {

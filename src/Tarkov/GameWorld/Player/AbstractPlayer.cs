@@ -387,9 +387,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
             foreach (var boss in bosses)
             {
-                if (boss is ObservedPlayer bossObs)
+                if (boss is ObservedPlayer bossObs && bossObs.RaidId != 0)
                 {
-                    bossGuardData[bossObs.PlayerId] = "Boss";
+                    bossGuardData[bossObs.RaidId] = "Boss";
                 }
             }
 
@@ -410,11 +410,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                     if (distSq <= thresholdSq)
                     {
-                        if (scavenger is ObservedPlayer obs)
+                        if (scavenger is ObservedPlayer obs && obs.RaidId != 0)
                         {
                             obs.Type = PlayerType.AIGuard;
                             obs.Name = "Guard";
-                            bossGuardData[obs.PlayerId] = "Guard";
+                            bossGuardData[obs.RaidId] = "Guard";
                             guardsFound++;
                             DebugLogger.LogDebug($"[BossGuard] Detected guard '{obs.Name}' near boss '{boss.Name}' ({MathF.Sqrt(distSq):F1}m)");
                         }
@@ -443,7 +443,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
             foreach (var player in allPlayers)
             {
-                if (player is ObservedPlayer obs && cachedBossGuards.TryGetValue(obs.PlayerId, out string role))
+                if (player is ObservedPlayer obs && obs.RaidId != 0 && cachedBossGuards.TryGetValue(obs.RaidId, out string role))
                 {
                     if (role == "Boss")
                     {
@@ -477,6 +477,24 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     obs.CheckSanta();
                     if (obs.Name == "Santa")
                         return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Detects Zryachiy (Lighthouse Boss) by checking equipment IDs.
+        /// Zryachiy has specific equipment: 63626d904aa74b8fe30ab426, 636270263f2495c26f00b007.
+        /// </summary>
+        public static void DetectZryachiy(IEnumerable<AbstractPlayer> allPlayers)
+        {
+            if (allPlayers == null)
+                return;
+
+            foreach (var player in allPlayers)
+            {
+                if (player is ObservedPlayer obs)
+                {
+                    obs.CheckZryachiy();
                 }
             }
         }

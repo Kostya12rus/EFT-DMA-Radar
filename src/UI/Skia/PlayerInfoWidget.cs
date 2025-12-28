@@ -39,9 +39,9 @@ namespace LoneEftDmaRadar.UI.Skia
     {
         // Column widths in pixels
         private const float COL_GRP = 20f;
-        private const float COL_NAME = 40f;
-        private const float COL_HANDS = 80f;
-        private const float COL_SECURE = 40f;
+        private const float COL_NAME = 50f;
+        private const float COL_HANDS = 120f;
+        private const float COL_SECURE = 65f;
         private const float COL_VALUE = 30f;
         private const float COL_DIST = 30f;
         private const float COL_SPACING = 10f;
