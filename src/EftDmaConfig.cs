@@ -468,6 +468,18 @@ namespace LoneEftDmaRadar
         public bool EspAIDistance { get; set; } = true;
 
         /// <summary>
+        /// Show Player Weapon in ESP.
+        /// </summary>
+        [JsonPropertyName("espPlayerWeapon")]
+        public bool EspPlayerWeapon { get; set; } = false;
+
+        /// <summary>
+        /// Show AI Weapon in ESP.
+        /// </summary>
+        [JsonPropertyName("espAIWeapon")]
+        public bool EspAIWeapon { get; set; } = false;
+
+        /// <summary>
         /// Show ESP Overlay.
         /// </summary>
         [JsonPropertyName("showESP")]

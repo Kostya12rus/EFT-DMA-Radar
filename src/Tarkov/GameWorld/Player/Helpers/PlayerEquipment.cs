@@ -145,8 +145,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
 
         private void GetHands()
         {
-            if (!_player.IsHuman) // Don't care about non-human players' hands
-                return;
 
             try
             {
