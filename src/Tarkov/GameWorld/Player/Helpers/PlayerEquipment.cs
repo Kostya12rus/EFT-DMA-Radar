@@ -180,11 +180,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
                     _hands = itemBase;
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 InHands = null;
                 _hands = default;
-                DebugLogger.LogDebug($"Error refreshing Player Hands for '{_player.Name}': {ex}");
             }
         }
     }

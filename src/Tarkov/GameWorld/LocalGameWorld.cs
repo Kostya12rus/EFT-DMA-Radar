@@ -217,8 +217,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             try
             {
                 ThrowIfRaidEnded();
-                if (MapID.Equals("tarkovstreets", StringComparison.OrdinalIgnoreCase) ||
-                    MapID.Equals("woods", StringComparison.OrdinalIgnoreCase))
+                if ((MapID.Equals("tarkovstreets", StringComparison.OrdinalIgnoreCase) ||
+                    MapID.Equals("woods", StringComparison.OrdinalIgnoreCase)) &&
+                    Tarkov.GameWorld.Camera.CameraManager.IsInitialized)
                     TryAllocateBTR();
                 _rgtPlayers.Refresh(); // Check for new players, add to list, etc.
             }
@@ -424,6 +425,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
 
         /// <summary>
         /// Checks if there is a Bot attached to the BTR Turret and re-allocates the player instance.
+        /// Only attempts allocation after CameraManager is initialized.
         /// </summary>
         public void TryAllocateBTR()
         {
