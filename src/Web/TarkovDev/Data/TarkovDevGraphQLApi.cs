@@ -98,10 +98,6 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                             }
                         }
                     }
-                    playerLevels {
-                        exp
-                        level
-                    }
                     items { 
                         id 
                         name 

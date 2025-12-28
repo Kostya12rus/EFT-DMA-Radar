@@ -71,11 +71,6 @@ namespace LoneEftDmaRadar.Tarkov
         /// </summary>
         public static FrozenDictionary<string, FrozenDictionary<string, Vector3>> TaskZones { get; private set; }
 
-        /// <summary>
-        /// XP Table for Tarkov.
-        /// </summary>
-        public static IReadOnlyDictionary<int, int> XPTable { get; private set; }
-
         #region Startup
 
         /// <summary>
@@ -170,7 +165,6 @@ namespace LoneEftDmaRadar.Tarkov
             var maps = data.Maps.ToDictionary(x => x.NameId, StringComparer.OrdinalIgnoreCase) ??
                 new Dictionary<string, MapElement>(StringComparer.OrdinalIgnoreCase);
             MapData = maps.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, MapElement>().ToFrozenDictionary();
-            XPTable = data.PlayerLevels?.ToDictionary(x => x.Exp, x => x.Level) ?? new Dictionary<int, int>();
         }
 
         /// <summary>
@@ -283,9 +277,6 @@ namespace LoneEftDmaRadar.Tarkov
             [JsonPropertyName("maps")]
             public List<MapElement> Maps { get; set; } = new();
 
-            [JsonPropertyName("playerLevels")]
-            public List<PlayerLevelElement> PlayerLevels { get; set; }
-
             [JsonPropertyName("tasks")]
             public List<TaskElement> Tasks { get; set; } = new();
         }
@@ -322,15 +313,6 @@ namespace LoneEftDmaRadar.Tarkov
 
             [JsonPropertyName("hazards")]
             public List<HazardElement> Hazards { get; set; } = new();
-        }
-
-        public partial class PlayerLevelElement
-        {
-            [JsonPropertyName("exp")]
-            public int Exp { get; set; }
-
-            [JsonPropertyName("level")]
-            public int Level { get; set; }
         }
 
         public partial class HazardElement
