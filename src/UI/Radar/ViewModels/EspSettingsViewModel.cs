@@ -213,6 +213,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
+        public bool EspPlayerWeapon
+        {
+            get => App.Config.UI.EspPlayerWeapon;
+            set
+            {
+                if (App.Config.UI.EspPlayerWeapon != value)
+                {
+                    App.Config.UI.EspPlayerWeapon = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public bool EspPlayerDistance
         {
             get => App.Config.UI.EspPlayerDistance;
@@ -286,6 +299,19 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 if (App.Config.UI.EspAIHealth != value)
                 {
                     App.Config.UI.EspAIHealth = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool EspAIWeapon
+        {
+            get => App.Config.UI.EspAIWeapon;
+            set
+            {
+                if (App.Config.UI.EspAIWeapon != value)
+                {
+                    App.Config.UI.EspAIWeapon = value;
                     OnPropertyChanged();
                 }
             }

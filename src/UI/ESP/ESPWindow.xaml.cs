@@ -815,7 +815,8 @@ namespace LoneEftDmaRadar.UI.ESP
             bool drawHealth = isAI ? App.Config.UI.EspAIHealth : App.Config.UI.EspPlayerHealth;
             bool drawDistance = isAI ? App.Config.UI.EspAIDistance : App.Config.UI.EspPlayerDistance;
             bool drawGroupId = isAI ? App.Config.UI.EspAIGroupIds : App.Config.UI.EspGroupIds;
-            bool drawLabel = drawName || drawDistance || drawHealth || drawGroupId;
+            bool drawWeapon = isAI ? App.Config.UI.EspAIWeapon : App.Config.UI.EspPlayerWeapon;
+            bool drawLabel = drawName || drawDistance || drawHealth || drawGroupId || drawWeapon;
 
             // Draw Skeleton (only if not in error state to avoid frozen bones)
             if (drawSkeleton && !player.IsError)
@@ -867,7 +868,7 @@ namespace LoneEftDmaRadar.UI.ESP
 
             if (drawLabel)
             {
-                DrawPlayerLabel(ctx, player, distance, color, hasBox ? bbox : (RectangleF?)null, screenWidth, screenHeight, drawName, drawDistance, drawHealth, drawGroupId);
+                DrawPlayerLabel(ctx, player, distance, color, hasBox ? bbox : (RectangleF?)null, screenWidth, screenHeight, drawName, drawDistance, drawHealth, drawGroupId, drawWeapon);
             }
         }
 
@@ -1480,9 +1481,9 @@ namespace LoneEftDmaRadar.UI.ESP
         /// Draws player label (name/distance) relative to the bounding box or head fallback.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void DrawPlayerLabel(ImGuiRenderContext ctx, AbstractPlayer player, float distance, DxColor color, RectangleF? bbox, float screenWidth, float screenHeight, bool showName, bool showDistance, bool showHealth, bool showGroup)
+        private void DrawPlayerLabel(ImGuiRenderContext ctx, AbstractPlayer player, float distance, DxColor color, RectangleF? bbox, float screenWidth, float screenHeight, bool showName, bool showDistance, bool showHealth, bool showGroup, bool showWeapon)
         {
-            if (!showName && !showDistance && !showHealth && !showGroup)
+            if (!showName && !showDistance && !showHealth && !showGroup && !showWeapon)
                 return;
 
             var name = showName ? GetPlayerDisplayName(player) ?? "Unknown" : null;
@@ -1500,25 +1501,47 @@ namespace LoneEftDmaRadar.UI.ESP
             if (showGroup && player.GroupID != -1 && player.IsPmc && !player.IsAI)
                 groupText = $"G:{player.GroupID}";
 
-            string text = name;
-            if (!string.IsNullOrWhiteSpace(healthText))
-                text = string.IsNullOrWhiteSpace(text) ? healthText : $"{text} ({healthText})";
-            if (!string.IsNullOrWhiteSpace(distanceText))
-                text = string.IsNullOrWhiteSpace(text) ? distanceText : $"{text} ({distanceText})";
-            if (!string.IsNullOrWhiteSpace(groupText))
-                text = string.IsNullOrWhiteSpace(text) ? groupText : $"{text} [{groupText}]";
-            if (!string.IsNullOrWhiteSpace(factionText))
-                text = string.IsNullOrWhiteSpace(text) ? factionText : $"{text} [{factionText}]";
+            string weaponText = null;
+            if (showWeapon && player is ObservedPlayer obsWeapon)
+            {
+                var wName = obsWeapon.Equipment?.InHands?.ShortName;
+                if (!string.IsNullOrWhiteSpace(wName))
+                    weaponText = wName;
+            }
 
-            if (string.IsNullOrWhiteSpace(text))
+            string primaryText = name; // Name first
+            
+            if (!string.IsNullOrWhiteSpace(healthText))
+                primaryText = string.IsNullOrWhiteSpace(primaryText) ? healthText : $"{primaryText} ({healthText})";
+            if (!string.IsNullOrWhiteSpace(distanceText))
+                primaryText = string.IsNullOrWhiteSpace(primaryText) ? distanceText : $"{primaryText} ({distanceText})";
+            if (!string.IsNullOrWhiteSpace(groupText))
+                primaryText = string.IsNullOrWhiteSpace(primaryText) ? groupText : $"{primaryText} [{groupText}]";
+            if (!string.IsNullOrWhiteSpace(factionText))
+                primaryText = string.IsNullOrWhiteSpace(primaryText) ? factionText : $"{primaryText} [{factionText}]";
+
+            if (string.IsNullOrWhiteSpace(primaryText) && string.IsNullOrWhiteSpace(weaponText))
                 return;
 
-            float drawX;
-            float drawY;
+            // Measure texts
+            var primaryBounds = !string.IsNullOrWhiteSpace(primaryText) 
+                ? ctx.MeasureText(primaryText, DxTextSize.Medium) 
+                : new SharpDX.Mathematics.Interop.RawRectangle(0,0,0,0);
+            
+            int primaryHeight = Math.Max(0, primaryBounds.Bottom - primaryBounds.Top);
 
-            var bounds = ctx.MeasureText(text, DxTextSize.Medium);
-            int textHeight = Math.Max(1, bounds.Bottom - bounds.Top);
+            int weaponHeight = 0;
+            if (!string.IsNullOrWhiteSpace(weaponText))
+            {
+                var wBounds = ctx.MeasureText(weaponText, DxTextSize.Small);
+                weaponHeight = Math.Max(0, wBounds.Bottom - wBounds.Top);
+            }
+
+            int totalHeight = primaryHeight + weaponHeight;
             int textPadding = 6;
+
+            float drawX;
+            float startY;
 
             var labelPos = player.IsAI ? App.Config.UI.EspLabelPositionAI : App.Config.UI.EspLabelPosition;
 
@@ -1526,15 +1549,15 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 var box = bbox.Value;
                 drawX = box.Left + (box.Width / 2f);
-                drawY = labelPos == EspLabelPosition.Top
-                    ? box.Top - textHeight - textPadding
+                startY = labelPos == EspLabelPosition.Top
+                    ? box.Top - totalHeight - textPadding
                     : box.Bottom + textPadding;
             }
             else if (TryProject(player.GetBonePos(Bones.HumanHead), screenWidth, screenHeight, out var headScreen))
             {
                 drawX = headScreen.X;
-                drawY = labelPos == EspLabelPosition.Top
-                    ? headScreen.Y - textHeight - textPadding
+                startY = labelPos == EspLabelPosition.Top
+                    ? headScreen.Y - totalHeight - textPadding
                     : headScreen.Y + textPadding;
             }
             else
@@ -1542,7 +1565,17 @@ namespace LoneEftDmaRadar.UI.ESP
                 return;
             }
 
-            ctx.DrawText(text, drawX, drawY, color, DxTextSize.Medium, centerX: true);
+            // Draw Primary
+            if (!string.IsNullOrWhiteSpace(primaryText))
+            {
+                ctx.DrawText(primaryText, drawX, startY, color, DxTextSize.Medium, centerX: true);
+            }
+
+            // Draw Weapon
+            if (!string.IsNullOrWhiteSpace(weaponText))
+            {
+                ctx.DrawText(weaponText, drawX, startY + primaryHeight, color, DxTextSize.Small, centerX: true);
+            }
         }
 
         /// <summary>
