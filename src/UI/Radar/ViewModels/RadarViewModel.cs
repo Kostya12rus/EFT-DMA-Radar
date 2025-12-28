@@ -477,6 +477,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             finally
             {
                 canvas.Flush(); // commit frame to GPU
+                Radar.GRContext?.PurgeUnlockedResources(false); // purge unlocked resources every frame to prevent memory bloat
             }
         }
 
@@ -573,7 +574,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         {
             _parent.Dispatcher.Invoke(() =>
             {
-                Radar.GRContext?.PurgeResources();
+                Radar.GRContext?.PurgeUnlockedResources(false);
             });
         }
 
