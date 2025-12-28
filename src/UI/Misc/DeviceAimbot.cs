@@ -255,7 +255,7 @@ namespace LoneEftDmaRadar.UI.Misc
                     // 8) Aim
                     AimAtTarget(localPlayer, _lockedTarget, fireportPosOpt);
 
-                    Thread.Sleep(6); // ~166Hz (Balancing speed vs serial buffer saturation)
+                    Thread.Sleep(8); // ~125Hz
                 }
                 catch (Exception ex)
                 {
@@ -661,7 +661,7 @@ private static float RadToDeg(float radians)
                 Vector3 predictedPos = targetPos;
 
                 // Add drop compensation
-                predictedPos.Y += sim.DropCompensation;
+                //predictedPos.Y += sim.DropCompensation;
 
                 // Add lead for moving targets
                 if (targetVelocity != Vector3.Zero)
