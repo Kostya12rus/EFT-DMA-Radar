@@ -1,7 +1,7 @@
 ﻿﻿/*
  * Lone EFT DMA Radar
  * Brought to you by Lone (Lone DMA)
- * 
+ *
 MIT License
 
 Copyright (c) 2025 Lone DMA
@@ -30,6 +30,7 @@ using Collections.Pooled;
 using LoneEftDmaRadar.Misc;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
+using LoneEftDmaRadar.Web.TarkovDev.Data;
 using SkiaSharp.Views.WPF;
 
 namespace LoneEftDmaRadar.UI.Skia
@@ -56,18 +57,21 @@ namespace LoneEftDmaRadar.UI.Skia
                 return;
             }
 
-            static string MakeRow(string c1, string c2, string c3)
+            static string MakeRow(string grp, string name, string hands, string secure, string value, string dist)
             {
-                // known widths: Name (10), Group (4), Value (10)
-                const int W1 = 10, W2 = 4, W3 = 10;
-                const int len = W1 + W2 + W3;
+                // Column widths: Grp (4), Name (7), Hands (12), Secure (8), Value (6), Dist (5)
+                const int W_GRP = 4, W_NAME = 7, W_HANDS = 12, W_SECURE = 8, W_VALUE = 6, W_DIST = 5;
+                const int len = W_GRP + W_NAME + W_HANDS + W_SECURE + W_VALUE + W_DIST;
 
-                return string.Create(len, (c1, c2, c3), static (span, cols) =>
+                return string.Create(len, (grp, name, hands, secure, value, dist), static (span, cols) =>
                 {
                     int pos = 0;
-                    WriteAligned(span, ref pos, cols.c1, W1);
-                    WriteAligned(span, ref pos, cols.c2, W2);
-                    WriteAligned(span, ref pos, cols.c3, W3);
+                    WriteAligned(span, ref pos, cols.grp, W_GRP);
+                    WriteAligned(span, ref pos, cols.name, W_NAME);
+                    WriteAligned(span, ref pos, cols.hands, W_HANDS);
+                    WriteAligned(span, ref pos, cols.secure, W_SECURE);
+                    WriteAligned(span, ref pos, cols.value, W_VALUE);
+                    WriteAligned(span, ref pos, cols.dist, W_DIST);
                 });
             }
 
@@ -90,7 +94,7 @@ namespace LoneEftDmaRadar.UI.Skia
             var localPos = localPlayer.Position;
             using var filteredPlayers = players
                 .Where(p => p.IsHumanHostileActive)
-                .OrderBy(p => Vector3.Distance(localPos, p.Position))
+                .OrderBy(p => Vector3.DistanceSquared(localPos, p.Position))
                 .ToPooledList();
 
             // Setup Frame and Draw Header
@@ -101,7 +105,7 @@ namespace LoneEftDmaRadar.UI.Skia
                 ClientRectangle.Left + pad,
                 ClientRectangle.Top + font.Spacing / 2 + pad);
 
-            string header = MakeRow("Name", "Grp", "Value");
+            string header = MakeRow("Grp", "Name", "In Hands", "Secure", "Value", "Dist");
 
             var len = font.MeasureText(header);
             if (len > maxLength) maxLength = len;
@@ -118,16 +122,22 @@ namespace LoneEftDmaRadar.UI.Skia
 
             foreach (var player in filteredPlayers)
             {
-                string name = player.Name;
-                string grp = player.GroupID != -1 ? player.GroupID.ToString() : "--";
+                string name = Truncate(player.Name ?? "--", 8);
+                string grp = player.GroupID != -1 ? Truncate(player.GroupID.ToString(), 4) : "--";
+                string hands = "--";
+                string secure = "--";
                 string value = "--";
+                string dist = "--";
 
                 if (player is ObservedPlayer obs)
                 {
-                    value = Utilities.FormatNumberKM(obs.Equipment.Value);
+                    hands = Truncate(obs.Equipment?.InHands?.ShortName ?? "--", 15);
+                    secure = Truncate(obs.Equipment?.SecuredContainer?.ShortName ?? "--", 8);
+                    value = Truncate(Utilities.FormatNumberKM(obs.Equipment?.Value ?? 0), 6);
+                    dist = Truncate(((int)Vector3.Distance(player.Position, localPos)).ToString(), 6);
                 }
 
-                string line = MakeRow(name, grp, value);
+                string line = MakeRow(grp, name, hands, secure, value, dist);
 
                 canvas.DrawText(line,
                     drawPt,
@@ -136,6 +146,13 @@ namespace LoneEftDmaRadar.UI.Skia
                     GetTextPaint(player));
                 drawPt.Offset(0, font.Spacing);
             }
+        }
+
+        private static string Truncate(string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+                return value;
+            return value.Substring(0, maxLength);
         }
 
         private static SKPaint GetTextPaint(AbstractPlayer player)

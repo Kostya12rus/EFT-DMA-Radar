@@ -120,7 +120,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         }
 
         public ICommand OpenConfigCommand { get; }
-        private async void OnOpenConfig()
+        private void OnOpenConfig()
         {
             try
             {

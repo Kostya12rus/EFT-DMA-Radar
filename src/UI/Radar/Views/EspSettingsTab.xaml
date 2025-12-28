@@ -63,7 +63,14 @@
                                 <TextBlock Text="Font Family:" VerticalAlignment="Center" Width="90"/>
                                 <TextBox Width="180"
                                          Text="{Binding EspFontFamily, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="Use any installed font family name (e.g. Segoe UI, Arial, Consolas)"/>
+                                         ToolTip="Use any installed font family name (e.g. Segoe UI, Arial, Consolas, Microsoft YaHei)"/>
+                            </WrapPanel>
+                            <WrapPanel Margin="0,4,0,0">
+                                <TextBlock Text="Font Weight:" VerticalAlignment="Center" Width="90"/>
+                                <ComboBox Width="180"
+                                          ItemsSource="{Binding AvailableFontWeights}"
+                                          SelectedItem="{Binding EspFontWeight, Mode=TwoWay}"
+                                          ToolTip="Font weight (Regular, Medium, Semibold, Bold, etc.)"/>
                             </WrapPanel>
                             <WrapPanel Margin="0,4,0,0">
                                 <TextBlock Text="Sizes (S/M/L):" VerticalAlignment="Center" Width="90"/>
@@ -227,6 +234,7 @@
                         <CheckBox Content="Show Food" IsChecked="{Binding EspFood, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Show Meds" IsChecked="{Binding EspMeds, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Show Backpacks" IsChecked="{Binding EspBackpacks, Mode=TwoWay}" Margin="0,0,16,8" />
+                        <CheckBox Content="Show Quest Items" IsChecked="{Binding EspQuestLoot, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Show Corpses" IsChecked="{Binding EspCorpses, Mode=TwoWay}" Margin="0,0,16,8" />
                         <CheckBox Content="Show Containers" IsChecked="{Binding EspContainers, Mode=TwoWay}" Margin="0,0,16,8" />
                      </WrapPanel>

@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using ImGuiNET;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 using Vortice.Mathematics;
 using WinForms = System.Windows.Forms;
-using DataStream = Vortice.DataStream;
 
 namespace LoneEftDmaRadar.UI.ESP
 {
@@ -46,6 +41,13 @@ namespace LoneEftDmaRadar.UI.ESP
         private ImFontPtr _fontSmall;
         private ImFontPtr _fontMedium;
         private ImFontPtr _fontLarge;
+
+        // Font Configuration
+        private string _fontFamily = "Segoe UI";
+        private string _fontWeight = "Regular";
+        private int _fontSizeSmall = 15;
+        private int _fontSizeMedium = 18;
+        private int _fontSizeLarge = 32;
 
         // Map Texture
         private ID3D11Texture2D _mapTexture;
@@ -169,7 +171,9 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 if (!_isDeviceInitialized) return;
                 
+#pragma warning disable CS8625
                 _deviceContext.OMSetRenderTargets((ID3D11RenderTargetView)null, null);
+#pragma warning restore CS8625
                 _renderTargetView?.Dispose();
                 
                 _swapChain.ResizeBuffers(0, (uint)Math.Max(Width, 1), (uint)Math.Max(Height, 1), Format.Unknown, SwapChainFlags.None);
@@ -251,7 +255,7 @@ namespace LoneEftDmaRadar.UI.ESP
             float B = drawData.DisplayPos.Y + drawData.DisplaySize.Y;
             var mvp = Matrix4x4.CreateOrthographicOffCenter(L, R, B, T, -1.0f, 1.0f);
             
-            _deviceContext.UpdateSubresource(ref mvp, _constantBuffer);
+            _deviceContext.UpdateSubresource(in mvp, _constantBuffer);
 
             _deviceContext.IASetInputLayout(_inputLayout);
             _deviceContext.VSSetShader(_vertexShader);
@@ -431,45 +435,62 @@ float4 main(PS_INPUT input) : SV_Target {
             };
             _samplerState = _device.CreateSamplerState(samplerDesc);
 
-            // Font Texture with high oversampling for better anti-aliasing (closer to GDI+ quality)
+            LoadFonts();
+        }
+
+        private void LoadFonts()
+        {
             var io = ImGui.GetIO();
-            
-            // Configure font settings for high quality rendering
-            // DX9 used GDI+ with FontQuality.Antialiased which has ClearType-style rendering
-            // ImGui uses atlas-based rendering, so we need high oversampling to compensate
+            io.Fonts.Clear();
+
             unsafe
             {
                 var fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
-                
-                // High oversampling produces smoother glyphs (closer to ClearType quality)
-                fontConfig->OversampleH = 4;  // Maximum horizontal oversampling
-                fontConfig->OversampleV = 3;  // High vertical oversampling
-                fontConfig->PixelSnapH = 0;   // Disable pixel snap for smoother positioning
-                fontConfig->GlyphExtraSpacing = new Vector2(0.5f, 0); // Slight extra spacing for readability
-                
-                try {
-                    // Load Segoe UI with larger sizes (atlas rendering needs larger base sizes)
-                    _fontSmall = io.Fonts.AddFontFromFileTTF(@"C:\Windows\Fonts\segoeui.ttf", 15f, fontConfig);
-                    _fontMedium = io.Fonts.AddFontFromFileTTF(@"C:\Windows\Fonts\segoeui.ttf", 18f, fontConfig);
-                    
-                    // Large font doesn't need as much oversampling
-                    fontConfig->OversampleH = 2;
-                    fontConfig->OversampleV = 2;
-                    _fontLarge = io.Fonts.AddFontFromFileTTF(@"C:\Windows\Fonts\segoeui.ttf", 32f, fontConfig);
-                } catch {
+
+                fontConfig->OversampleH = 2;
+                fontConfig->OversampleV = 2;
+                fontConfig->PixelSnapH = 0;
+                fontConfig->GlyphExtraSpacing = new Vector2(0.5f, 0);
+
+                // Set font weight multiplier based on weight setting
+                // RasterizerMultiply > 1.0 makes font bolder, < 1.0 makes it thinner
+                fontConfig->RasterizerMultiply = GetFontWeightMultiplier(_fontWeight);
+
+                IntPtr glyphRanges = BuildFullUnicodeRanges(io.Fonts);
+
+                try
+                {
+                    string fontPath = GetFontPath(_fontFamily, _fontWeight);
+
+                    io.Fonts.TexDesiredWidth = 4096;
+                    io.Fonts.Flags = ImFontAtlasFlags.NoPowerOfTwoHeight;
+
+                    // Load fonts with configured sizes
+                    _fontSmall = io.Fonts.AddFontFromFileTTF(fontPath, _fontSizeSmall, fontConfig, glyphRanges);
+                    _fontMedium = io.Fonts.AddFontFromFileTTF(fontPath, _fontSizeMedium, fontConfig, glyphRanges);
+                    _fontLarge = io.Fonts.AddFontFromFileTTF(fontPath, _fontSizeLarge, fontConfig, glyphRanges);
+                }
+                catch
+                {
                     io.Fonts.AddFontDefault();
                     _fontSmall = io.Fonts.Fonts[0];
                     _fontMedium = io.Fonts.Fonts[0];
                     _fontLarge = io.Fonts.Fonts[0];
                 }
-                
-                ImGuiNative.ImFontConfig_destroy(fontConfig);
+                finally
+                {
+                    ImGuiNative.ImFontConfig_destroy(fontConfig);
+                }
             }
-            
-            // Build the font atlas - request a larger texture for better quality
-            io.Fonts.TexDesiredWidth = 2048; // Larger atlas = more glyph detail
 
             io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height);
+
+            if (width <= 0 || height <= 0 || pixels == IntPtr.Zero)
+            {
+                io.Fonts.Clear();
+                io.Fonts.AddFontDefault();
+                io.Fonts.GetTexDataAsRGBA32(out pixels, out width, out height);
+            }
 
             _fontTexture = _device.CreateTexture2D(new Texture2DDescription
             {
@@ -486,8 +507,76 @@ float4 main(PS_INPUT input) : SV_Target {
 
             _fontTextureView = _device.CreateShaderResourceView(_fontTexture);
             io.Fonts.SetTexID(_fontTextureView.NativePointer);
+        }
 
-            // Buffers created dynamically in Render if needed
+        private static float GetFontWeightMultiplier(string weight)
+        {
+            return weight.ToLowerInvariant() switch
+            {
+                "thin" => 0.7f,
+                "light" => 0.8f,
+                "regular" or "normal" or "default" => 1.0f,
+                "medium" => 1.1f,
+                "semibold" => 1.2f,
+                "bold" => 1.3f,
+                "extrabold" => 1.4f,
+                "black" or "heavy" => 1.5f,
+                _ => 1.0f
+            };
+        }
+
+        private static string GetFontPath(string fontFamily, string fontWeight)
+        {
+            string fontsDir = @"C:\Windows\Fonts";
+            if (!Directory.Exists(fontsDir))
+                return $@"C:\Windows\Fonts\segoeui.ttf";
+
+            string cleanName = fontFamily.Replace(" ", "").ToLowerInvariant();
+            string[] extensions = { ".ttc", ".ttf", ".otf" };
+
+            // Try exact match first
+            foreach (string ext in extensions)
+            {
+                string exactPath = Path.Combine(fontsDir, cleanName + ext);
+                if (File.Exists(exactPath))
+                    return exactPath;
+            }
+
+            // Search through font files for matching name
+            try
+            {
+                foreach (string file in Directory.GetFiles(fontsDir, "*.ttc"))
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+                    if (fileName.Replace(" ", "").Equals(cleanName, StringComparison.OrdinalIgnoreCase))
+                        return file;
+                }
+
+                foreach (string file in Directory.GetFiles(fontsDir, "*.ttf"))
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+                    if (fileName.Replace(" ", "").Equals(cleanName, StringComparison.OrdinalIgnoreCase))
+                        return file;
+                }
+
+                foreach (string file in Directory.GetFiles(fontsDir, "*.otf"))
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+                    if (fileName.Replace(" ", "").Equals(cleanName, StringComparison.OrdinalIgnoreCase))
+                        return file;
+                }
+            }
+            catch
+            {
+                // Ignore directory access errors
+            }
+
+            return $@"C:\Windows\Fonts\segoeui.ttf";
+        }
+
+        private string GetFontPath(string fontFamily)
+        {
+            return GetFontPath(fontFamily, _fontWeight);
         }
 
         public void RequestMapTextureUpdate(int width, int height, byte[] pixels)
@@ -564,8 +653,76 @@ float4 main(PS_INPUT input) : SV_Target {
         
         public void SetFontConfig(string fontFamily, int small, int medium, int large)
         {
-            // Dynamic font reloading not fully implemented in this minimal replacement yet.
-            // Using hardcoded Segoe UI for W10/W11 compatibility.
+            SetFontConfig(fontFamily, "Regular", small, medium, large);
+        }
+
+        public void SetFontConfig(string fontFamily, string fontWeight, int small, int medium, int large)
+        {
+            lock (_deviceLock)
+            {
+                if (!string.IsNullOrWhiteSpace(fontFamily))
+                    _fontFamily = fontFamily.Trim();
+
+                if (!string.IsNullOrWhiteSpace(fontWeight))
+                    _fontWeight = fontWeight.Trim();
+
+                _fontSizeSmall = ClampFontSize(small);
+                _fontSizeMedium = ClampFontSize(medium);
+                _fontSizeLarge = ClampFontSize(large);
+
+                if (_isDeviceInitialized)
+                {
+                    RebuildFonts();
+                }
+            }
+        }
+
+        private static int ClampFontSize(int value)
+        {
+            if (value <= 0) return 10;
+            return Math.Clamp(value, 6, 72);
+        }
+
+        private void RebuildFonts()
+        {
+            if (!_isDeviceInitialized) return;
+
+            ImGui.SetCurrentContext(_imGuiContext);
+
+            _fontTextureView?.Dispose();
+            _fontTexture?.Dispose();
+
+            LoadFonts();
+        }
+
+        private unsafe IntPtr BuildFullUnicodeRanges(ImFontAtlasPtr fonts) // not really full but I will name it anyway lol
+        {
+            var builder = ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
+
+            ushort* defaultRanges = (ushort*)fonts.GetGlyphRangesDefault();
+            ushort* greekRanges = (ushort*)fonts.GetGlyphRangesGreek();
+            ushort* koreanRanges = (ushort*)fonts.GetGlyphRangesKorean();
+            ushort* japaneseRanges = (ushort*)fonts.GetGlyphRangesJapanese();
+            ushort* chineseRanges = (ushort*)fonts.GetGlyphRangesChineseFull();
+            ushort* cyrillicRanges = (ushort*)fonts.GetGlyphRangesCyrillic();
+            ushort* thaiRanges = (ushort*)fonts.GetGlyphRangesThai();
+            ushort* vietnameseRanges = (ushort*)fonts.GetGlyphRangesVietnamese();
+
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, defaultRanges);
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, greekRanges);
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, koreanRanges);
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, japaneseRanges);
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, chineseRanges);
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, cyrillicRanges);
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, thaiRanges);
+            ImGuiNative.ImFontGlyphRangesBuilder_AddRanges(builder, vietnameseRanges);
+
+            ImVector resultRanges;
+            ImGuiNative.ImFontGlyphRangesBuilder_BuildRanges(builder, &resultRanges);
+
+            ImGuiNative.ImFontGlyphRangesBuilder_destroy(builder);
+
+            return resultRanges.Data;
         }
 
         protected override void Dispose(bool disposing)
@@ -574,24 +731,51 @@ float4 main(PS_INPUT input) : SV_Target {
             {
                 lock (_deviceLock)
                 {
+                    _deviceContext?.ClearState();
+                    _deviceContext?.Flush();
                     _renderTargetView?.Dispose();
-                    _swapChain?.Dispose();
-                    _deviceContext?.Dispose();
-                    _device?.Dispose();
-                    _vertexShader?.Dispose();
-                    _pixelShader?.Dispose();
-                    _inputLayout?.Dispose();
-                    _constantBuffer?.Dispose();
-                    _blendState?.Dispose();
-                    _rasterizerState?.Dispose();
-                    _samplerState?.Dispose();
-                    _vertexBuffer?.Dispose();
-                    _indexBuffer?.Dispose();
-                    _fontTexture?.Dispose();
+                    _renderTargetView = null;
                     _fontTextureView?.Dispose();
-                    _mapTexture?.Dispose();
+                    _fontTextureView = null;
+                    _fontTexture?.Dispose();
+                    _fontTexture = null;
                     _mapTextureView?.Dispose();
-                    ImGui.DestroyContext();
+                    _mapTextureView = null;
+                    _mapTexture?.Dispose();
+                    _mapTexture = null;
+
+                    if (_imGuiContext != IntPtr.Zero)
+                    {
+                        ImGui.DestroyContext(_imGuiContext);
+                        _imGuiContext = IntPtr.Zero;
+                    }
+
+                    _vertexShader?.Dispose();
+                    _vertexShader = null;
+                    _pixelShader?.Dispose();
+                    _pixelShader = null;
+                    _inputLayout?.Dispose();
+                    _inputLayout = null;
+                    _constantBuffer?.Dispose();
+                    _constantBuffer = null;
+                    _blendState?.Dispose();
+                    _blendState = null;
+                    _rasterizerState?.Dispose();
+                    _rasterizerState = null;
+                    _samplerState?.Dispose();
+                    _samplerState = null;
+                    _vertexBuffer?.Dispose();
+                    _vertexBuffer = null;
+                    _indexBuffer?.Dispose();
+                    _indexBuffer = null;
+                    _swapChain?.Dispose();
+                    _swapChain = null;
+                    _deviceContext?.Dispose();
+                    _deviceContext = null;
+                    _device?.Dispose();
+                    _device = null;
+
+                    _isDeviceInitialized = false;
                 }
             }
             base.Dispose(disposing);

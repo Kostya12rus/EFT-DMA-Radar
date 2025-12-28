@@ -67,6 +67,18 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         public ObservableCollection<MonitorInfo> AvailableScreens { get; } = new ObservableCollection<MonitorInfo>();
 
+        public Array AvailableFontWeights { get; } = new[]
+        {
+            "Thin",
+            "Light",
+            "Regular",
+            "Medium",
+            "Semibold",
+            "Bold",
+            "Extrabold",
+            "Black"
+        };
+
         public ICommand ToggleEspCommand { get; }
         public ICommand StartEspCommand { get; }
 
@@ -934,6 +946,21 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 if (!string.Equals(App.Config.UI.EspFontFamily, newVal, StringComparison.Ordinal))
                 {
                     App.Config.UI.EspFontFamily = newVal;
+                    ESPManager.ApplyFontConfig();
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string EspFontWeight
+        {
+            get => App.Config.UI.EspFontWeight;
+            set
+            {
+                var newVal = value ?? "Regular";
+                if (!string.Equals(App.Config.UI.EspFontWeight, newVal, StringComparison.Ordinal))
+                {
+                    App.Config.UI.EspFontWeight = newVal;
                     ESPManager.ApplyFontConfig();
                     OnPropertyChanged();
                 }

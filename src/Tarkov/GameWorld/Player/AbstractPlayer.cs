@@ -145,7 +145,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// <summary>
         /// Distance threshold for team detection (in meters).
         /// </summary>
-        private const float TeammateDetectionDistance = 20.0f;
+        private const float TeammateDetectionDistance = 15.0f;
 
         /// <summary>
         /// Fixed GroupID assigned to local player's team.
@@ -373,7 +373,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 return;
             }
 
-            const float GuardDetectionDistance = 5.0f;
+            const float GuardDetectionDistance = 10.0f;
             float thresholdSq = GuardDetectionDistance * GuardDetectionDistance;
 
             var bosses = allPlayers.Where(p => p.Type == PlayerType.AIBoss && p.IsActive && p.IsAlive).ToList();

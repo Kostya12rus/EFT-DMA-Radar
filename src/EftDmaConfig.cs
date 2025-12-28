@@ -588,6 +588,12 @@ namespace LoneEftDmaRadar
         public string EspFontFamily { get; set; } = "Segoe UI";
 
         /// <summary>
+        /// Font weight used for ESP text (Regular, Medium, Semibold, Bold, etc.).
+        /// </summary>
+        [JsonPropertyName("espFontWeight")]
+        public string EspFontWeight { get; set; } = "Regular";
+
+        /// <summary>
         /// Small font size used for ESP text (loot labels, etc).
         /// </summary>
         [JsonPropertyName("espFontSizeSmall")]

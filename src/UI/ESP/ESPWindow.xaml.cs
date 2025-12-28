@@ -413,7 +413,8 @@ namespace LoneEftDmaRadar.UI.ESP
                 // Filter based on ESP settings
                 bool isCorpse = item is LootCorpse;
                 bool isQuestHelper = item.IsQuestHelperItem; // Use quest helper (active quests) instead of static quest items
-                if (isCorpse && !App.Config.UI.EspCorpses)
+                bool isQuest = item.IsQuestItem;
+                if (isQuest && !App.Config.UI.EspQuestLoot)
                     continue;
                 if (isCorpse && !App.Config.UI.EspCorpses)
                     continue;
@@ -467,6 +468,11 @@ namespace LoneEftDmaRadar.UI.ESP
                      DxColor circleColor = GetLootColorForRender();
                      DxColor textColor = circleColor;
 
+                     if (isQuest)
+                     {
+                        circleColor = ToColor(SKPaints.PaintQuestItem);
+                        textColor = circleColor;
+                     }
                      if (isQuestHelper)
                      {
                          circleColor = ToColor(SKPaints.PaintQuestHelperItem);
@@ -986,7 +992,10 @@ namespace LoneEftDmaRadar.UI.ESP
                 }
 
                  // Draw Local Player
-                 DrawMiniRadarDot(ctx, localPlayer.Position, localPlayer.Rotation, map, SKColors.Cyan, 4f, true);
+                 if (localPlayer is not null)
+                 {
+                     DrawMiniRadarDot(ctx, localPlayer.Position, localPlayer.Rotation, map, SKColors.Cyan, 4f, true);
+                 }
 
                  // Draw Other Players
                  if (allPlayers != null && cfg.ShowPlayers)
@@ -1065,10 +1074,13 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 // Basic filtering consistent with DrawLoot
                  bool isCorpse = item is LootCorpse;
+                 bool isQuest = item.IsQuestItem;
                  bool isQuestHelper = item.IsQuestHelperItem;
+                 if (isQuest && !App.Config.UI.EspQuestLoot) continue;
                  if (isCorpse && !App.Config.UI.EspCorpses) continue;
 
-                 var color = isQuestHelper ? SKPaints.PaintQuestHelperItem.Color :
+                 var color = isQuest ? SKColors.YellowGreen :
+                             isQuestHelper ? SKPaints.PaintQuestHelperItem.Color :
                              isCorpse ? SKColors.Gray :
                              item.Important ? SKColors.Turquoise : SKColors.White;
 
@@ -1708,6 +1720,7 @@ namespace LoneEftDmaRadar.UI.ESP
             var ui = App.Config.UI;
             _dxOverlay?.SetFontConfig(
                 ui.EspFontFamily,
+                ui.EspFontWeight,
                 ui.EspFontSizeSmall,
                 ui.EspFontSizeMedium,
                 ui.EspFontSizeLarge);

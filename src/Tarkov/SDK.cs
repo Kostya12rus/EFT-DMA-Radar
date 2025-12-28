@@ -113,6 +113,12 @@ namespace SDK
             public const uint PlayerView = 0x18; // EFT.NextObservedPlayer.ObservedPlayerView
             public const uint MovementController = 0xD8; // EFT.NextObservedPlayer.ObservedPlayerMovementController
             public const uint HealthController = 0xE8; // ObservedPlayerHealthController
+            public const uint HandsController = 0x120; // EFT.PlayerHandsController update
+        }
+
+        public readonly partial struct ObservedPlayerHandsController
+        {
+            public const uint _item = 0x58; // EFT.InventoryLogic.Item
         }
 
         public readonly partial struct ObservedPlayerStateContext
