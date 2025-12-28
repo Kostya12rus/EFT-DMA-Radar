@@ -325,8 +325,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         {
             var players = _rgtPlayers
                 .OfType<ObservedPlayer>()
-                .Where(x => !x.IsAI // Only human players
-                    && x.IsActive && x.IsAlive);
+                .Where(x => x.IsActive && x.IsAlive);
             foreach (var player in players)
             {
                 ct.ThrowIfCancellationRequested();
