@@ -57,17 +57,17 @@ namespace LoneEftDmaRadar.UI.Skia
                 return;
             }
 
-            static string MakeRow(string name, string grp, string hands, string secure, string value, string dist)
+            static string MakeRow(string grp, string name, string hands, string secure, string value, string dist)
             {
-                // Column widths: Name (8), Grp (4), Hands (12), Secure (8), Value (6), Dist (5)
-                const int W_NAME = 8, W_GRP = 4, W_HANDS = 12, W_SECURE = 8, W_VALUE = 6, W_DIST = 5;
-                const int len = W_NAME + W_GRP + W_HANDS + W_SECURE + W_VALUE + W_DIST;
+                // Column widths: Grp (4), Name (7), Hands (12), Secure (8), Value (6), Dist (5)
+                const int W_GRP = 4, W_NAME = 7, W_HANDS = 12, W_SECURE = 8, W_VALUE = 6, W_DIST = 5;
+                const int len = W_GRP + W_NAME + W_HANDS + W_SECURE + W_VALUE + W_DIST;
 
-                return string.Create(len, (name, grp, hands, secure, value, dist), static (span, cols) =>
+                return string.Create(len, (grp, name, hands, secure, value, dist), static (span, cols) =>
                 {
                     int pos = 0;
-                    WriteAligned(span, ref pos, cols.name, W_NAME);
                     WriteAligned(span, ref pos, cols.grp, W_GRP);
+                    WriteAligned(span, ref pos, cols.name, W_NAME);
                     WriteAligned(span, ref pos, cols.hands, W_HANDS);
                     WriteAligned(span, ref pos, cols.secure, W_SECURE);
                     WriteAligned(span, ref pos, cols.value, W_VALUE);
@@ -105,7 +105,7 @@ namespace LoneEftDmaRadar.UI.Skia
                 ClientRectangle.Left + pad,
                 ClientRectangle.Top + font.Spacing / 2 + pad);
 
-            string header = MakeRow("Name", "Grp", "In Hands", "Secure", "Value", "Dist");
+            string header = MakeRow("Grp", "Name", "In Hands", "Secure", "Value", "Dist");
 
             var len = font.MeasureText(header);
             if (len > maxLength) maxLength = len;
@@ -137,7 +137,7 @@ namespace LoneEftDmaRadar.UI.Skia
                     dist = Truncate(((int)Vector3.Distance(player.Position, localPos)).ToString(), 6);
                 }
 
-                string line = MakeRow(name, grp, hands, secure, value, dist);
+                string line = MakeRow(grp, name, hands, secure, value, dist);
 
                 canvas.DrawText(line,
                     drawPt,
