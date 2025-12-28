@@ -450,7 +450,7 @@ float4 main(PS_INPUT input) : SV_Target {
                 fontConfig->OversampleH = 2;
                 fontConfig->OversampleV = 2;
                 fontConfig->PixelSnapH = 0;
-                fontConfig->GlyphExtraSpacing = new Vector2(0.5f, 0);
+                fontConfig->GlyphExtraSpacing = new Vector2(0f, 0);
 
                 // Set font weight multiplier based on weight setting
                 // RasterizerMultiply > 1.0 makes font bolder, < 1.0 makes it thinner
