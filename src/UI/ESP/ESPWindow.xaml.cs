@@ -54,6 +54,7 @@ namespace LoneEftDmaRadar.UI.ESP
             public float LastRenderedX;
             public float LastRenderedY;
             public float LastRenderedZoom;
+            public float LastRenderedHeight; // Player height for SVG layer filtering
             // Actual center of the rendered texture (may differ from player pos when at map edges)
             public float TextureCenterX;
             public float TextureCenterY;
@@ -915,6 +916,13 @@ namespace LoneEftDmaRadar.UI.ESP
                  bool selfLockNeedsUpdate = false;
                  bool selfLockModeChanged = cfg.SelfLock != _lastSelfLock;
                  
+                 // Get player height for SVG layer filtering
+                 float currentPlayerHeight = localPlayer?.Position.Y ?? 0f;
+                 
+                 // Check if player height changed significantly (for floor/level changes)
+                 // Use 2 units threshold to avoid excessive updates from small vertical movements
+                 bool heightChanged = MathF.Abs(_miniRadarParams.LastRenderedHeight - currentPlayerHeight) > 2f;
+                 
                  if (cfg.SelfLock && localPlayer != null)
                  {
                      // Update if player moved more than 5 map units (balance smoothness vs perf)
@@ -928,18 +936,18 @@ namespace LoneEftDmaRadar.UI.ESP
                      selfLockNeedsUpdate = distMoved > 5f || zoomChanged || !_miniRadarParams.IsValid;
                  }
                  
-                 // Force update when self-lock mode changes
-                 if (mapChanged || sizeChanged || selfLockNeedsUpdate || selfLockModeChanged)
+                 // Force update when self-lock mode changes or height changes (for floor/level SVG layers)
+                 if (mapChanged || sizeChanged || selfLockNeedsUpdate || selfLockModeChanged || heightChanged)
                  {
                      _lastSelfLock = cfg.SelfLock;
                      
                      if (cfg.SelfLock && localPlayer != null)
                      {
-                         UpdateMiniRadarTextureCentered(map, cfg.Size, currentPlayerX, currentPlayerY, cfg.ZoomLevel);
+                         UpdateMiniRadarTextureCentered(map, cfg.Size, currentPlayerX, currentPlayerY, cfg.ZoomLevel, currentPlayerHeight);
                      }
                      else
                      {
-                         UpdateMiniRadarTexture(map, cfg.Size);
+                         UpdateMiniRadarTexture(map, cfg.Size, currentPlayerHeight);
                      }
                  }
 
@@ -1179,7 +1187,7 @@ namespace LoneEftDmaRadar.UI.ESP
         private bool _lastSelfLock = false;
         private DateTime _lastMiniRadarErrorTime = DateTime.MinValue;
 
-        private void UpdateMiniRadarTexture(IEftMap map, int size)
+        private void UpdateMiniRadarTexture(IEftMap map, int size, float playerHeight)
         {
              try 
              {
@@ -1223,10 +1231,10 @@ namespace LoneEftDmaRadar.UI.ESP
                  // Use Transparent background so the underlying FilledRect color shows through
                  canvas.Clear(SKColors.Transparent);
 
-                 // Render map into the 512x512 canvas
+                 // Render map into the 512x512 canvas with height-based layer filtering
                  try
                  {
-                     map.RenderThumbnail(canvas, TEXTURE_SIZE, TEXTURE_SIZE);
+                     map.RenderThumbnail(canvas, TEXTURE_SIZE, TEXTURE_SIZE, playerHeight);
                  }
                  catch (Exception ex)
                  {
@@ -1248,7 +1256,8 @@ namespace LoneEftDmaRadar.UI.ESP
                      OffsetX = screenOffsetX,
                      OffsetY = screenOffsetY,
                      DrawSize = size,
-                     IsValid = true
+                     IsValid = true,
+                     LastRenderedHeight = playerHeight
                  };
                  
                  _lastMapId = map.ID;
@@ -1265,7 +1274,7 @@ namespace LoneEftDmaRadar.UI.ESP
              }
         }
 
-        private void UpdateMiniRadarTextureCentered(IEftMap map, int size, float centerX, float centerY, float zoom)
+        private void UpdateMiniRadarTextureCentered(IEftMap map, int size, float centerX, float centerY, float zoom, float playerHeight)
         {
              try 
              {
@@ -1294,10 +1303,10 @@ namespace LoneEftDmaRadar.UI.ESP
                  
                  canvas.Clear(SKColors.Transparent);
 
-                 // Render map centered on player with zoom
+                 // Render map centered on player with zoom and height-based layer filtering
                  try
                  {
-                     map.RenderThumbnailCentered(canvas, TEXTURE_SIZE, TEXTURE_SIZE, centerX, centerY, zoom);
+                     map.RenderThumbnailCentered(canvas, TEXTURE_SIZE, TEXTURE_SIZE, centerX, centerY, zoom, playerHeight);
                  }
                  catch (Exception ex)
                  {
@@ -1342,6 +1351,7 @@ namespace LoneEftDmaRadar.UI.ESP
                      LastRenderedX = centerX,
                      LastRenderedY = centerY,
                      LastRenderedZoom = zoom,
+                     LastRenderedHeight = playerHeight,
                      TextureCenterX = textureCenterX,
                      TextureCenterY = textureCenterY
                  };

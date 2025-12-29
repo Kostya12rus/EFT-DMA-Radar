@@ -267,6 +267,82 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
             canvas.Restore();
         }
 
+        public void RenderThumbnail(SKCanvas canvas, int width, int height, float playerHeight)
+        {
+            if (_layers.Length == 0) return;
+
+            // Filter layers by height (same logic as Draw method)
+            using var visible = new PooledList<RasterLayer>(capacity: 8);
+            foreach (var layer in _layers)
+            {
+                if (layer.IsHeightInRange(playerHeight))
+                    visible.Add(layer);
+            }
+
+            if (visible.Count == 0) return;
+            visible.Sort();
+
+            var baseLayer = _layers[0];
+            float mapW = baseLayer.RawWidth * Config.SvgScale;
+            float mapH = baseLayer.RawHeight * Config.SvgScale;
+
+            if (mapW <= 0 || mapH <= 0) return;
+
+            // Compute uniform scale to fit
+            float scaleX = width / mapW;
+            float scaleY = height / mapH;
+            float scale = Math.Min(scaleX, scaleY);
+
+            // Center
+            float scaledW = mapW * scale;
+            float scaledH = mapH * scale;
+            float dx = (width - scaledW) / 2f;
+            float dy = (height - scaledH) / 2f;
+
+            canvas.Save();
+            canvas.Translate(dx, dy);
+            canvas.Scale(scale, scale);
+            canvas.Scale(Config.SvgScale, Config.SvgScale);
+            // Scale down by rasterization factor (images are 4x, render at 1x)
+            canvas.Scale(1f / RasterLayer.RasterScale, 1f / RasterLayer.RasterScale);
+
+            // Create paint with color inversion filter for dark mode visibility (configurable)
+            using var paint = new SKPaint();
+            if (App.Config.UI.MiniRadar.InvertColors)
+            {
+                paint.ColorFilter = SKColorFilter.CreateColorMatrix(new float[]
+                {
+                    -1,  0,  0, 0, 1, // R = 1 - R
+                     0, -1,  0, 0, 1, // G = 1 - G
+                     0,  0, -1, 0, 1, // B = 1 - B
+                     0,  0,  0, 1, 0  // A = A
+                });
+            }
+
+            // Draw only visible layers based on height (with dimming like Draw method)
+            var front = visible[^1];
+            foreach (var layer in visible)
+            {
+                bool dim = !Config.DisableDimming &&
+                           layer != front &&
+                           !front.CannotDimLowerLayers;
+
+                if (dim)
+                {
+                    using var dimPaint = new SKPaint();
+                    dimPaint.ColorFilter = paint.ColorFilter;
+                    dimPaint.Color = dimPaint.Color.WithAlpha(128); // 50% alpha for dimming
+                    canvas.DrawImage(layer.Image, 0, 0, dimPaint);
+                }
+                else
+                {
+                    canvas.DrawImage(layer.Image, 0, 0, paint);
+                }
+            }
+
+            canvas.Restore();
+        }
+
         public void RenderThumbnailCentered(SKCanvas canvas, int width, int height, float centerX, float centerY, float zoom)
         {
             if (_layers.Length == 0) return;
@@ -327,6 +403,97 @@ namespace LoneEftDmaRadar.UI.Radar.Maps
             foreach (var layer in _layers)
             {
                 canvas.DrawImage(layer.Image, 0, 0, paint);
+            }
+
+            canvas.Restore();
+        }
+
+        public void RenderThumbnailCentered(SKCanvas canvas, int width, int height, float centerX, float centerY, float zoom, float playerHeight)
+        {
+            if (_layers.Length == 0) return;
+
+            // Filter layers by height (same logic as Draw method)
+            using var visible = new PooledList<RasterLayer>(capacity: 8);
+            foreach (var layer in _layers)
+            {
+                if (layer.IsHeightInRange(playerHeight))
+                    visible.Add(layer);
+            }
+
+            if (visible.Count == 0) return;
+            visible.Sort();
+
+            var baseLayer = _layers[0];
+            float mapW = baseLayer.RawWidth * Config.SvgScale;
+            float mapH = baseLayer.RawHeight * Config.SvgScale;
+
+            if (mapW <= 0 || mapH <= 0) return;
+
+            // Calculate the visible area size based on zoom
+            // zoom = 1.0 means show entire map, zoom = 2.0 means show half the map (2x zoomed in)
+            float visibleW = mapW / zoom;
+            float visibleH = mapH / zoom;
+
+            // Calculate the source rectangle (what part of the map to show)
+            float srcLeft = centerX - (visibleW / 2f);
+            float srcTop = centerY - (visibleH / 2f);
+
+            // Clamp to map bounds
+            srcLeft = Math.Max(0, Math.Min(srcLeft, mapW - visibleW));
+            srcTop = Math.Max(0, Math.Min(srcTop, mapH - visibleH));
+
+            // Scale factor to fit the visible area into the output size
+            float scaleX = width / visibleW;
+            float scaleY = height / visibleH;
+            float scale = Math.Min(scaleX, scaleY);
+
+            // Center in output
+            float scaledW = visibleW * scale;
+            float scaledH = visibleH * scale;
+            float dx = (width - scaledW) / 2f;
+            float dy = (height - scaledH) / 2f;
+
+            canvas.Save();
+            canvas.Translate(dx, dy);
+            canvas.Scale(scale, scale);
+            // Translate to show the correct portion of the map
+            canvas.Translate(-srcLeft, -srcTop);
+            canvas.Scale(Config.SvgScale, Config.SvgScale);
+            // Scale down by rasterization factor (images are 4x, render at 1x)
+            canvas.Scale(1f / RasterLayer.RasterScale, 1f / RasterLayer.RasterScale);
+
+            // Create paint with color inversion filter if enabled
+            using var paint = new SKPaint();
+            if (App.Config.UI.MiniRadar.InvertColors)
+            {
+                paint.ColorFilter = SKColorFilter.CreateColorMatrix(new float[]
+                {
+                    -1,  0,  0, 0, 1,
+                     0, -1,  0, 0, 1,
+                     0,  0, -1, 0, 1,
+                     0,  0,  0, 1, 0
+                });
+            }
+
+            // Draw only visible layers based on height (with dimming like Draw method)
+            var front = visible[^1];
+            foreach (var layer in visible)
+            {
+                bool dim = !Config.DisableDimming &&
+                           layer != front &&
+                           !front.CannotDimLowerLayers;
+
+                if (dim)
+                {
+                    using var dimPaint = new SKPaint();
+                    dimPaint.ColorFilter = paint.ColorFilter;
+                    dimPaint.Color = dimPaint.Color.WithAlpha(128); // 50% alpha for dimming
+                    canvas.DrawImage(layer.Image, 0, 0, dimPaint);
+                }
+                else
+                {
+                    canvas.DrawImage(layer.Image, 0, 0, paint);
+                }
             }
 
             canvas.Restore();
