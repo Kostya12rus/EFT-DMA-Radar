@@ -398,7 +398,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         /// <summary>
-        /// Check if this player is Zryachiy (Lighthouse Boss) by checking equipment IDs.
+        /// Check if this player is Zryachiy by checking equipment IDs.
         /// Zryachiy has specific equipment items.
         /// </summary>
         public void CheckZryachiy()

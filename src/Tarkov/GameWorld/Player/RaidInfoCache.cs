@@ -27,14 +27,14 @@ SOFTWARE.
 */
 
 using LoneEftDmaRadar.UI.Misc;
+using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 {
     /// <summary>
     /// Persistent cache for raid information keyed by RaidId.
-    /// RaidId is persistent across reconnects (unlike VoipId).
-    /// Uses GamePlayerId (not memory address) as player key for persistence across reconnects.
-    /// Stores team data, boss data, and guard data.
+    /// Uses GamePlayerId as player key for persistence across reconnects.
+    /// Stores team data and boss follower data.
     /// Survives radar restarts within the same raid.
     /// </summary>
     public static class RaidInfoCache
@@ -51,7 +51,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             public int RaidId { get; set; }
             public int PlayerId { get; set; }
             public Dictionary<int, int> PlayerGroupIds { get; set; } = new(); // GamePlayerId -> GroupId
-            public Dictionary<int, string> BossGuards { get; set; } = new(); // GamePlayerId -> "Boss" or "Guard"
+            public Dictionary<int, string> BossFollowers { get; set; } = new(); // GamePlayerId -> "Guard"
             public DateTime LastUpdated { get; set; }
         }
 
@@ -98,10 +98,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         /// <summary>
-        /// Load boss/guard data for the specified RaidId and PlayerId.
-        /// Returns dictionary mapping GamePlayerId to their role ("Boss" or "Guard").
+        /// Load and apply boss follower data for the specified RaidId and PlayerId.
+        /// Returns the number of guards applied, or null if no cache exists.
         /// </summary>
-        public static Dictionary<int, string> LoadBossGuards(int raidId, int playerId)
+        public static int? LoadBossFollowers(int raidId, int playerId, IEnumerable<AbstractPlayer> allPlayers)
         {
             lock (_lock)
             {
@@ -118,16 +118,30 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         return null;
                     }
 
-                    if (data.BossGuards.Count == 0)
+                    if (data.BossFollowers.Count == 0)
                         return null;
 
-                    DebugLogger.LogDebug($"[RaidInfoCache] Loaded cached boss/guard data ({data.BossGuards.Count} entries)");
+                    // Apply cached guard data to players
+                    int appliedGuards = 0;
+                    foreach (var player in allPlayers)
+                    {
+                        if (player is ObservedPlayer obs && obs.RaidId != 0 && data.BossFollowers.TryGetValue(obs.RaidId, out string role))
+                        {
+                            if (role == "Guard" && obs.Type == PlayerType.AIScav)
+                            {
+                                obs.Type = PlayerType.AIGuard;
+                                obs.Name = "Guard";
+                                appliedGuards++;
+                            }
+                        }
+                    }
 
-                    return new Dictionary<int, string>(data.BossGuards);
+                    DebugLogger.LogDebug($"[RaidInfoCache] Loaded and applied cached boss follower data ({appliedGuards} guards)");
+                    return appliedGuards;
                 }
                 catch (Exception ex)
                 {
-                    DebugLogger.LogDebug($"[RaidInfoCache] Error loading boss/guard data: {ex.Message}");
+                    DebugLogger.LogDebug($"[RaidInfoCache] Error loading boss follower data: {ex.Message}");
                     return null;
                 }
             }
@@ -164,9 +178,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         /// <summary>
-        /// Save boss/guard data for the specified RaidId and PlayerId.
+        /// Save boss follower data for the specified RaidId and PlayerId.
         /// </summary>
-        public static void SaveBossGuards(int raidId, int playerId, Dictionary<int, string> bossGuards)
+        public static void SaveBossFollowers(int raidId, int playerId, Dictionary<int, string> bossFollowers)
         {
             lock (_lock)
             {
@@ -179,16 +193,16 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     data.PlayerId = playerId;
                     data.LastUpdated = DateTime.Now;
 
-                    // Update boss/guard data
-                    data.BossGuards = new Dictionary<int, string>(bossGuards);
+                    // Update boss follower data
+                    data.BossFollowers = new Dictionary<int, string>(bossFollowers);
 
                     SaveData(data);
 
-                    DebugLogger.LogDebug($"[RaidInfoCache] Saved boss/guard data ({bossGuards.Count} entries)");
+                    DebugLogger.LogDebug($"[RaidInfoCache] Saved boss follower data ({bossFollowers.Count} entries)");
                 }
                 catch (Exception ex)
                 {
-                    DebugLogger.LogDebug($"[RaidInfoCache] Error saving boss/guard data: {ex.Message}");
+                    DebugLogger.LogDebug($"[RaidInfoCache] Error saving boss follower data: {ex.Message}");
                 }
             }
         }

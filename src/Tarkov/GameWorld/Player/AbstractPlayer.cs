@@ -357,21 +357,18 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         /// <summary>
-        /// Detects Boss guards by proximity to Boss characters.
+        /// Detects Boss followers by proximity to Boss characters.
         /// Scavs within a certain distance of a Boss are marked as Guards.
-        /// Uses cached boss/guard data if available.
         /// </summary>
-        public static void DetectBossGuards(LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers)
+        public static void DetectBossFollowers(LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers)
         {
             if (localPlayer == null || allPlayers == null)
                 return;
 
-            var cachedBossGuards = RaidInfoCache.LoadBossGuards(localPlayer.RaidId, localPlayer.PlayerId);
-            if (cachedBossGuards != null && cachedBossGuards.Count > 0)
-            {
-                ApplyBossGuardCache(cachedBossGuards, allPlayers);
+            var appliedGuards = RaidInfoCache.LoadBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, allPlayers);
+
+            if (appliedGuards.HasValue)
                 return;
-            }
 
             const float GuardDetectionDistance = 10.0f;
             float thresholdSq = GuardDetectionDistance * GuardDetectionDistance;
@@ -383,15 +380,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 return;
 
             int guardsFound = 0;
-            var bossGuardData = new Dictionary<int, string>();
-
-            foreach (var boss in bosses)
-            {
-                if (boss is ObservedPlayer bossObs && bossObs.RaidId != 0)
-                {
-                    bossGuardData[bossObs.RaidId] = "Boss";
-                }
-            }
+            var guardDataToSave = new Dictionary<int, string>();
 
             foreach (var boss in bosses)
             {
@@ -414,7 +403,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         {
                             obs.Type = PlayerType.AIGuard;
                             obs.Name = "Guard";
-                            bossGuardData[obs.RaidId] = "Guard";
+                            guardDataToSave[obs.RaidId] = "Guard";
                             guardsFound++;
                             DebugLogger.LogDebug($"[BossGuard] Detected guard '{obs.Name}' near boss '{boss.Name}' ({MathF.Sqrt(distSq):F1}m)");
                         }
@@ -422,43 +411,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 }
             }
 
-            if (bossGuardData.Count > 0)
+            if (guardDataToSave.Count > 0)
             {
-                RaidInfoCache.SaveBossGuards(localPlayer.RaidId, localPlayer.PlayerId, bossGuardData);
+                RaidInfoCache.SaveBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, guardDataToSave);
             }
 
             if (guardsFound > 0)
             {
                 DebugLogger.LogDebug($"[BossGuard] Total guards detected: {guardsFound}");
             }
-        }
-
-        /// <summary>
-        /// Apply cached boss/guard data to players.
-        /// </summary>
-        private static void ApplyBossGuardCache(Dictionary<int, string> cachedBossGuards, IEnumerable<AbstractPlayer> allPlayers)
-        {
-            int bossCount = 0;
-            int guardCount = 0;
-
-            foreach (var player in allPlayers)
-            {
-                if (player is ObservedPlayer obs && obs.RaidId != 0 && cachedBossGuards.TryGetValue(obs.RaidId, out string role))
-                {
-                    if (role == "Boss")
-                    {
-                        bossCount++;
-                    }
-                    else if (role == "Guard" && obs.Type == PlayerType.AIScav)
-                    {
-                        obs.Type = PlayerType.AIGuard;
-                        obs.Name = "Guard";
-                        guardCount++;
-                    }
-                }
-            }
-
-            DebugLogger.LogDebug($"[BossGuard] Applied cached data: {bossCount} boss(es), {guardCount} guard(s)");
         }
 
         /// <summary>
@@ -482,7 +443,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         /// <summary>
-        /// Detects Zryachiy (Lighthouse Boss) by checking equipment IDs.
+        /// Detects Zryachiy by checking equipment IDs.
         /// Zryachiy has specific equipment: 63626d904aa74b8fe30ab426, 636270263f2495c26f00b007.
         /// </summary>
         public static void DetectZryachiy(IEnumerable<AbstractPlayer> allPlayers)

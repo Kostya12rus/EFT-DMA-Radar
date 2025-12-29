@@ -313,14 +313,14 @@ namespace LoneEftDmaRadar.DMA
                                         DebugLogger.LogDebug($"[Memory] Team detection failed: {ex.Message}");
                                     }
 
-                                    // Run boss guard detection
+                                    // Run boss follower detection
                                     try
                                     {
-                                        Tarkov.GameWorld.Player.AbstractPlayer.DetectBossGuards(game.LocalPlayer, game.Players);
+                                        Tarkov.GameWorld.Player.AbstractPlayer.DetectBossFollowers(game.LocalPlayer, game.Players);
                                     }
                                     catch (Exception ex)
                                     {
-                                        DebugLogger.LogDebug($"[Memory] Boss guard detection failed: {ex.Message}");
+                                        DebugLogger.LogDebug($"[Memory] Boss follower detection failed: {ex.Message}");
                                     }
 
                                     // Run Santa detection
