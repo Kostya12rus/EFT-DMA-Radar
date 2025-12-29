@@ -61,7 +61,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 var externalIP = await WebRadarServer.GetExternalIPAsync();
                 await WebRadarServer.StartAsync(bindIP, port, tickRate, UpnpEnabled);
                 StartButtonText = "Running...";
-                ServerUrl = $"http://dc64dcid9fd4.cloudfront.net/?host={externalIP}&port={port}&password={Password}";
+                ServerUrl = $"http://eft.moulmandev.fr/?host={externalIP}&port={port}&password={Password}";
 
                 // Warn user if external IP detection failed
                 if (externalIP == "127.0.0.1")

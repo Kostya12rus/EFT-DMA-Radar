@@ -51,12 +51,14 @@ namespace LoneEftDmaRadar.UI.Skia
         public static SKPaint PaintBitmap { get; } = new()
         {
             IsAntialias = true,
+            FilterQuality = SKFilterQuality.High,
         };
 
         public static SKPaint PaintBitmapAlpha { get; } = new()
         {
             Color = SKColor.Empty.WithAlpha(127),
             IsAntialias = true,
+            FilterQuality = SKFilterQuality.High,
         };
 
         public static SKPaint PaintConnectorGroup { get; } = new()
