@@ -244,19 +244,35 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (candidates.Count == 0)
                 return; // No candidates, silently skip
 
-            // Check cache first - if we already have cached data, don't re-detect
-            var cachedTeams = RaidInfoCache.LoadTeams(localPlayer.RaidId, localPlayer.PlayerId);
-            if (cachedTeams != null && cachedTeams.Count > 0)
+            // Load or create cache
+            var cachedTeams = RaidInfoCache.LoadTeams(localPlayer.RaidId, localPlayer.PlayerId) ?? new Dictionary<int, int>();
+
+            // Find players not in cache (new players that appeared)
+            var newPlayers = candidates
+                .Where(p => p is ObservedPlayer obs && !cachedTeams.ContainsKey(obs.PlayerId))
+                .ToList();
+
+            // Apply cached data to existing players
+            ApplyCache(cachedTeams, candidates);
+
+            // If there are new players, detect their teams and merge with cache
+            if (newPlayers.Count > 0)
             {
-                ApplyCache(cachedTeams, candidates);
-                return;
+                var teams = ClusterPlayers(newPlayers, PreRaidTeammateDetectionDistance);
+                var assignedTeams = AssignGroups(teams, localPlayer);
+
+                // Merge new detections with existing cache
+                foreach (var kvp in assignedTeams)
+                {
+                    cachedTeams[kvp.Key] = kvp.Value;
+                }
+
+                // Save updated cache
+                RaidInfoCache.SaveTeams(localPlayer.RaidId, localPlayer.PlayerId, cachedTeams);
+
+                // Apply the new team assignments
+                ApplyCache(assignedTeams, newPlayers);
             }
-
-            // Run detection with pre-raid distance threshold (10m)
-            var teams = ClusterPlayers(candidates, PreRaidTeammateDetectionDistance);
-            var assignedTeams = AssignGroups(teams, localPlayer);
-
-            RaidInfoCache.SaveTeams(localPlayer.RaidId, localPlayer.PlayerId, assignedTeams);
         }
 
         /// <summary>
@@ -414,18 +430,32 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         /// <summary>
-        /// Pre-raid detection for Boss followers (silent, no logging).
+        /// Pre-raid detection for Boss followers.
         /// Runs during pre-raid phase to cache guard data before raid starts.
+        /// Handles new Boss/Guard appearances by merging with existing cache.
         /// </summary>
         public static void DetectBossFollowersPreRaid(LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers)
         {
             if (localPlayer == null || allPlayers == null)
                 return;
 
-            // Try to load cached data first
-            var appliedGuards = RaidInfoCache.LoadBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, allPlayers);
-            if (appliedGuards.HasValue)
-                return;
+            // Load cached data (if any)
+            var cachedGuards = RaidInfoCache.LoadBossFollowersData(localPlayer.RaidId, localPlayer.PlayerId) ?? new Dictionary<int, string>();
+
+            // Apply cached data to existing players
+            int appliedCount = 0;
+            foreach (var player in allPlayers)
+            {
+                if (player is ObservedPlayer obs && obs.RaidId != 0 && cachedGuards.TryGetValue(obs.RaidId, out string role))
+                {
+                    if (role == "Guard" && obs.Type == PlayerType.AIScav)
+                    {
+                        obs.Type = PlayerType.AIGuard;
+                        obs.Name = "Guard";
+                        appliedCount++;
+                    }
+                }
+            }
 
             const float GuardDetectionDistance = 10.0f;
             float thresholdSq = GuardDetectionDistance * GuardDetectionDistance;
@@ -436,7 +466,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (bosses.Count == 0 || potentialGuards.Count == 0)
                 return;
 
-            var guardDataToSave = new Dictionary<int, string>();
+            var newGuardData = new Dictionary<int, string>();
 
             foreach (var boss in bosses)
             {
@@ -455,19 +485,24 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                     if (distSq <= thresholdSq)
                     {
-                        if (scavenger is ObservedPlayer obs && obs.RaidId != 0)
+                        if (scavenger is ObservedPlayer obs && obs.RaidId != 0 && !cachedGuards.ContainsKey(obs.RaidId))
                         {
                             obs.Type = PlayerType.AIGuard;
                             obs.Name = "Guard";
-                            guardDataToSave[obs.RaidId] = "Guard";
+                            newGuardData[obs.RaidId] = "Guard";
                         }
                     }
                 }
             }
 
-            if (guardDataToSave.Count > 0)
+            // If new guards were detected, merge with cache and save
+            if (newGuardData.Count > 0)
             {
-                RaidInfoCache.SaveBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, guardDataToSave);
+                foreach (var kvp in newGuardData)
+                {
+                    cachedGuards[kvp.Key] = kvp.Value;
+                }
+                RaidInfoCache.SaveBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, cachedGuards);
             }
         }
 

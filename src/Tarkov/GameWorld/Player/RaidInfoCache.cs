@@ -131,12 +131,44 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         }
                     }
 
-                    DebugLogger.LogDebug($"[RaidInfoCache] Loaded and applied cached boss follower data ({appliedGuards} guards)");
                     return appliedGuards;
                 }
                 catch (Exception ex)
                 {
                     DebugLogger.LogDebug($"[RaidInfoCache] Error loading boss follower data: {ex.Message}");
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Load boss follower data only (without applying to players).
+        /// Returns the cached data dictionary, or null if no cache exists.
+        /// </summary>
+        public static Dictionary<int, string> LoadBossFollowersData(int raidId, int playerId)
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    if (!File.Exists(_cacheFilePath))
+                        return null;
+
+                    string json = File.ReadAllText(_cacheFilePath);
+                    var data = JsonSerializer.Deserialize<RaidData>(json);
+
+                    if (data == null || data.RaidId != raidId || data.PlayerId != playerId)
+                    {
+                        return null;
+                    }
+
+                    if (data.BossFollowers.Count == 0)
+                        return null;
+
+                    return new Dictionary<int, string>(data.BossFollowers);
+                }
+                catch
+                {
                     return null;
                 }
             }
@@ -162,9 +194,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     data.PlayerGroupIds = new Dictionary<int, int>(playerGroupIds);
 
                     SaveData(data);
-
-                    if (playerGroupIds.Count > 0)
-                        DebugLogger.LogDebug($"[RaidInfoCache] Saved team data: {playerGroupIds.Count} team(s)");
                 }
                 catch (Exception ex)
                 {
@@ -193,8 +222,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     data.BossFollowers = new Dictionary<int, string>(bossFollowers);
 
                     SaveData(data);
-
-                    DebugLogger.LogDebug($"[RaidInfoCache] Saved boss follower data ({bossFollowers.Count} entries)");
                 }
                 catch (Exception ex)
                 {
