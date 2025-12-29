@@ -27,6 +27,9 @@ SOFTWARE.
 */
 
 using LoneEftDmaRadar.Misc;
+using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
+using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
+using LoneEftDmaRadar.Tarkov.GameWorld.Loot;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Web.WebRadar.Data;
 using LoneEftDmaRadar.Web.WebRadar.MessagePack;
@@ -151,13 +154,57 @@ namespace LoneEftDmaRadar.Web.WebRadar
                         {
                             update.InGame = true;
                             update.MapID = Memory.MapID;
+                            
+                            // Players
                             update.Players = players.Select(p => WebRadarPlayer.Create(p));
+                            
+                            // Exfils
+                            var exits = Memory.Exits;
+                            if (exits is not null)
+                            {
+                                update.Exfils = exits
+                                    .Select(e => WebRadarExfil.Create(e))
+                                    .Where(e => e.HasValue)
+                                    .Select(e => e!.Value);
+                            }
+                            else
+                            {
+                                update.Exfils = null;
+                            }
+                            
+                            // Grenades / Tripwires
+                            var explosives = Memory.Explosives;
+                            if (explosives is not null)
+                            {
+                                update.Grenades = explosives
+                                    .Select(e => WebRadarGrenade.Create(e))
+                                    .Where(e => e.HasValue)
+                                    .Select(e => e!.Value);
+                            }
+                            else
+                            {
+                                update.Grenades = null;
+                            }
+                            
+                            // Loot
+                            var loot = Memory.Loot?.FilteredLoot;
+                            if (loot is not null && loot.Count > 0)
+                            {
+                                update.Loot = loot.Select(l => WebRadarLoot.Create(l));
+                            }
+                            else
+                            {
+                                update.Loot = null;
+                            }
                         }
                         else
                         {
                             update.InGame = false;
                             update.MapID = null;
                             update.Players = null;
+                            update.Exfils = null;
+                            update.Grenades = null;
+                            update.Loot = null;
                         }
                         update.Version++;
                         await hubContext.Clients.All.SendAsync("RadarUpdate", update);

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Lone EFT DMA Radar
  * Brought to you by Lone (Lone DMA)
  * 
@@ -26,47 +26,64 @@ SOFTWARE.
  *
 */
 
+using LoneEftDmaRadar.Tarkov.GameWorld.Explosives;
 using MessagePack;
 
 namespace LoneEftDmaRadar.Web.WebRadar.Data
 {
+    /// <summary>
+    /// Type of explosive for web radar.
+    /// </summary>
+    public enum WebExplosiveType : byte
+    {
+        Grenade = 0,
+        Tripwire = 1
+    }
+
     [MessagePackObject]
-    public sealed class WebRadarUpdate
+    public readonly struct WebRadarGrenade
     {
         /// <summary>
-        /// Update version (used for ordering).
+        /// Type of explosive (Grenade or Tripwire).
         /// </summary>
         [Key(0)]
-        public ulong Version { get; set; } = 0;
+        public readonly WebExplosiveType Type { get; init; }
+
         /// <summary>
-        /// True if In-Game, otherwise False.
+        /// Unity World Position.
         /// </summary>
         [Key(1)]
-        public bool InGame { get; set; } = false;
+        public readonly Vector3 Position { get; init; }
+
         /// <summary>
-        /// Contains the Map ID of the current map.
+        /// Create a WebRadarGrenade from an IExplosiveItem object.
         /// </summary>
-        [Key(2)]
-        public string MapID { get; set; } = null;
-        /// <summary>
-        /// All Players currently on the map.
-        /// </summary>
-        [Key(3)]
-        public IEnumerable<WebRadarPlayer> Players { get; set; } = null;
-        /// <summary>
-        /// All Exfils on the map.
-        /// </summary>
-        [Key(4)]
-        public IEnumerable<WebRadarExfil> Exfils { get; set; } = null;
-        /// <summary>
-        /// All active grenades and tripwires.
-        /// </summary>
-        [Key(5)]
-        public IEnumerable<WebRadarGrenade> Grenades { get; set; } = null;
-        /// <summary>
-        /// All filtered loot items on the map.
-        /// </summary>
-        [Key(6)]
-        public IEnumerable<WebRadarLoot> Loot { get; set; } = null;
+        public static WebRadarGrenade? Create(IExplosiveItem explosive)
+        {
+            if (explosive is null || explosive.Position == Vector3.Zero)
+                return null;
+
+            if (explosive is Tripwire tripwire)
+            {
+                if (!tripwire.IsActive)
+                    return null;
+                    
+                return new WebRadarGrenade
+                {
+                    Type = WebExplosiveType.Tripwire,
+                    Position = tripwire.Position
+                };
+            }
+            else if (explosive is Grenade grenade)
+            {
+                return new WebRadarGrenade
+                {
+                    Type = WebExplosiveType.Grenade,
+                    Position = grenade.Position
+                };
+            }
+
+            return null;
+        }
     }
 }

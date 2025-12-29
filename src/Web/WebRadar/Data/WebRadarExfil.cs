@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Lone EFT DMA Radar
  * Brought to you by Lone (Lone DMA)
  * 
@@ -26,47 +26,61 @@ SOFTWARE.
  *
 */
 
+using LoneEftDmaRadar.Tarkov.GameWorld.Exits;
 using MessagePack;
 
 namespace LoneEftDmaRadar.Web.WebRadar.Data
 {
+    /// <summary>
+    /// Exfil status for web radar.
+    /// </summary>
+    public enum WebExfilStatus : byte
+    {
+        Open = 0,
+        Pending = 1,
+        Closed = 2
+    }
+
     [MessagePackObject]
-    public sealed class WebRadarUpdate
+    public readonly struct WebRadarExfil
     {
         /// <summary>
-        /// Update version (used for ordering).
+        /// Exfil Name.
         /// </summary>
         [Key(0)]
-        public ulong Version { get; set; } = 0;
+        public readonly string Name { get; init; }
+
         /// <summary>
-        /// True if In-Game, otherwise False.
+        /// Exfil Status (Open, Pending, Closed).
         /// </summary>
         [Key(1)]
-        public bool InGame { get; set; } = false;
+        public readonly WebExfilStatus Status { get; init; }
+
         /// <summary>
-        /// Contains the Map ID of the current map.
+        /// Unity World Position.
         /// </summary>
         [Key(2)]
-        public string MapID { get; set; } = null;
+        public readonly Vector3 Position { get; init; }
+
         /// <summary>
-        /// All Players currently on the map.
+        /// Create a WebRadarExfil from an Exfil object.
         /// </summary>
-        [Key(3)]
-        public IEnumerable<WebRadarPlayer> Players { get; set; } = null;
-        /// <summary>
-        /// All Exfils on the map.
-        /// </summary>
-        [Key(4)]
-        public IEnumerable<WebRadarExfil> Exfils { get; set; } = null;
-        /// <summary>
-        /// All active grenades and tripwires.
-        /// </summary>
-        [Key(5)]
-        public IEnumerable<WebRadarGrenade> Grenades { get; set; } = null;
-        /// <summary>
-        /// All filtered loot items on the map.
-        /// </summary>
-        [Key(6)]
-        public IEnumerable<WebRadarLoot> Loot { get; set; } = null;
+        public static WebRadarExfil? Create(IExitPoint exit)
+        {
+            if (exit is not Exfil exfil)
+                return null;
+
+            return new WebRadarExfil
+            {
+                Name = exfil.Name ?? "Unknown",
+                Status = exfil.Status switch
+                {
+                    Exfil.EStatus.Open => WebExfilStatus.Open,
+                    Exfil.EStatus.Pending => WebExfilStatus.Pending,
+                    _ => WebExfilStatus.Closed
+                },
+                Position = exfil.Position
+            };
+        }
     }
 }
