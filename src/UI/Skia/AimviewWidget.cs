@@ -221,6 +221,7 @@ namespace LoneEftDmaRadar.UI.Skia
                 PlayerType.PMC => SKPaints.PaintAimviewWidgetPMC,
                 PlayerType.AIScav => SKPaints.PaintAimviewWidgetScav,
                 PlayerType.AIRaider => SKPaints.PaintAimviewWidgetRaider,
+                PlayerType.AIGuard => SKPaints.PaintAimviewWidgetRaider,
                 PlayerType.AIBoss => SKPaints.PaintAimviewWidgetBoss,
                 PlayerType.PScav => SKPaints.PaintAimviewWidgetPScav,
                 _ => SKPaints.PaintAimviewWidgetPMC

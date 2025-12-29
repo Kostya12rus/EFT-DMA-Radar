@@ -368,8 +368,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 foreach (var slotPtr in slotsArray)
                 {
                     var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot.ID);
-                    var slotName = Memory.ReadUnityString(namePtr);
+                    if (namePtr == 0)
+                        continue;
 
+                    var slotName = Memory.ReadUnityString(namePtr);
                     if (slotName != "Backpack")
                         continue;
 
@@ -378,6 +380,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         continue;
 
                     var inventorytemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
+                    if (inventorytemplate == 0)
+                        continue;
+
                     var mongoId = Memory.ReadValue<MongoID>(inventorytemplate + Offsets.ItemTemplate._id);
                     var itemId = mongoId.ReadString();
 
@@ -391,15 +396,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                DebugLogger.LogDebug($"[SantaDetection] Error checking for Santa: {ex.Message}");
+                // silently skip
             }
         }
 
         /// <summary>
         /// Check if this player is Zryachiy by checking equipment IDs.
-        /// Zryachiy has specific equipment items.
+        /// Zryachiy has specific FaceCover (63626d904aa74b8fe30ab426) and Headwear (636270263f2495c26f00b007).
         /// </summary>
         public void CheckZryachiy()
         {
@@ -428,11 +433,24 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                 foreach (var slotPtr in slotsArray)
                 {
+                    var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot.ID);
+                    if (namePtr == 0)
+                        continue;
+
+                    var slotName = Memory.ReadUnityString(namePtr);
+
+                    // Only check FaceCover and Headwear slots
+                    if (slotName != "FaceCover" && slotName != "Headwear")
+                        continue;
+
                     var containedItem = Memory.ReadPtr(slotPtr + Offsets.Slot.ContainedItem);
                     if (containedItem == 0)
                         continue;
 
                     var inventorytemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
+                    if (inventorytemplate == 0)
+                        continue;
+
                     var mongoId = Memory.ReadValue<MongoID>(inventorytemplate + Offsets.ItemTemplate._id);
                     var itemId = mongoId.ReadString();
 
@@ -448,9 +466,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     Name = "Zryachiy";
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                DebugLogger.LogDebug($"[ZryachiyDetection] Error checking for Zryachiy: {ex.Message}");
+                // silently skip
             }
         }
 

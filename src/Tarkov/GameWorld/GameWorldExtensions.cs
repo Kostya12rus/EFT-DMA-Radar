@@ -170,7 +170,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                         {
                             return null;
                         }
-                        DebugLogger.LogDebug($"Invalid GameWorld Instance: {ex}");
                     }
                 }
             }

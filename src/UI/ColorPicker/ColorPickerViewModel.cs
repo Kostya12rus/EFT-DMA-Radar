@@ -198,6 +198,8 @@ namespace LoneEftDmaRadar.UI.ColorPicker
                         case ColorPickerOption.RaiderPlayer:
                             SKPaints.PaintRaider.Color = skColor;
                             SKPaints.TextRaider.Color = skColor;
+                            SKPaints.PaintGuard.Color = skColor;
+                            SKPaints.TextGuard.Color = skColor;
                             SKPaints.PaintAimviewWidgetRaider.Color = skColor;
                             break;
                         case ColorPickerOption.BossPlayer:

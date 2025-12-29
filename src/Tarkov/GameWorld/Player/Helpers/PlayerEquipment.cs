@@ -147,8 +147,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
         private void GetHands()
         {
 
-            // Wait until CameraManager is initialized (raid has started)
-            if (!CameraManager.IsInitialized)
+            // Wait until raid has started (hands are equipped)
+            if (Memory.Game == null || !Memory.Game.RaidStarted)
                 return;
 
             try

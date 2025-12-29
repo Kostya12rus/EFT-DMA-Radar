@@ -70,6 +70,7 @@ namespace LoneEftDmaRadar.UI.ESP
         private ImGuiOverlayControl _dxOverlay;
         private WindowsFormsHost _dxHost;
         private bool _isClosing;
+        private DispatcherTimer _resolutionTimer;
 
         // Cached Fonts/Paints
         private readonly SKPaint _skeletonPaint;
@@ -186,6 +187,11 @@ namespace LoneEftDmaRadar.UI.ESP
                 state: null,
                 dueTime: 0,
                 period: 1); // 1ms period for max ~1000 FPS capability, actual FPS controlled by EspMaxFPS
+
+            _resolutionTimer = new DispatcherTimer(DispatcherPriority.Background, this.Dispatcher);
+            _resolutionTimer.Interval = TimeSpan.FromSeconds(1);
+            _resolutionTimer.Tick += (s, e) => ApplyResolutionOverrideIfNeeded();
+            _resolutionTimer.Start();
         }
 
         private void InitializeRenderSurface()
@@ -241,18 +247,14 @@ namespace LoneEftDmaRadar.UI.ESP
                 {
                     _lastFrameTicks = currentTicks;
                     
-                    // BeginInvoke to marshal to UI thread
-                    _dxOverlay.BeginInvoke(new Action(() =>
+                    try
                     {
-                        try
-                        {
-                            _dxOverlay?.Render();
-                        }
-                        finally
-                        {
-                            System.Threading.Interlocked.Exchange(ref _renderPending, 0);
-                        }
-                    }));
+                        _dxOverlay?.Render();
+                    }
+                    finally
+                    {
+                        System.Threading.Interlocked.Exchange(ref _renderPending, 0);
+                    }
                 }
             }
             catch { /* Ignore errors during shutdown */ }
@@ -317,7 +319,7 @@ namespace LoneEftDmaRadar.UI.ESP
                     }
                     else
                     {
-                        ApplyResolutionOverrideIfNeeded();
+                        // ApplyResolutionOverrideIfNeeded(); // performance fix: don't invoke to UI thread every frame
 
                         // Render Loot (background layer)
                         if (App.Config.Loot.Enabled && App.Config.UI.EspLoot)
@@ -787,7 +789,7 @@ namespace LoneEftDmaRadar.UI.ESP
                 return;
 
             // Check if this is AI or player
-            bool isAI = player.Type is PlayerType.AIScav or PlayerType.AIRaider or PlayerType.AIBoss or PlayerType.PScav;
+            bool isAI = player.Type is PlayerType.AIScav or PlayerType.AIRaider or PlayerType.AIBoss or PlayerType.AIGuard or PlayerType.PScav;
 
             // Optimization: Skip players/AI that are too far before W2S
             float distance = Vector3.Distance(localPlayer.Position, player.Position);
@@ -1471,6 +1473,7 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 PlayerType.AIScav => SKPaints.PaintAimviewWidgetScav,
                 PlayerType.AIRaider => SKPaints.PaintAimviewWidgetRaider,
+                PlayerType.AIGuard => SKPaints.PaintAimviewWidgetRaider,
                 PlayerType.AIBoss => SKPaints.PaintAimviewWidgetBoss,
                 PlayerType.PScav => SKPaints.PaintAimviewWidgetPScav,
                 _ => SKPaints.PaintAimviewWidgetPMC
@@ -1717,6 +1720,7 @@ namespace LoneEftDmaRadar.UI.ESP
                 {
                     PlayerType.AIBoss => cfg.EspColorBosses,
                     PlayerType.AIRaider => cfg.EspColorRaiders,
+                    PlayerType.AIGuard => cfg.EspColorRaiders,
                     _ => cfg.EspColorAI
                 };
 

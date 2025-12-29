@@ -148,6 +148,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         private const float TeammateDetectionDistance = 15.0f;
 
         /// <summary>
+        /// Distance threshold for PRE-RAID team detection (in meters).
+        /// Uses a more conservative threshold since players are closer together at spawn.
+        /// </summary>
+        private const float PreRaidTeammateDetectionDistance = 10.0f;
+
+        /// <summary>
         /// Fixed GroupID assigned to local player's team.
         /// </summary>
         private const int LocalPlayerTeamGroupId = 999;
@@ -194,6 +200,59 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             var assignedTeams = AssignGroups(teams, localPlayer);
 
             RaidInfoCache.SaveTeams(localPlayer.RaidId, localPlayer.PlayerId, assignedTeams);
+        }
+
+        /// <summary>
+        /// Detects teams BEFORE raid starts (during pre-raid phase when hands are empty).
+        /// Uses a more conservative distance threshold (10m) for more accurate detection at spawn points.
+        /// Applies cached team data if available for the same RaidId and PlayerId.
+        /// </summary>
+        /// <param name="localPlayer">The local player.</param>
+        /// <param name="allPlayers">All players in the game world.</param>
+        public static void DetectTeamsPreRaid(LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers)
+        {
+            if (localPlayer == null || allPlayers == null)
+                return;
+
+            // Skip if Scav (Scavs don't have teams)
+            if (localPlayer.IsScav)
+                return;
+
+            // Initialize RaidId/PlayerId tracking if not already done
+            if (_currentRaidId == 0 || _currentRaidId != localPlayer.RaidId || _currentPlayerId != localPlayer.PlayerId)
+            {
+                DebugLogger.LogDebug($"[TeamDetection-PreRaid] RaidId/PlayerId set to {localPlayer.RaidId}/{localPlayer.PlayerId}");
+                _currentRaidId = localPlayer.RaidId;
+                _currentPlayerId = localPlayer.PlayerId;
+                _lastGroupNumber = 0;
+            }
+
+            var candidates = allPlayers
+                .Where(p => p is not LocalPlayer && p.IsHuman && p.IsAlive && p.IsActive)
+                .ToList();
+
+            if (candidates.Count == 0)
+            {
+                DebugLogger.LogDebug("[TeamDetection-PreRaid] No candidates found");
+                return;
+            }
+
+            // Check cache first - if we already have cached data, don't re-detect
+            var cachedTeams = RaidInfoCache.LoadTeams(localPlayer.RaidId, localPlayer.PlayerId);
+            if (cachedTeams != null && cachedTeams.Count > 0)
+            {
+                DebugLogger.LogDebug($"[TeamDetection-PreRaid] Using cached data ({cachedTeams.Count} players)");
+                ApplyCache(cachedTeams, candidates);
+                return;
+            }
+
+            // Run detection with pre-raid distance threshold (10m)
+            DebugLogger.LogDebug("[TeamDetection-PreRaid] Running detection with 10m threshold");
+            var teams = ClusterPlayers(candidates, PreRaidTeammateDetectionDistance);
+            var assignedTeams = AssignGroups(teams, localPlayer);
+
+            RaidInfoCache.SaveTeams(localPlayer.RaidId, localPlayer.PlayerId, assignedTeams);
+            DebugLogger.LogDebug($"[TeamDetection-PreRaid] Detected {assignedTeams.Count} players in {teams.Count} team(s)");
         }
 
         /// <summary>
@@ -451,6 +510,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (allPlayers == null)
                 return;
 
+            // not lighthouse map, skip
+            if (Memory.Game == null || !Memory.Game.MapID.Equals("Lighthouse", StringComparison.OrdinalIgnoreCase))
+                return;
+
             foreach (var player in allPlayers)
             {
                 if (player is ObservedPlayer obs)
@@ -524,9 +587,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     playerBase,
                     addr => AllocateInternal(addr));
             }
-            catch (Exception ex)
+            catch
             {
-                DebugLogger.LogDebug($"ERROR during Player Allocation for player @ 0x{playerBase.ToString("X")}: {ex}");
+                // silently skip
             }
         }
 

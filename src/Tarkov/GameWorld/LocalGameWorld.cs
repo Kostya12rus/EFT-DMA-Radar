@@ -36,6 +36,7 @@ using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.GameWorld.Quests;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.UI.Misc;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Options;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld
@@ -76,6 +77,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         public LocalPlayer LocalPlayer => _rgtPlayers?.LocalPlayer;
         public LootManager Loot { get; }
         public QuestManager QuestManager { get; }
+
+        /// <summary>
+        /// Tracks whether the raid has started (player has equipped hands).
+        /// Used to determine when to run pre-raid team detection.
+        /// </summary>
+        public bool RaidStarted { get; private set; }
 
         private LocalGameWorld() { }
 
@@ -219,7 +226,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 ThrowIfRaidEnded();
                 if ((MapID.Equals("tarkovstreets", StringComparison.OrdinalIgnoreCase) ||
                     MapID.Equals("woods", StringComparison.OrdinalIgnoreCase)) &&
-                    Tarkov.GameWorld.Camera.CameraManager.IsInitialized)
+                    RaidStarted)
                     TryAllocateBTR();
                 _rgtPlayers.Refresh(); // Check for new players, add to list, etc.
             }
@@ -320,6 +327,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             RefreshQuestHelper(ct);
             // Refresh Exfil Status
             RefreshExfils();
+            // Pre-raid team detection (only runs until raid starts)
+            PreRaidStartChecks(ct);
         }
 
         private void RefreshEquipment(CancellationToken ct)
@@ -354,6 +363,43 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
             catch (Exception ex)
             {
                 DebugLogger.LogDebug($"[ExitManager] ERROR Refreshing: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Executes pre-raid start checks to determine if the raid has started.
+        /// Runs team detection BEFORE raid starts (when hands are empty) for early team composition.
+        /// </summary>
+        /// <param name="ct">Cancellation token.</param>
+        private void PreRaidStartChecks(CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (RaidStarted || LocalPlayer is not LocalPlayer localPlayer)
+                return;
+
+            try
+            {
+                // Check if Hands controller pointer is valid AND has a valid class name
+                // When raid starts, hands transitions from "ClientEmptyHandsController" to the actual item
+                if (localPlayer.HandsController is ulong hands && hands.IsValidUserVA())
+                {
+                    var handsTypeName = Unity.Structures.ObjectClass.ReadName(hands);
+                    RaidStarted = !string.IsNullOrWhiteSpace(handsTypeName) && handsTypeName != "ClientEmptyHandsController";
+
+                    if (!RaidStarted && !localPlayer.IsScav)
+                    {
+                        // Pre-raid window: detect teams while hands are still empty
+                        AbstractPlayer.DetectTeamsPreRaid(localPlayer, _rgtPlayers);
+                    }
+                    else
+                    {
+                        DebugLogger.LogDebug("[PreRaidStartChecks] Raid has started!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[PreRaidStartChecks] ERROR: {ex.Message}");
             }
         }
 

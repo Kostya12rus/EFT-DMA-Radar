@@ -75,6 +75,9 @@ namespace LoneEftDmaRadar.UI.ESP
         private RectI[] _scissorArray;
         private int _lastWidth, _lastHeight;
 
+        private int _renderWidth;
+        private int _renderHeight;
+
         public ImGuiOverlayControl()
         {
             SetStyle(WinForms.ControlStyles.AllPaintingInWmPaint |
@@ -87,6 +90,9 @@ namespace LoneEftDmaRadar.UI.ESP
             _imGuiContext = ImGui.CreateContext();
             ImGui.SetCurrentContext(_imGuiContext);
             ImGui.StyleColorsDark();
+            
+            _renderWidth = Width;
+            _renderHeight = Height;
         }
 
         protected override void OnHandleCreated(EventArgs e)
@@ -105,7 +111,12 @@ namespace LoneEftDmaRadar.UI.ESP
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
-            ResizeSwapChain();
+            lock (_deviceLock)
+            {
+                _renderWidth = Width;
+                _renderHeight = Height;
+                ResizeSwapChain();
+            }
         }
 
         private void InitializeDevice()
@@ -167,21 +178,19 @@ namespace LoneEftDmaRadar.UI.ESP
 
         private void ResizeSwapChain()
         {
-            lock (_deviceLock)
-            {
-                if (!_isDeviceInitialized) return;
-                
+            // Called within _deviceLock
+            if (!_isDeviceInitialized) return;
+            
 #pragma warning disable CS8625
-                _deviceContext.OMSetRenderTargets((ID3D11RenderTargetView)null, null);
+            _deviceContext.OMSetRenderTargets((ID3D11RenderTargetView)null, null);
 #pragma warning restore CS8625
-                _renderTargetView?.Dispose();
-                
-                _swapChain.ResizeBuffers(0, (uint)Math.Max(Width, 1), (uint)Math.Max(Height, 1), Format.Unknown, SwapChainFlags.None);
-                CreateRenderTarget();
-                
-                // Set Viewport
-                _deviceContext.RSSetViewports(new[] { new Viewport(0, 0, Width, Height) });
-            }
+            _renderTargetView?.Dispose();
+            
+            _swapChain.ResizeBuffers(0, (uint)Math.Max(_renderWidth, 1), (uint)Math.Max(_renderHeight, 1), Format.Unknown, SwapChainFlags.None);
+            CreateRenderTarget();
+            
+            // Set Viewport
+            _deviceContext.RSSetViewports(new[] { new Viewport(0, 0, _renderWidth, _renderHeight) });
         }
 
         public void Render()
@@ -206,11 +215,11 @@ namespace LoneEftDmaRadar.UI.ESP
                     _deviceContext.OMSetRenderTargets(_renderTargetView);
                     
                     // Only update viewport when size changes
-                    if (_lastWidth != Width || _lastHeight != Height)
+                    if (_lastWidth != _renderWidth || _lastHeight != _renderHeight)
                     {
-                        _lastWidth = Width;
-                        _lastHeight = Height;
-                        _viewportArray[0] = new Viewport(0, 0, Width, Height);
+                        _lastWidth = _renderWidth;
+                        _lastHeight = _renderHeight;
+                        _viewportArray[0] = new Viewport(0, 0, _renderWidth, _renderHeight);
                     }
                     _deviceContext.RSSetViewports(_viewportArray);
                     
@@ -218,7 +227,7 @@ namespace LoneEftDmaRadar.UI.ESP
                     _deviceContext.ClearRenderTargetView(_renderTargetView, new Color4(0, 0, 0, 0));
 
                     var io = ImGui.GetIO();
-                    io.DisplaySize = new Vector2(Width, Height);
+                    io.DisplaySize = new Vector2(_renderWidth, _renderHeight);
                     io.DeltaTime = 1.0f / 144.0f; // Assume higher refresh for smoother animation
 
                     ImGui.NewFrame();
@@ -226,7 +235,7 @@ namespace LoneEftDmaRadar.UI.ESP
                     // Draw opaque black background first (fuser effect)
                     // This gives us black background while keeping text clean (no halos)
                     var bgDrawList = ImGui.GetBackgroundDrawList();
-                    bgDrawList.AddRectFilled(Vector2.Zero, new Vector2(Width, Height), 0xFF000000); // ABGR: opaque black
+                    bgDrawList.AddRectFilled(Vector2.Zero, new Vector2(_renderWidth, _renderHeight), 0xFF000000); // ABGR: opaque black
                     
                     // Invoke User Rendering
                     RenderFrame?.Invoke(new ImGuiRenderContext(bgDrawList, _mapTextureView, _fontSmall, _fontMedium, _fontLarge));
