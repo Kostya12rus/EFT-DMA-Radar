@@ -54,6 +54,9 @@ namespace LoneEftDmaRadar.UI.ESP
             public float LastRenderedX;
             public float LastRenderedY;
             public float LastRenderedZoom;
+            // Actual center of the rendered texture (may differ from player pos when at map edges)
+            public float TextureCenterX;
+            public float TextureCenterY;
         }
 
         public static bool ShowESP { get; set; } = true;
@@ -1120,12 +1123,14 @@ namespace LoneEftDmaRadar.UI.ESP
              
              if (_miniRadarParams.SelfLockEnabled)
              {
-                 // Self-lock mode: player is always at center, positions are relative
+                 // Self-lock mode: positions are relative to the TEXTURE center, not player position
+                 // This is important when player is at map corners - the texture is clamped to map bounds
+                 // so the actual center of what's rendered may differ from the player position
                  float halfSize = _miniRadarParams.DrawSize / 2f;
                  
-                 // Calculate relative position from player
-                 float relX = mapPos.X - _miniRadarParams.PlayerWorldX;
-                 float relY = mapPos.Y - _miniRadarParams.PlayerWorldY;
+                 // Calculate relative position from the actual texture center (not player position)
+                 float relX = mapPos.X - _miniRadarParams.TextureCenterX;
+                 float relY = mapPos.Y - _miniRadarParams.TextureCenterY;
                  
                  // The Scale already includes the zoom factor from UpdateMiniRadarTextureCentered
                  // So we just apply the scale directly
@@ -1304,11 +1309,24 @@ namespace LoneEftDmaRadar.UI.ESP
                  _dxOverlay.RequestMapTextureUpdate(TEXTURE_SIZE, TEXTURE_SIZE, bytes);
                  
                  // For self-lock mode, scale is based on zoom and the dot positions are calculated differently
-                 // The texture shows a zoomed portion, so dots need to be positioned relative to player center
+                 // The texture shows a zoomed portion, so dots need to be positioned relative to texture center
                  float visibleW = mapW / zoom;
                  float visibleH = mapH / zoom;
                  float renderScale = Math.Min((float)TEXTURE_SIZE / visibleW, (float)TEXTURE_SIZE / visibleH);
                  float screenScale = renderScale * ((float)size / TEXTURE_SIZE);
+                 
+                 // Calculate the actual texture center after boundary clamping
+                 // This must match the logic in RenderThumbnailCentered
+                 float srcLeft = centerX - (visibleW / 2f);
+                 float srcTop = centerY - (visibleH / 2f);
+                 
+                 // Clamp to map bounds (same as RenderThumbnailCentered)
+                 srcLeft = Math.Max(0, Math.Min(srcLeft, mapW - visibleW));
+                 srcTop = Math.Max(0, Math.Min(srcTop, mapH - visibleH));
+                 
+                 // The actual center of what's being rendered
+                 float textureCenterX = srcLeft + (visibleW / 2f);
+                 float textureCenterY = srcTop + (visibleH / 2f);
                  
                  _miniRadarParams = new MiniRadarParams
                  {
@@ -1323,7 +1341,9 @@ namespace LoneEftDmaRadar.UI.ESP
                      ZoomLevel = zoom,
                      LastRenderedX = centerX,
                      LastRenderedY = centerY,
-                     LastRenderedZoom = zoom
+                     LastRenderedZoom = zoom,
+                     TextureCenterX = textureCenterX,
+                     TextureCenterY = textureCenterY
                  };
                  
                  _lastMapId = map.ID;
