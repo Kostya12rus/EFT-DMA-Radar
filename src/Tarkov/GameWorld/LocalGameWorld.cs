@@ -388,8 +388,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
 
                     if (!RaidStarted && !localPlayer.IsScav)
                     {
-                        // Pre-raid window: detect teams while hands are still empty
+                        // Pre-raid window: detect teams and boss guards while hands are still empty
                         AbstractPlayer.DetectTeamsPreRaid(localPlayer, _rgtPlayers);
+                        AbstractPlayer.DetectBossFollowersPreRaid(localPlayer, _rgtPlayers);
                     }
                     else
                     {

@@ -193,6 +193,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             if (cachedTeams != null && cachedTeams.Count > 0)
             {
                 ApplyCache(cachedTeams, candidates);
+                int teammateCount = cachedTeams.Values.Count(x => x == LocalPlayerTeamGroupId);
+                int enemyTeamCount = cachedTeams.Values.Where(x => x > 0 && x != LocalPlayerTeamGroupId).Distinct().Count();
+                DebugLogger.LogDebug($"[TeamDetection] {teammateCount} teammate(s), {enemyTeamCount} enemy team(s)");
                 return;
             }
 
@@ -200,6 +203,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             var assignedTeams = AssignGroups(teams, localPlayer);
 
             RaidInfoCache.SaveTeams(localPlayer.RaidId, localPlayer.PlayerId, assignedTeams);
+
+            if (assignedTeams.Count > 0)
+            {
+                int teammateCount = assignedTeams.Values.Count(x => x == LocalPlayerTeamGroupId);
+                int enemyTeamCount = assignedTeams.Values.Where(x => x > 0 && x != LocalPlayerTeamGroupId).Distinct().Count();
+                DebugLogger.LogDebug($"[TeamDetection] {teammateCount} teammate(s), {enemyTeamCount} enemy team(s)");
+            }
         }
 
         /// <summary>
@@ -232,27 +242,21 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 .ToList();
 
             if (candidates.Count == 0)
-            {
-                DebugLogger.LogDebug("[TeamDetection-PreRaid] No candidates found");
-                return;
-            }
+                return; // No candidates, silently skip
 
             // Check cache first - if we already have cached data, don't re-detect
             var cachedTeams = RaidInfoCache.LoadTeams(localPlayer.RaidId, localPlayer.PlayerId);
             if (cachedTeams != null && cachedTeams.Count > 0)
             {
-                DebugLogger.LogDebug($"[TeamDetection-PreRaid] Using cached data ({cachedTeams.Count} players)");
                 ApplyCache(cachedTeams, candidates);
                 return;
             }
 
             // Run detection with pre-raid distance threshold (10m)
-            DebugLogger.LogDebug("[TeamDetection-PreRaid] Running detection with 10m threshold");
             var teams = ClusterPlayers(candidates, PreRaidTeammateDetectionDistance);
             var assignedTeams = AssignGroups(teams, localPlayer);
 
             RaidInfoCache.SaveTeams(localPlayer.RaidId, localPlayer.PlayerId, assignedTeams);
-            DebugLogger.LogDebug($"[TeamDetection-PreRaid] Detected {assignedTeams.Count} players in {teams.Count} team(s)");
         }
 
         /// <summary>
@@ -260,9 +264,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         private static void ApplyCache(Dictionary<int, int> cachedTeams, List<AbstractPlayer> candidates)
         {
-            int appliedCount = 0;
-            int teammateCount = 0;
-
             foreach (var player in candidates)
             {
                 if (player is ObservedPlayer obs)
@@ -275,13 +276,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         if (isTeammate)
                         {
                             obs.UpdateTypeForTeammate(true);
-                            teammateCount++;
                         }
-                        appliedCount++;
                     }
                 }
             }
-            DebugLogger.LogDebug($"[TeamDetection] Applied cached team data: {appliedCount} players, {teammateCount} teammate(s)");
         }
 
         /// <summary>
@@ -416,6 +414,64 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         }
 
         /// <summary>
+        /// Pre-raid detection for Boss followers (silent, no logging).
+        /// Runs during pre-raid phase to cache guard data before raid starts.
+        /// </summary>
+        public static void DetectBossFollowersPreRaid(LocalPlayer localPlayer, IEnumerable<AbstractPlayer> allPlayers)
+        {
+            if (localPlayer == null || allPlayers == null)
+                return;
+
+            // Try to load cached data first
+            var appliedGuards = RaidInfoCache.LoadBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, allPlayers);
+            if (appliedGuards.HasValue)
+                return;
+
+            const float GuardDetectionDistance = 10.0f;
+            float thresholdSq = GuardDetectionDistance * GuardDetectionDistance;
+
+            var bosses = allPlayers.Where(p => p.Type == PlayerType.AIBoss && p.IsActive && p.IsAlive).ToList();
+            var potentialGuards = allPlayers.Where(p => p.Type == PlayerType.AIScav && p.IsActive && p.IsAlive).ToList();
+
+            if (bosses.Count == 0 || potentialGuards.Count == 0)
+                return;
+
+            var guardDataToSave = new Dictionary<int, string>();
+
+            foreach (var boss in bosses)
+            {
+                if (!ValidPosition(boss.Position))
+                    continue;
+
+                foreach (var scavenger in potentialGuards)
+                {
+                    if (scavenger.Type == PlayerType.AIGuard)
+                        continue;
+
+                    if (!ValidPosition(scavenger.Position))
+                        continue;
+
+                    var distSq = Vector3.DistanceSquared(boss.Position, scavenger.Position);
+
+                    if (distSq <= thresholdSq)
+                    {
+                        if (scavenger is ObservedPlayer obs && obs.RaidId != 0)
+                        {
+                            obs.Type = PlayerType.AIGuard;
+                            obs.Name = "Guard";
+                            guardDataToSave[obs.RaidId] = "Guard";
+                        }
+                    }
+                }
+            }
+
+            if (guardDataToSave.Count > 0)
+            {
+                RaidInfoCache.SaveBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, guardDataToSave);
+            }
+        }
+
+        /// <summary>
         /// Detects Boss followers by proximity to Boss characters.
         /// Scavs within a certain distance of a Boss are marked as Guards.
         /// </summary>
@@ -427,7 +483,13 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             var appliedGuards = RaidInfoCache.LoadBossFollowers(localPlayer.RaidId, localPlayer.PlayerId, allPlayers);
 
             if (appliedGuards.HasValue)
+            {
+                if (appliedGuards.Value > 0)
+                {
+                    DebugLogger.LogDebug($"[BossGuard] {appliedGuards.Value} guard(s)");
+                }
                 return;
+            }
 
             const float GuardDetectionDistance = 10.0f;
             float thresholdSq = GuardDetectionDistance * GuardDetectionDistance;
@@ -477,7 +539,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
             if (guardsFound > 0)
             {
-                DebugLogger.LogDebug($"[BossGuard] Total guards detected: {guardsFound}");
+                DebugLogger.LogDebug($"[BossGuard] {guardsFound} guard(s)");
             }
         }
 
@@ -1045,9 +1107,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                                     _ = SkeletonRoot.UpdatePosition(vertices.Memory.Span);
                                     successPos = true;
                                 }
-                                catch (Exception ex)
+                                catch
                                 {
-                                    DebugLogger.LogDebug($"ERROR updating skeleton root for '{Name}': {ex}");
                                     successPos = false;
                                     return;
                                 }
@@ -1062,13 +1123,11 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                                         }
                                         else
                                         {
-                                            DebugLogger.LogDebug($"Bone '{bonePair.Key}' needs {bonePair.Value.Count} vertices but only {vertices.Memory.Span.Length} available for '{Name}'");
                                             ResetBoneTransform(bonePair.Key);
                                         }
                                     }
-                                    catch (Exception ex)
+                                    catch
                                     {
-                                        DebugLogger.LogDebug($"ERROR updating bone '{bonePair.Key}' for '{Name}': {ex}");
                                         ResetBoneTransform(bonePair.Key);
                                     }
                                 }
@@ -1083,14 +1142,12 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                             }
                             else
                             {
-                                DebugLogger.LogDebug($"Insufficient vertices for '{Name}': got {vertices.Memory.Span.Length}, expected {requestedVertices}");
                                 _verticesCount = 0;
                                 successPos = false;
                             }
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            DebugLogger.LogDebug($"ERROR updating skeleton position for '{Name}': {ex}");
                             successPos = false;
                         }
                     }

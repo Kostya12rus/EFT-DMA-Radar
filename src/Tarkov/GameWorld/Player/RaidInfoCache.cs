@@ -80,12 +80,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     var data = JsonSerializer.Deserialize<RaidData>(json);
 
                     if (data == null || data.RaidId != raidId || data.PlayerId != playerId)
-                    {
-                        DebugLogger.LogDebug($"[RaidInfoCache] No cached data for RaidId {raidId}, PlayerId {playerId}");
                         return null;
-                    }
-
-                    DebugLogger.LogDebug($"[RaidInfoCache] Loaded cached team data for RaidId {raidId}, PlayerId {playerId} ({data.PlayerGroupIds.Count} players)");
 
                     return new Dictionary<int, int>(data.PlayerGroupIds);
                 }
@@ -168,7 +163,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                     SaveData(data);
 
-                    DebugLogger.LogDebug($"[RaidInfoCache] Saved team data for RaidId {raidId}, PlayerId {playerId} ({playerGroupIds.Count} players)");
+                    if (playerGroupIds.Count > 0)
+                        DebugLogger.LogDebug($"[RaidInfoCache] Saved team data: {playerGroupIds.Count} team(s)");
                 }
                 catch (Exception ex)
                 {
