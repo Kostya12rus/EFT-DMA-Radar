@@ -125,15 +125,19 @@ namespace LoneEftDmaRadar.Tarkov
         /// <param name="data">Data to be set.</param>
         private static void SetData(TarkovData data)
         {
-            AllItems = data.Items.Where(x => !x.Tags?.Contains("Static Container") ?? false)
+            var items = data.Items ?? new List<TarkovMarketItem>();
+            var maps = data.Maps ?? new List<MapElement>();
+            var tasks = data.Tasks ?? new List<TaskElement>();
+
+            AllItems = items.Where(x => !x.Tags?.Contains("Static Container") ?? false)
                 .DistinctBy(x => x.BsgId, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(k => k.BsgId, v => v, StringComparer.OrdinalIgnoreCase)
                 .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-            AllContainers = data.Items.Where(x => x.Tags?.Contains("Static Container") ?? false)
+            AllContainers = items.Where(x => x.Tags?.Contains("Static Container") ?? false)
                 .DistinctBy(x => x.BsgId, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(k => k.BsgId, v => v, StringComparer.OrdinalIgnoreCase)
                 .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-            TaskData = (data.Tasks ?? new List<TaskElement>())
+            TaskData = tasks
                 .Where(t => !string.IsNullOrWhiteSpace(t?.Id))
                 .DistinctBy(t => t.Id, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(t => t.Id, t => t, StringComparer.OrdinalIgnoreCase)
@@ -162,9 +166,9 @@ namespace LoneEftDmaRadar.Tarkov
                     StringComparer.OrdinalIgnoreCase
                 )
                 .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-            var maps = data.Maps.ToDictionary(x => x.NameId, StringComparer.OrdinalIgnoreCase) ??
+            var mapsDict = maps.ToDictionary(x => x.NameId, StringComparer.OrdinalIgnoreCase) ??
                 new Dictionary<string, MapElement>(StringComparer.OrdinalIgnoreCase);
-            MapData = maps.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, MapElement>().ToFrozenDictionary();
+            MapData = mapsDict.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, MapElement>().ToFrozenDictionary();
         }
 
         /// <summary>
@@ -193,13 +197,31 @@ namespace LoneEftDmaRadar.Tarkov
             var data = await TryLoadFromDiskAsync(_tempDataFile) ??
                 await TryLoadFromDiskAsync(_dataFile) ??
                 await TryLoadFromDiskAsync(_bakDataFile);
-            if (data is null) // Internal soft failover
+            
+            // Validate that data is not only parseable but also has valid content
+            if (data is null || data.Items is null || data.Items.Count == 0)
             {
-                _dataFile.Delete();
+                // Data is corrupted or empty - delete and rebuild from default
+                TryDeleteFile(_tempDataFile);
+                TryDeleteFile(_dataFile);
+                TryDeleteFile(_bakDataFile);
                 await LoadDefaultDataAsync();
                 return;
             }
             SetData(data);
+
+            static void TryDeleteFile(FileInfo file)
+            {
+                try
+                {
+                    if (file.Exists)
+                        file.Delete();
+                }
+                catch
+                {
+                    // Ignore delete errors
+                }
+            }
 
             static async Task<TarkovData> TryLoadFromDiskAsync(FileInfo file)
             {
