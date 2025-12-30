@@ -242,15 +242,15 @@ namespace SDK
             public const uint Shootingg = 0x58; // -.ShotEffector <Shootingg> Shootingg
             public const uint _optics = 0x180; // System.Collections.Generic.List<ProceduralWeaponAnimation.SightNBone>
             public const uint Mask = 0x30; // System.Int32 <Mask> Mask
-            public const uint IsAiming = 0x145; // Boolean
             public const uint _isAiming = 0x145; // Boolean
-            public const uint _fieldOfView = 0xA8; // Float
+            public const uint _pointOfView = 0x160;
             public const uint _aimingSpeed = 0x164; // Single <_aimingSpeed> _aimingSpeed
             public const uint _fovCompensatoryDistance = 0x194; // Single <_fovCompensatoryDistance> _fovCompensatoryDistance
             public const uint _compensatoryScale = 0x1c4; // Single <_compensatoryScale> _compensatoryScale
             public const uint _shotDirection = 0x1c8; // UnityEngine.Vector3 <_shotDirection> _shotDirection
             public const uint CameraSmoothOut = 0x20c; // Single <CameraSmoothOut> CameraSmoothOut
             public const uint PositionZeroSum = 0x31c; // UnityEngine.Vector3 <PositionZeroSum> PositionZeroSum
+            public const uint _swayStrength = 0x390;
             public const uint ShotNeedsFovAdjustments = 0x433; // Boolean <<ShotNeedsFovAdjustments>k__BackingField> <ShotNeedsFovAdjustments>k__BackingField
         }
 
