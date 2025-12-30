@@ -32,12 +32,22 @@ namespace LoneEftDmaRadar.DMA
         private const uint PID_PROCESS_WITH_KERNELMEMORY = 0x80000000;
         
         private readonly Vmm _vmm;
-        private readonly WorkerThread _thread;
+        private WorkerThread _thread;
+        private string _initMethod = "Not Initialized";
         
         // Custom keyboard reader state
         private bool _customInitialized = false;
         private ulong _gafAsyncKeyStateExport;
         private uint _winLogonPid;
+        
+        // Debugging info fields
+        private ulong _dmaWin32kBase;
+        private ulong _dmaWin32ksgdBase;
+        private ulong _dmaWin32k;
+        private ulong _dmaSessionGlobalPtr;
+        private ulong _dmaUserSessionState;
+        private ulong _dmaGafAsyncOffset;
+        
         private byte[] _currentStateBitmap = new byte[64];
         private byte[] _previousStateBitmap = new byte[64];
         private readonly ConcurrentDictionary<int, byte> _pressedKeys = new();
@@ -54,11 +64,42 @@ namespace LoneEftDmaRadar.DMA
         public InputManager(Vmm vmm)
         {
             _vmm = vmm ?? throw new ArgumentNullException(nameof(vmm));
-            
+            InitializeBackend();
+            StartWorker();
+        }
+
+        public void Reinitialize()
+        {
+            DebugLogger.LogDebug("[InputManager] Reinitializing...");
+            try
+            {
+                _thread?.Dispose();
+                _thread = null;
+                
+                _customInitialized = false;
+                _useFallback = false;
+                _initMethod = "Reinitializing...";
+                _fallbackInput = null;
+                _gafAsyncKeyStateExport = 0;
+                _winLogonPid = 0;
+                
+                InitializeBackend();
+                StartWorker();
+                DebugLogger.LogDebug($"[InputManager] Reinitialization complete. Method: {_initMethod}");
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[InputManager] Reinitialization failed: {ex}");
+                _initMethod = $"Error: {ex.Message}";
+            }
+        }
+
+        private void InitializeBackend()
+        {
             // Try custom implementation first (W10/W11 compatible)
             if (InitCustomKeyboard())
             {
-                DebugLogger.LogDebug("[InputManager] Custom keyboard handler initialized (W10/W11 compatible).");
+                DebugLogger.LogDebug($"[InputManager] Custom keyboard handler initialized: {_initMethod}");
             }
             else
             {
@@ -66,17 +107,22 @@ namespace LoneEftDmaRadar.DMA
                 DebugLogger.LogDebug("[InputManager] Custom init failed, trying VmmInputManager fallback...");
                 try
                 {
-                    _fallbackInput = new VmmInputManager(vmm);
+                    _fallbackInput = new VmmInputManager(_vmm);
                     _useFallback = true;
+                    _initMethod = "Fallback (VmmInputManager)";
                     DebugLogger.LogDebug("[InputManager] VmmInputManager fallback initialized.");
                 }
                 catch (Exception ex)
                 {
                     DebugLogger.LogDebug($"[InputManager] VmmInputManager fallback also failed: {ex.Message}");
                     DebugLogger.LogDebug("[InputManager] Hotkeys will use DeviceAimbot/local mouse only.");
+                    _initMethod = "Failed (Local Only)";
                 }
             }
+        }
 
+        private void StartWorker()
+        {
             _thread = new WorkerThread
             {
                 Name = nameof(InputManager),
@@ -138,6 +184,7 @@ namespace LoneEftDmaRadar.DMA
                 
                 // Get win32kbase.sys base address
                 var win32kbaseBase = _vmm.ProcessGetModuleBase(_winLogonPid, "win32kbase.sys");
+                _dmaWin32kBase = win32kbaseBase;
                 if (win32kbaseBase == 0)
                 {
                     DebugLogger.LogDebug("[InputManager] win32kbase.sys not found via winlogon");
@@ -148,8 +195,10 @@ namespace LoneEftDmaRadar.DMA
                 
                 // Try to find win32ksgd.sys first (Windows 11 24H2+)
                 var win32ksgdBase = _vmm.ProcessGetModuleBase(_winLogonPid, "win32ksgd.sys");
+                _dmaWin32ksgdBase = win32ksgdBase;
                 ulong searchBase;
                 ulong searchSize;
+                string moduleName;
                 
                 if (win32ksgdBase != 0)
                 {
@@ -157,11 +206,13 @@ namespace LoneEftDmaRadar.DMA
                     searchBase = win32ksgdBase;
                     // Estimate module size (we'll scan a reasonable range)
                     searchSize = 0x100000; // 1MB should be plenty
+                    moduleName = "win32ksgd.sys";
                 }
                 else
                 {
                     // Try win32k.sys
                     var win32kBase = _vmm.ProcessGetModuleBase(_winLogonPid, "win32k.sys");
+                    _dmaWin32k = win32kBase;
                     if (win32kBase == 0)
                     {
                         DebugLogger.LogDebug("[InputManager] Neither win32ksgd.sys nor win32k.sys found");
@@ -170,17 +221,22 @@ namespace LoneEftDmaRadar.DMA
                     DebugLogger.LogDebug($"[InputManager] Found win32k.sys at 0x{win32kBase:X}");
                     searchBase = win32kBase;
                     searchSize = 0x200000; // 2MB
+                    moduleName = "win32k.sys";
                 }
                 
                 // Search for session globals pointer pattern
                 // Pattern: 48 8B 05 ?? ?? ?? ?? 48 8B 04 C8 (or alternative: 48 8B 05 ?? ?? ?? ?? FF C9)
                 ulong gSessionPtr = FindPattern(_winLogonPid, searchBase, searchSize,
                     "48 8B 05 ?? ?? ?? ?? 48 8B 04 C8");
+                _dmaSessionGlobalPtr = gSessionPtr;
+                string sigUsed = "Sig 1";
                 
                 if (gSessionPtr == 0)
                 {
                     gSessionPtr = FindPattern(_winLogonPid, searchBase, searchSize,
                         "48 8B 05 ?? ?? ?? ?? FF C9");
+                    _dmaSessionGlobalPtr = gSessionPtr;
+                    sigUsed = "Sig 2";
                 }
                 
                 if (gSessionPtr == 0)
@@ -219,6 +275,7 @@ namespace LoneEftDmaRadar.DMA
                     if (t3 > 0x7FFFFFFFFFFF) // Valid kernel address
                     {
                         userSessionState = t3;
+                        _dmaUserSessionState = userSessionState;
                         break;
                     }
                 }
@@ -244,6 +301,7 @@ namespace LoneEftDmaRadar.DMA
                 
                 // Read the offset from pattern + 3
                 uint keyStateOffset = _vmm.MemReadValue<uint>(_winLogonPid, offsetPattern + 3, VmmFlags.NOCACHE);
+                _dmaGafAsyncOffset = keyStateOffset;
                 if (keyStateOffset == 0)
                 {
                     DebugLogger.LogDebug("[InputManager] Failed to read key state offset");
@@ -259,6 +317,8 @@ namespace LoneEftDmaRadar.DMA
                 }
                 
                 DebugLogger.LogDebug($"[InputManager] gafAsyncKeyState at 0x{_gafAsyncKeyStateExport:X}");
+                
+                _initMethod = $"W11 ({moduleName}) - {sigUsed}";
                 return true;
             }
             catch (Exception ex)
@@ -277,7 +337,9 @@ namespace LoneEftDmaRadar.DMA
             {
                 DebugLogger.LogDebug("[InputManager] Trying Windows 10 EAT approach...");
                 
+                // Get win32kbase.sys base address
                 var win32kbaseBase = _vmm.ProcessGetModuleBase(_winLogonPid, "win32kbase.sys");
+                _dmaWin32kBase = win32kbaseBase;
                 if (win32kbaseBase == 0)
                 {
                     DebugLogger.LogDebug("[InputManager] win32kbase.sys not found");
@@ -296,8 +358,12 @@ namespace LoneEftDmaRadar.DMA
                         _gafAsyncKeyStateExport = keyStateAddr + 7 + (ulong)relOffset;
                         if (_gafAsyncKeyStateExport > 0x7FFFFFFFFFFF)
                         {
+                        if (_gafAsyncKeyStateExport > 0x7FFFFFFFFFFF)
+                        {
                             DebugLogger.LogDebug($"[InputManager] Found via W10 pattern at 0x{_gafAsyncKeyStateExport:X}");
+                            _initMethod = "W10 (EAT Export)";
                             return true;
+                        }
                         }
                     }
                 }
@@ -491,6 +557,66 @@ namespace LoneEftDmaRadar.DMA
 
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
+
+        public string GetDebugStatus()
+        {
+            return _initMethod;
+        }
+
+        public IEnumerable<int> GetPressedKeys()
+        {
+            if (_customInitialized)
+            {
+                return _pressedKeys.Keys.ToList();
+            }
+            if (_useFallback && _fallbackInput != null)
+            {
+                var keys = new List<int>();
+                // Only checking mouse buttons for fallback as checking all 256 keys might be slow
+                // mapped to Win32VirtualKey enum values for mouse
+                var mouseKeys = new[] { 1, 2, 4, 5, 6 }; 
+                foreach (var k in mouseKeys)
+                {
+                    if (_fallbackInput.IsKeyDown((Win32VirtualKey)k)) keys.Add(k);
+                }
+                return keys;
+            }
+            return Enumerable.Empty<int>();
+        }
+
+        public string GenerateDebugReport()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("=== InputManager Debug Report ===");
+            sb.AppendLine($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"Status: {_initMethod}");
+            sb.AppendLine($"IsReady: {IsReady}");
+            sb.AppendLine($"Custom Init: {_customInitialized}");
+            sb.AppendLine($"Use Fallback: {_useFallback}");
+            sb.AppendLine();
+            
+            sb.AppendLine("--- DMA Info ---");
+            sb.AppendLine($"WinLogon PID: {_winLogonPid} (Hex: {_winLogonPid:X})");
+            sb.AppendLine($"win32kbase Base: 0x{_dmaWin32kBase:X16}");
+            sb.AppendLine($"win32ksgd Base: 0x{_dmaWin32ksgdBase:X16}");
+            sb.AppendLine($"win32k Base: 0x{_dmaWin32k:X16}");
+            
+            sb.AppendLine();
+            sb.AppendLine("--- Pointer Info ---");
+            sb.AppendLine($"Session Global Ptr (Sig Result): 0x{_dmaSessionGlobalPtr:X16}");
+            sb.AppendLine($"User Session State: 0x{_dmaUserSessionState:X16}");
+            sb.AppendLine($"gafAsyncKeyState Export: 0x{_gafAsyncKeyStateExport:X16}");
+            sb.AppendLine($"Key State Offset: 0x{_dmaGafAsyncOffset:X}");
+            
+            if (_useFallback)
+            {
+                sb.AppendLine();
+                sb.AppendLine("--- Fallback Info ---");
+                sb.AppendLine($"Fallback Object: {(_fallbackInput != null ? "Active" : "Null")}");
+            }
+
+            return sb.ToString();
+        }
 
         private static bool IsMouseAsyncDown(Win32VirtualKey vk)
         {

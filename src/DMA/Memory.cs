@@ -61,6 +61,7 @@ namespace LoneEftDmaRadar.DMA
         private static readonly string _mmap = Path.Combine(App.ConfigPath.FullName, "mmap.txt");
         private static Vmm _vmm;
         private static InputManager _input;
+        public static InputManager Input => _input;
         private static CancellationTokenSource _memoryThreadCts;
         private static Thread _memoryThread;
         private static uint _pid;

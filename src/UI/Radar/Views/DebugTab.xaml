@@ -41,5 +41,39 @@
                 </ScrollViewer>
             </StackPanel>
         </GroupBox>
+        
+        <GroupBox Header="InputManager Debug"
+                  Margin="0,12,0,0"
+                  Width="380">
+            <StackPanel Margin="6">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="Status: " FontWeight="Bold" />
+                    <TextBlock Text="{Binding InputManagerStatus}" />
+                </StackPanel>
+                
+                <TextBlock Text="Detected Keys (Live):" FontWeight="Bold" Margin="0,4,0,2"/>
+                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="2" Padding="4" MinHeight="24" Background="#252525">
+                    <TextBlock Text="{Binding InputManagerKeys}" 
+                               FontFamily="Consolas" 
+                               Foreground="LightGreen" 
+                               TextWrapping="Wrap"/>
+                </Border>
+                
+                <TextBlock Text="Values are Virtual Key Names." 
+                           Foreground="Gray" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                           
+                <Button Content="Re-Initialize InputManager"
+                        Margin="0,12,0,0"
+                        Height="28"
+                        Command="{Binding ReinitializeInputManagerCommand}"
+                        ToolTip="Attempts to re-scan and initialize the InputManager. Check Console for logs."/>
+
+                <Button Content="Copy Debug Report to Clipboard"
+                        Margin="0,8,0,0"
+                        Height="28"
+                        Command="{Binding CopyInputReportCommand}"
+                        ToolTip="Copies a detailed technical report to clipboard for support."/>
+            </StackPanel>
+        </GroupBox>
     </StackPanel>
 </UserControl>

@@ -5,6 +5,10 @@ using System.ComponentModel;
 using System.Text;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Windows;
+using System.Threading.Tasks;
+using LoneEftDmaRadar.DMA;
+using VmmSharpEx.Extensions.Input;
 
 namespace LoneEftDmaRadar.UI.Radar.ViewModels
 {
@@ -17,17 +21,32 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         public DebugTabViewModel()
         {
             ToggleDebugConsoleCommand = new SimpleCommand(DebugLogger.Toggle);
+            ReinitializeInputManagerCommand = new SimpleCommand(() => Task.Run(() => Memory.Input?.Reinitialize()));
+            CopyInputReportCommand = new SimpleCommand(() =>
+            {
+                var report = Memory.Input?.GenerateDebugReport() ?? "No InputManager Instance";
+                try
+                {
+                    Clipboard.SetText(report);
+                }
+                catch (Exception ex)
+                {
+                    DebugLogger.LogDebug($"[UI] Start clipboard error: {ex.Message}");
+                }
+            });
 
             _timer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(1)
+                Interval = TimeSpan.FromMilliseconds(100)
             };
-            _timer.Tick += (_, _) => RefreshDeviceAimbotDebug();
+            _timer.Tick += (_, _) => RefreshDebugInfo();
             _timer.Start();
-            RefreshDeviceAimbotDebug();
+            RefreshDebugInfo();
         }
 
         public ICommand ToggleDebugConsoleCommand { get; }
+        public ICommand ReinitializeInputManagerCommand { get; }
+        public ICommand CopyInputReportCommand { get; }
 
         public bool ShowDeviceAimbotDebug
         {
@@ -55,7 +74,35 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        private void RefreshDeviceAimbotDebug()
+        private string _inputManagerStatus = "Unknown";
+        public string InputManagerStatus
+        {
+            get => _inputManagerStatus;
+            private set
+            {
+                if (_inputManagerStatus != value)
+                {
+                    _inputManagerStatus = value;
+                    OnPropertyChanged(nameof(InputManagerStatus));
+                }
+            }
+        }
+
+        private string _inputManagerKeys = "None";
+        public string InputManagerKeys
+        {
+            get => _inputManagerKeys;
+            private set
+            {
+                if (_inputManagerKeys != value)
+                {
+                    _inputManagerKeys = value;
+                    OnPropertyChanged(nameof(InputManagerKeys));
+                }
+            }
+        }
+
+        private void RefreshDebugInfo()
         {
             var snapshot = Memory.DeviceAimbot?.GetDebugSnapshot();
             if (snapshot == null)
@@ -79,6 +126,20 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             sb.AppendLine($"Ballistics: {(snapshot.BallisticsValid ? $"OK (Speed {bulletSpeedText} m/s, Predict {(snapshot.PredictionEnabled ? "ON" : "OFF")})" : "Invalid/None")}");
 
             DeviceAimbotDebugText = sb.ToString();
+
+            // InputManager Debug
+            var input = Memory.Input;
+            if (input != null && input.IsReady)
+            {
+                InputManagerStatus = input.GetDebugStatus();
+                var keys = input.GetPressedKeys();
+                InputManagerKeys = keys.Any() ? string.Join(", ", keys.Select(k => ((Win32VirtualKey)k).ToString())) : "None";
+            }
+            else
+            {
+                InputManagerStatus = "Not ReadyOrNull";
+                InputManagerKeys = "-";
+            }
         }
 
         #region INotifyPropertyChanged
