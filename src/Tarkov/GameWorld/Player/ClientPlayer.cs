@@ -100,21 +100,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
              return Memory.ReadValue<int>(MovementContext + 0xD0); // 0xD0 = PoseLevel in MovementContext
         }
 
-        public float GetFov()
-        {
-            try
-            {
-                var hands = Memory.ReadPtr(Base + Offsets.Player._handsController);
-                if (hands == 0) return 0f;
-                
-                var anim = Memory.ReadPtr(hands + Offsets.FirearmController.WeaponAnimation);
-                if (anim == 0) return 0f;
-
-                return Memory.ReadValue<float>(anim + Offsets.ProceduralWeaponAnimation._fieldOfView);
-            }
-            catch { return 0f; }
-        }
-
         public ulong PWA
         {
             get
@@ -142,7 +127,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                         return false;
                     }
 
-                    bool isAiming = Memory.ReadValue<bool>(weaponAnim + Offsets.ProceduralWeaponAnimation.IsAiming);
+                    bool isAiming = Memory.ReadValue<bool>(weaponAnim + Offsets.ProceduralWeaponAnimation._isAiming);
                     return isAiming;
                 }
                 catch
