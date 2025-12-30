@@ -234,6 +234,17 @@ namespace SDK
             public static readonly uint[] To_FirePortVertices = To_FirePortTransformInternal.Concat(new uint[] { UnityOffsets.TransformInternal_TransformAccessOffset, UnityOffsets.Hierarchy_VerticesOffset }).ToArray();
         }
 
+        public readonly partial struct ClientFirearmController // EFT, class: ClientFirearmController : FirearmController
+        {
+            public const uint FirearmPacket = 0x1F0; // System.Object
+            public const uint _firedShots = 0x420; // GenericInst
+            public const uint _shotsWaitingApproval = 0x428; // GenericInst
+            public const uint _shotsFragmentsBuffer = 0x430; // UnknownType
+            public const uint LastShotId = 0x438; // System.Byte - increments per shot
+            public const uint LastShotType = 0x43C; // System.Object
+        }
+
+
         public readonly partial struct ProceduralWeaponAnimation // EFT.Animations, class: ProceduralWeaponAnimation
         {
             public const uint HandsContainer = 0x20; // EFT.Animations.PlayerSpring <HandsContainer> HandsContainer
@@ -298,7 +309,36 @@ namespace SDK
 
         public readonly partial struct BreathEffector //Class: EFT.Animations.BreathEffector
         {
+            public const uint Physical = 0x10; // System.Object
+            public const uint IsAiming = 0x18; // Boolean
+            public const uint _handsRotationSpring = 0x20; // System.Object
+            public const uint _shotEffector = 0x28; // System.Object
             public const uint Intensity = 0x30; // Single <Intensity> Intensity
+            public const uint _shakeIntensity = 0x34; // Single
+            public const uint XRandom = 0x38; // System.Object - Random generator for X sway
+            public const uint YRandom = 0x40; // System.Object - Random generator for Y sway
+            public const uint _breathIntensity = 0x48; // Single
+            public const uint _breathFrequency = 0x4C; // Single
+            public const uint TremorXRandom = 0x50; // System.Object
+            public const uint TremorYRandom = 0x58; // System.Object
+            public const uint TremorZRandom = 0x60; // System.Object
+            public const uint HipXRandom = 0x68; // System.Object
+            public const uint HipZRandom = 0x70; // System.Object
+            public const uint HipPenalty = 0x78; // Single
+            public const uint Curves = 0x80; // UnknownType
+            public const uint _processors = 0x88; // UnknownType
+            public const uint BreathParams = 0x90; // System.Object
+            public const uint TremorOn = 0x98; // Boolean
+            public const uint Fracture = 0x99; // Boolean
+            public const uint _cameraSensetivity = 0x9C; // Single
+            public const uint StiffUntill = 0xA0; // Single
+            public const uint EnergyLowerLimit = 0xA4; // Single
+            public const uint EnergyFractureLimit = 0xA8; // Single
+            public const uint AmplitudeGainPerShot = 0xAC; // Single
+            public const uint Delay = 0xB0; // Single
+            public const uint Overweight = 0xF8; // Single
+            public const uint OxygenLevel = 0x100; // GenericInst
+            public const uint StaminaLevel = 0x108; // GenericInst
         }
 
         public readonly partial struct ShotEffector //Class: .ShotEffector
