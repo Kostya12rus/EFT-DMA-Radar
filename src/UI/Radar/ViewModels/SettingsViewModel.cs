@@ -261,6 +261,45 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
+        public bool LootInfoWidget
+        {
+            get => App.Config.LootInfoWidget.Enabled;
+            set
+            {
+                if (App.Config.LootInfoWidget.Enabled != value)
+                {
+                    App.Config.LootInfoWidget.Enabled = value;
+                    OnPropertyChanged(nameof(LootInfoWidget));
+                }
+            }
+        }
+
+        public float PulseSpeed
+        {
+            get => App.Config.Loot.PulseSpeed;
+            set
+            {
+                if (Math.Abs(App.Config.Loot.PulseSpeed - value) > 0.1f)
+                {
+                    App.Config.Loot.PulseSpeed = value;
+                    OnPropertyChanged(nameof(PulseSpeed));
+                }
+            }
+        }
+
+        public float PulseDuration
+        {
+            get => App.Config.Loot.PulseDuration;
+            set
+            {
+                if (Math.Abs(App.Config.Loot.PulseDuration - value) > 0.1f)
+                {
+                    App.Config.Loot.PulseDuration = value;
+                    OnPropertyChanged(nameof(PulseDuration));
+                }
+            }
+        }
+
         public bool ConnectGroups
         {
             get => App.Config.UI.ConnectGroups;

@@ -248,7 +248,48 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Loot
                 SKTextAlign.Left,
                 widgetFont,
                 paints.Item2);
+                
+            if (_isPulsing)
+            {
+                double elapsedSec = (Stopwatch.GetTimestamp() - _pulseStartTicks) / (double)Stopwatch.Frequency;
+                if (elapsedSec > App.Config.Loot.PulseDuration)
+                {
+                    _isPulsing = false;
+                }
+                else
+                {
+                    float progress = (float)(elapsedSec / App.Config.Loot.PulseDuration);
+                    float radius = (float)(elapsedSec * App.Config.Loot.PulseSpeed * App.Config.UI.UIScale);
+                    byte alpha = (byte)(255 * (1 - progress));
 
+                    using var pulsePaint = new SKPaint
+                    {
+                        Color = SKColors.Red.WithAlpha(alpha),
+                        Style = SKPaintStyle.Stroke,
+                        StrokeWidth = 6f * App.Config.UI.UIScale, // Thicker stroke
+                        IsAntialias = true
+                    };
+                    canvas.DrawCircle(MouseoverPosition.X, MouseoverPosition.Y, radius, pulsePaint);
+                    
+                    using var fillPaint = new SKPaint
+                    {
+                        Color = SKColors.Red.WithAlpha((byte)(alpha * 0.3)), // Semi-transparent fill
+                        Style = SKPaintStyle.Fill,
+                        IsAntialias = true
+                    };
+                    canvas.DrawCircle(MouseoverPosition.X, MouseoverPosition.Y, radius, fillPaint);
+                }
+            }
+
+        }
+
+        private long _pulseStartTicks = 0;
+        private bool _isPulsing = false;
+
+        public void TriggerPulse()
+        {
+            _isPulsing = true;
+            _pulseStartTicks = Stopwatch.GetTimestamp();
         }
 
         public virtual void DrawMouseover(SKCanvas canvas, EftMapParams mapParams, LocalPlayer localPlayer)

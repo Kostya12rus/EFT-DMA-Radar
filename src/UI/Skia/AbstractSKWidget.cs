@@ -44,7 +44,8 @@ namespace LoneEftDmaRadar.UI.Skia
         private bool _resizeDrag;
 
         private Vector2 _lastMousePosition;
-
+        protected SKPoint LastMousePosition => new SKPoint(_lastMousePosition.X, _lastMousePosition.Y);
+        
         private SKPoint _location = new(1, 1);
         private SKSize _size = new(200, 200);
         private SKPath _resizeTriangle;
@@ -202,6 +203,9 @@ namespace LoneEftDmaRadar.UI.Skia
                 case SKWidgetClickEvent.ClickedResize:
                     _resizeDrag = true;
                     break;
+                case SKWidgetClickEvent.ClickedClientArea:
+                    OnMouseClick(pt);
+                    break;
             }
         }
 
@@ -248,6 +252,8 @@ namespace LoneEftDmaRadar.UI.Skia
                 cr.Width * _relativeX,
                 cr.Height * _relativeY);
         }
+
+        protected virtual void OnMouseClick(SKPoint position) { }
 
         public virtual void Draw(SKCanvas canvas)
         {

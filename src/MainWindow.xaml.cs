@@ -103,6 +103,11 @@ namespace LoneEftDmaRadar
                     App.Config.InfoWidget.Location = infoWidget.Rectangle;
                     App.Config.InfoWidget.Minimized = infoWidget.Minimized;
                 }
+                if (Radar?.ViewModel?.LootInfoWidget is LootInfoWidget lootInfoWidget)
+                {
+                    App.Config.LootInfoWidget.Location = lootInfoWidget.Rectangle;
+                    App.Config.LootInfoWidget.Minimized = lootInfoWidget.Minimized;
+                }
             }
             finally
             {

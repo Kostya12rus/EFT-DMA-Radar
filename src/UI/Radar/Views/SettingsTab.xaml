@@ -115,6 +115,10 @@ Toggle Fullscreen: F11
                                   ToolTip="Toggles the Player Info 'Widget' that gives you information about the players/bosses in your raid. Can be moved."
                                   IsChecked="{Binding PlayerInfoWidget, Mode=TwoWay}"
                                   Margin="0,0,16,8" />
+                        <CheckBox Content="Loot Info Widget"
+                                  ToolTip="Toggles the Loot Info 'Widget' that gives you information about valuable loot in your raid. Can be moved."
+                                  IsChecked="{Binding LootInfoWidget, Mode=TwoWay}"
+                                  Margin="0,0,16,8" />
                         <CheckBox Content="Connect Groups"
                                   ToolTip="Connects players that are grouped up via semi‑transparent green lines. Does not apply to your own party."
                                   IsChecked="{Binding ConnectGroups, Mode=TwoWay}"
@@ -191,6 +195,43 @@ Toggle Fullscreen: F11
                                    Margin="8,0,0,0" />
                     </StackPanel>
 
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="0,0,16,8">
+                        <TextBlock Text="Pulse Speed"
+                                   VerticalAlignment="Center"
+                                   ToolTip="Controls how fast the loot pulse animation grows." />
+                        <Slider x:Name="PulseSpeedSlider"
+                                Width="150"
+                                Margin="8,0"
+                                Minimum="10"
+                                Maximum="100"
+                                SmallChange="5"
+                                LargeChange="10"
+                                Value="{Binding PulseSpeed, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding Value, ElementName=PulseSpeedSlider, StringFormat=F0}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="0,0,16,8">
+                        <TextBlock Text="Pulse Duration (s)"
+                                   VerticalAlignment="Center"
+                                   ToolTip="Controls how long the loot pulse animation lasts." />
+                        <Slider x:Name="PulseDurationSlider"
+                                Width="150"
+                                Margin="8,0"
+                                Minimum="1.0"
+                                Maximum="10.0"
+                                SmallChange="0.5"
+                                LargeChange="1.0"
+                                Value="{Binding PulseDuration, Mode=TwoWay}" />
+                        <TextBlock Text="{Binding Value, ElementName=PulseDurationSlider, StringFormat=F1}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0" />
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
 

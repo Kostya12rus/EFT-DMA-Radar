@@ -118,6 +118,13 @@ namespace LoneEftDmaRadar
         public InfoWidgetConfig InfoWidget { get; private set; } = new();
 
         /// <summary>
+        /// Widgets Configuration.
+        /// </summary>
+        [JsonInclude]
+        [JsonPropertyName("lootInfoWidget")]
+        public InfoWidgetConfig LootInfoWidget { get; private set; } = new();
+
+        /// <summary>
         /// Quest Helper Cfg
         /// </summary>
         [JsonPropertyName("questHelper")]
@@ -796,6 +803,18 @@ namespace LoneEftDmaRadar
         /// </summary>
         [JsonPropertyName("pricePerSlot")]
         public bool PricePerSlot { get; set; }
+
+        /// <summary>
+        /// Speed of the loot pulse animation.
+        /// </summary>
+        [JsonPropertyName("pulseSpeed")]
+        public float PulseSpeed { get; set; } = 30f;
+
+        /// <summary>
+        /// Duration of the loot pulse animation in seconds.
+        /// </summary>
+        [JsonPropertyName("pulseDuration")]
+        public float PulseDuration { get; set; } = 3.0f;
 
         /// <summary>
         /// FilteredLoot Price Mode.

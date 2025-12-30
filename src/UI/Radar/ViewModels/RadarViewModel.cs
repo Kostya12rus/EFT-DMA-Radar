@@ -178,6 +178,10 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         /// Player Info Widget Viewport.
         /// </summary>
         public PlayerInfoWidget InfoWidget { get; private set; }
+        /// <summary>
+        /// Loot Info Widget Viewport.
+        /// </summary>
+        public LootInfoWidget LootInfoWidget { get; private set; }
 
         public RadarViewModel(RadarTab parent)
         {
@@ -216,13 +220,23 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     App.Config.InfoWidget.Location = new SKRect(cr.Right - 1, cr.Top, cr.Right, cr.Top + 1);
                 }
 
+                if (App.Config.LootInfoWidget.Location == default)
+                {
+                    var size = Radar.CanvasSize;
+                    var cr = new SKRect(0, 0, size.Width, size.Height);
+                    App.Config.LootInfoWidget.Location = new SKRect(cr.Left, cr.Top, cr.Left + 1, cr.Top + 1);
+                }
+
                 AimviewWidget = new AimviewWidget(Radar, App.Config.AimviewWidget.Location, App.Config.AimviewWidget.Minimized,
                     App.Config.UI.UIScale);
                 InfoWidget = new PlayerInfoWidget(Radar, App.Config.InfoWidget.Location,
                     App.Config.InfoWidget.Minimized, App.Config.UI.UIScale);
+                LootInfoWidget = new LootInfoWidget(Radar, App.Config.LootInfoWidget.Location,
+                    App.Config.LootInfoWidget.Minimized, App.Config.UI.UIScale);
                 Radar.PaintSurface += Radar_PaintSurface;
             });
         }
+
 
         #endregion
 
@@ -453,6 +467,10 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     if (allPlayers is not null && App.Config.InfoWidget.Enabled) // Players Overlay
                     {
                         InfoWidget?.Draw(canvas, localPlayer, allPlayers);
+                    }
+                    if (App.Config.LootInfoWidget.Enabled && Loot is not null) // Loot Overlay
+                    {
+                        LootInfoWidget?.Draw(canvas, Loot, localPlayer.Position);
                     }
                     closestToMouse?.DrawMouseover(canvas, mapParams, localPlayer); // Mouseover Item
                     if (App.Config.AimviewWidget.Enabled) // Aimview Widget
