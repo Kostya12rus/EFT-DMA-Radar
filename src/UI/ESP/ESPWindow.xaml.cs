@@ -25,6 +25,7 @@ using DxColor = SharpDX.Mathematics.Interop.RawColorBGRA;
 using LoneEftDmaRadar.Tarkov.GameWorld.Camera;
 using LoneEftDmaRadar.UI.Radar;
 using LoneEftDmaRadar.UI.Radar.Maps;
+using LoneEftDmaRadar.UI.Radar.ViewModels;
 
 namespace LoneEftDmaRadar.UI.ESP
 {
@@ -395,6 +396,7 @@ namespace LoneEftDmaRadar.UI.ESP
                         }
 
                         DrawDeviceAimbotDebugOverlay(ctx, screenWidth, screenHeight);
+                        DrawMemoryInspectorOverlay(ctx, screenWidth, screenHeight);
 
                         if (App.Config.UI.MiniRadar.Enabled)
                         {
@@ -1699,6 +1701,51 @@ namespace LoneEftDmaRadar.UI.ESP
             {
                 ctx.DrawText(line, x, y, color, DxTextSize.Small);
                 y += lineStep;
+            }
+        }
+
+        /// <summary>
+        /// Draw Memory Inspector values on ESP overlay.
+        /// </summary>
+        private void DrawMemoryInspectorOverlay(ImGuiRenderContext ctx, float width, float height)
+        {
+            var data = MemoryInspectorViewModel.EspOverlayData;
+            if (data == null || !data.Enabled || data.Fields.Count == 0)
+                return;
+
+            // Position on right side of screen
+            float x = width - 320f;
+            float y = 40f;
+            float lineStep = 14f;
+            var headerColor = ToColor(new SKColor(0, 255, 200, 255)); // Cyan
+            var fieldColor = ToColor(new SKColor(200, 200, 200, 255)); // Gray
+            var valueColor = ToColor(new SKColor(100, 255, 100, 255)); // Green
+
+            // Draw header
+            ctx.DrawText($"=== {data.StructName} ===", x, y, headerColor, DxTextSize.Small);
+            y += lineStep;
+            ctx.DrawText($"Base: 0x{data.BaseAddress:X}", x, y, fieldColor, DxTextSize.Small);
+            y += lineStep + 4;
+
+            // Draw fields (limited to prevent too many lines)
+            int maxFields = Math.Min(data.Fields.Count, 25);
+            for (int i = 0; i < maxFields; i++)
+            {
+                var field = data.Fields[i];
+                var offsetText = $"0x{field.Offset:X2}";
+                var line = $"{field.Name}: {field.Value}";
+                
+                // Truncate long values
+                if (line.Length > 45)
+                    line = line.Substring(0, 42) + "...";
+
+                ctx.DrawText(line, x, y, valueColor, DxTextSize.Small);
+                y += lineStep;
+            }
+
+            if (data.Fields.Count > maxFields)
+            {
+                ctx.DrawText($"... +{data.Fields.Count - maxFields} more", x, y, fieldColor, DxTextSize.Small);
             }
         }
 

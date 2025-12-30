@@ -40,4 +40,18 @@ namespace LoneEftDmaRadar.UI.Misc
 #pragma warning restore CS0067
         public void Execute(object _) => _execute();
     }
+
+    public class SimpleCommand<T> : ICommand
+    {
+        private readonly Action<T> _execute;
+        public SimpleCommand(Action<T> execute) => _execute = execute;
+        public bool CanExecute(object _) => true;
+#pragma warning disable CS0067
+        public event EventHandler CanExecuteChanged;
+#pragma warning restore CS0067
+        public void Execute(object parameter)
+        {
+            if (parameter is T t) _execute(t);
+        }
+    }
 }

@@ -18,6 +18,11 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
         private string _DeviceAimbotDebugText = "DeviceAimbot Aimbot: (no data)";
         private bool _showDeviceAimbotDebug = App.Config.Device.ShowDebug;
 
+        /// <summary>
+        /// Memory Inspector for browsing and reading offset struct values.
+        /// </summary>
+        public MemoryInspectorViewModel MemoryInspector { get; } = new();
+
         public DebugTabViewModel()
         {
             ToggleDebugConsoleCommand = new SimpleCommand(DebugLogger.Toggle);
