@@ -95,6 +95,10 @@ namespace LoneEftDmaRadar.UI.ESP
         private static readonly ConcurrentDictionary<int, SKPaint> _espGroupPaints = new();
 
         private bool _isFullscreen;
+        
+        // Cached aimline values to prevent flicker during async reads
+        private Vector3? _cachedFireportPos;
+        private Quaternion? _cachedFireportRot;
 
         /// <summary>
         /// LocalPlayer (who is running Radar) 'Player' object.
@@ -403,10 +407,92 @@ namespace LoneEftDmaRadar.UI.ESP
                             DrawMiniRadar(ctx, localPlayer, allPlayers, screenWidth, screenHeight);
                         }
 
+                        if (App.Config.UI.EspLocalAimline)
+                        {
+                            DrawLocalPlayerAimline(ctx, screenWidth, screenHeight, localPlayer);
+                        }
+                        
+                        if (App.Config.UI.EspLocalAmmo)
+                        {
+                            DrawLocalPlayerAmmo(ctx, screenWidth, screenHeight, localPlayer);
+                        }
+
                         DrawFPS(ctx, screenWidth, screenHeight);
                     }
                 }
 
+        }
+
+        private void DrawLocalPlayerAimline(ImGuiRenderContext ctx, float width, float height, LocalPlayer localPlayer)
+        {
+            var fm = localPlayer.FirearmManager;
+            
+            // Update cached values if current values are valid
+            if (fm?.FireportPosition is { } newPos && fm.FireportRotation is { } newRot)
+            {
+                _cachedFireportPos = newPos;
+                _cachedFireportRot = newRot;
+            }
+            
+            // Use cached values if available
+            if (_cachedFireportPos is not { } start || _cachedFireportRot is not { } rot)
+                return; // No cached data available
+            
+            // Clear cache if weapon is no longer valid
+            if (fm?.CurrentHands?.IsWeapon != true)
+            {
+                _cachedFireportPos = null;
+                _cachedFireportRot = null;
+                return;
+            }
+            
+            // Use Down (-Y) as the shooting direction for the fireport transform
+            var shootDir = rot.Down();
+            var end = start + (shootDir * 50f);
+
+            // Try to project the fireport position to screen
+            if (!CameraManager.WorldToScreenWithScale(start, out var sStart, out _, true, true))
+                return; // Start not visible
+
+            // Try to project the end point
+            if (CameraManager.WorldToScreenWithScale(end, out var sEnd, out _, false, false))
+            {
+                ctx.DrawLine(ToRaw(sStart), ToRaw(sEnd), new DxColor(255, 0, 0, 200), 2f);
+            }
+            else
+            {
+                // End point off-screen, extend from start in the direction
+                var nearEnd = start + (shootDir * 5f);
+                if (CameraManager.WorldToScreenWithScale(nearEnd, out var sNearEnd, out _, false, false))
+                {
+                    float dx = sNearEnd.X - sStart.X;
+                    float dy = sNearEnd.Y - sStart.Y;
+                    float len = MathF.Sqrt(dx * dx + dy * dy);
+                    if (len > 0.5f)
+                    {
+                        float scale = 2000f / len;
+                        var extendedEnd = new SKPoint(sStart.X + dx * scale, sStart.Y + dy * scale);
+                        ctx.DrawLine(ToRaw(sStart), ToRaw(extendedEnd), new DxColor(255, 0, 0, 200), 2f);
+                    }
+                }
+            }
+        }
+
+        private void DrawLocalPlayerAmmo(ImGuiRenderContext ctx, float width, float height, LocalPlayer localPlayer)
+        {
+            var mag = localPlayer.FirearmManager?.Magazine;
+            if (mag == null || !mag.IsValid)
+                return; // Data not ready yet - skip this frame
+
+            var text = $"{mag.Count}/{mag.MaxCount}";
+            if (!string.IsNullOrEmpty(mag.WeaponInfo))
+                text += $" [{mag.WeaponInfo}]";
+
+            // Draw near bottom center/right
+            float x = width - 200f;
+            float y = height - 100f;
+            
+            ctx.DrawText(text, x, y, new DxColor(0, 255, 255, 255), DxTextSize.Large);
         }
 
         private void DrawLoot(ImGuiRenderContext ctx, float screenWidth, float screenHeight, LocalPlayer localPlayer)

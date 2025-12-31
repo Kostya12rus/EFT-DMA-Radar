@@ -363,16 +363,30 @@ namespace SDK
             public const uint _magSlotCache = 0xc8; // EFT.InventoryLogic.Slot <_magSlotCache> _magSlotCache
         }
 
+        public readonly partial struct FireModeComponent //Class: EFT.InventoryLogic.FireModeComponent
+        {
+            public const uint Item = 0x10; 
+            public const uint _template = 0x18;
+            public const uint OnChanged = 0x20;
+            public const uint FireMode = 0x28;
+        }
+
         public readonly partial struct LootItemMagazine //Class: EFT.InventoryLogic.MagazineTemplate
         {
-            public const uint Cartridges = 0x1a8; // EFT.InventoryLogic.StackSlot <Cartridges> Cartridges
+            public const uint Cartridges = 0x1a8; // EFT.InventoryLogic.StackSlot <Cartridges> Cartridges (on Template)
             public const uint LoadUnloadModifier = 0x1b0; // Single <LoadUnloadModifier> LoadUnloadModifier
+        }
+
+        // Magazine Item (not template) offsets - used when reading from magSlot.ContainedItem
+        public readonly partial struct MagazineItem //Class: EFT.InventoryLogic.MagazineClass (Item instance)
+        {
+            public const uint Cartridges = 0xA8; // EFT.InventoryLogic.StackSlot - Cartridges on the Magazine Item itself
         }
 
         public readonly partial struct StackSlot //Class: EFT.InventoryLogic.StackSlot
         {
-            public const uint _items = 0x10; // System.Collections.Generic.List<Item>
-            public const uint MaxCount = 0x38; // Int32
+            public const uint MaxCount = 0x10; // Int32 - Max cartridge count
+            public const uint _items = 0x18; // System.Collections.Generic.List<Item> - List of ammo stacks
         }
 
         public readonly partial struct Slot //Class: EFT.InventoryLogic.Slot
@@ -426,6 +440,11 @@ namespace SDK
         public readonly partial struct InventoryEquipment
         {
             public const uint _cachedSlots = 0x90; // EFT.InventoryLogic.Slot[]
+        }
+
+        public readonly partial struct MagazineClass //Class: EFT.InventoryLogic.Item
+        {
+            public const uint StackObjectsCount = 0x24; // int32_t
         }
     }
 

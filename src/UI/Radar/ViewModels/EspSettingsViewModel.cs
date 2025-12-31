@@ -566,6 +566,32 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
+        public bool EspLocalAimline
+        {
+            get => App.Config.UI.EspLocalAimline;
+            set
+            {
+                if (App.Config.UI.EspLocalAimline != value)
+                {
+                    App.Config.UI.EspLocalAimline = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool EspLocalAmmo
+        {
+            get => App.Config.UI.EspLocalAmmo;
+            set
+            {
+                if (App.Config.UI.EspLocalAmmo != value)
+                {
+                    App.Config.UI.EspLocalAmmo = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         #region Colors
         public string EspColorPlayers
         {

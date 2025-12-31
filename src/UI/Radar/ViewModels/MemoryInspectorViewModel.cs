@@ -551,7 +551,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
 
         private void CopyFieldAddress(OffsetFieldInfo field)
         {
-            if (field?.Address != 0)
+            if (field != null && field.Address != 0)
             {
                 try
                 {

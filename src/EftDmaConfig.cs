@@ -601,6 +601,18 @@ namespace LoneEftDmaRadar
         public float EspCrosshairLength { get; set; } = 25f;
 
         /// <summary>
+        /// Show the local player's firearm aimline on ESP.
+        /// </summary>
+        [JsonPropertyName("espLocalAimline")]
+        public bool EspLocalAimline { get; set; } = false;
+
+        /// <summary>
+        /// Show the local player's ammo count on ESP.
+        /// </summary>
+        [JsonPropertyName("espLocalAmmo")]
+        public bool EspLocalAmmo { get; set; } = false;
+
+        /// <summary>
         /// Font family used for ESP text (DX overlay).
         /// </summary>
         [JsonPropertyName("espFontFamily")]
