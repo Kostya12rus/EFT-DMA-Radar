@@ -142,37 +142,31 @@ namespace LoneEftDmaRadar.Web.WebRadar
         {
             try
             {
-                var update = new WebRadarUpdate();
                 var hubContext = host.Services.GetRequiredService<IHubContext<RadarServerHub>>();
-                using var timer = new PeriodicTimer(tickRate);
-                while (await timer.WaitForNextTickAsync()) // Wait for specified interval to regulate Tick Rate
+                using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(33)); // 30Hz for Players/Grenades
+                var nextSlowUpdate = DateTime.MinValue;
+                ulong version = 0;
+
+                while (await timer.WaitForNextTickAsync()) // Fixed 30Hz Tick Rate
                 {
                     try
-
                     {
+                        var update = new WebRadarUpdate();
+                        update.Version = version++;
+                        var now = DateTime.Now;
+                        bool isSlowTick = now >= nextSlowUpdate;
+
+                        if (isSlowTick)
+                            nextSlowUpdate = now.AddSeconds(5); // 0.2Hz - Update static data (Loot, Exfils, MapID)
+
                         if (Memory.InRaid && Memory.Players is IReadOnlyCollection<AbstractPlayer> players && players.Count > 0)
                         {
                             update.InGame = true;
-                            update.MapID = Memory.MapID;
                             
-                            // Players
+                            // Players (Always 30Hz)
                             update.Players = players.Select(p => WebRadarPlayer.Create(p));
                             
-                            // Exfils
-                            var exits = Memory.Exits;
-                            if (exits is not null)
-                            {
-                                update.Exfils = exits
-                                    .Select(e => WebRadarExfil.Create(e))
-                                    .Where(e => e.HasValue)
-                                    .Select(e => e!.Value);
-                            }
-                            else
-                            {
-                                update.Exfils = null;
-                            }
-                            
-                            // Grenades / Tripwires
+                            // Grenades / Tripwires (Always 30Hz)
                             var explosives = Memory.Explosives;
                             if (explosives is not null)
                             {
@@ -181,32 +175,35 @@ namespace LoneEftDmaRadar.Web.WebRadar
                                     .Where(e => e.HasValue)
                                     .Select(e => e!.Value);
                             }
-                            else
+
+                            // Heavy/Static Data (Every 5 seconds)
+                            if (isSlowTick)
                             {
-                                update.Grenades = null;
-                            }
-                            
-                            // Loot
-                            var loot = Memory.Loot?.FilteredLoot;
-                            if (loot is not null && loot.Count > 0)
-                            {
-                                update.Loot = loot.Select(l => WebRadarLoot.Create(l));
-                            }
-                            else
-                            {
-                                update.Loot = null;
+                                update.MapID = Memory.MapID;
+
+                                // Exfils
+                                var exits = Memory.Exits;
+                                if (exits is not null)
+                                {
+                                    update.Exfils = exits
+                                        .Select(e => WebRadarExfil.Create(e))
+                                        .Where(e => e.HasValue)
+                                        .Select(e => e!.Value);
+                                }
+
+                                // Loot
+                                var loot = Memory.Loot?.FilteredLoot;
+                                if (loot is not null && loot.Count > 0)
+                                {
+                                    update.Loot = loot.Select(l => WebRadarLoot.Create(l));
+                                }
                             }
                         }
                         else
                         {
                             update.InGame = false;
-                            update.MapID = null;
-                            update.Players = null;
-                            update.Exfils = null;
-                            update.Grenades = null;
-                            update.Loot = null;
                         }
-                        update.Version++;
+                        
                         await hubContext.Clients.All.SendAsync("RadarUpdate", update);
                     }
                     catch { }
