@@ -4,13 +4,17 @@
  */
 
 using System;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using LoneEftDmaRadar.Tarkov;
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using LoneEftDmaRadar.Web.TarkovDev.Data;
 using VmmSharpEx.Extensions;
+using VmmSharpEx.Scatter;
 
 namespace LoneEftDmaRadar.UI.Misc
 {
@@ -55,9 +59,66 @@ namespace LoneEftDmaRadar.UI.Misc
             Magazine = new(localPlayer);
         }
 
+        /// <summary>
+        /// Realtime Loop for FirearmManager chained from LocalPlayer.
+        /// </summary>
+        public void OnRealtimeLoop(VmmScatter scatter)
+        {
+            if (FireportTransform is UnityTransform fireport)
+            {
+                // uint size = (uint)(fireport.Count * Unsafe.SizeOf<UnityTransform.TrsX>());
+                // scatter.PrepareRead(fireport.VerticesAddr, size);
+                scatter.PrepareReadArray<UnityTransform.TrsX>(fireport.VerticesAddr, fireport.Count);
+
+                scatter.Completed += (s, e) =>
+                {
+                    try
+                    {
+                        if (e.ReadPooled<UnityTransform.TrsX>(fireport.VerticesAddr, fireport.Count) is IMemoryOwner<UnityTransform.TrsX> vertices)
+                        {
+                            using (vertices)
+                            {
+                                UpdateFireport(vertices.Memory.Span);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        ResetFireport();
+                    }
+                };
+            }
+            else if (_hands?.IsWeapon == true)
+            {
+                // If fireport is null but we have a weapon, we might need to initialize it.
+                // However, initialization usually requires reading pointers which is better done in the main Update loop 
+                // or a separate slow-scatter loop to avoid blocking operations here if possible.
+                // But for now, we rely on Update() to initialize FireportTransform.
+            }
+        }
+
+        /// <summary>
+        /// Update cached fireport position/rotation (called from Scatter Loop).
+        /// </summary>
+        private void UpdateFireport(Span<UnityTransform.TrsX> vertices)
+        {
+            try
+            {
+                if (FireportTransform != null)
+                {
+                    FireportPosition = FireportTransform.UpdatePosition(vertices);
+                    FireportRotation = FireportTransform.GetRotation(vertices);
+                }
+            }
+            catch
+            {
+                ResetFireport();
+            }
+        }
 
         /// <summary>
         /// Update Hands/Firearm/Magazine information for LocalPlayer.
+        /// Called from LocalPlayer.UpdateFirearmManager()
         /// </summary>
         public void Update()
         {
@@ -67,7 +128,7 @@ namespace LoneEftDmaRadar.UI.Misc
                 if (!hands.IsValidUserVA())
                     return;
 
-                if (hands != _hands)
+                if (hands != _hands || (_hands != null && _hands.ItemAddr != Memory.ReadPtr(hands + Offsets.ItemHandsController.Item)))
                 {
                     _hands = null;
                     ResetFireport();
@@ -77,7 +138,18 @@ namespace LoneEftDmaRadar.UI.Misc
 
                 if (_hands?.IsWeapon == true)
                 {
-                    if (FireportTransform is UnityTransform fireportTransform) // Validate Fireport Transform
+                    // Update Magazine
+                    try
+                    {
+                         Magazine.Update(_hands);
+                    }
+                     catch (Exception ex)
+                    {
+                        DebugLogger.LogDebug($"[FirearmManager] ERROR Updating Magazine: {ex}");
+                    }
+
+                    // Validate Fireport
+                    if (FireportTransform is UnityTransform fireportTransform)
                     {
                         try
                         {
@@ -98,38 +170,17 @@ namespace LoneEftDmaRadar.UI.Misc
                             var t = Memory.ReadPtrChain(hands, false, Offsets.FirearmController.To_FirePortTransformInternal);
                             FireportTransform = new(t, false);
 
-                            // ✅ Update position AND rotation once to validate
+                            // Initial update to validate distance
                             var pos = FireportTransform.UpdatePosition();
-                            var rot = FireportTransform.GetRotation();
-
-                            // If the fireport is implausibly far (common briefly during weapon swaps), drop and reacquire next tick.
+                            FireportRotation = FireportTransform.GetRotation();
+                            
                             if (Vector3.Distance(pos, _localPlayer.Position) > 100f)
                             {
                                 ResetFireport();
                                 return;
                             }
-
                             FireportPosition = pos;
-                            FireportRotation = rot; // ✅ Store rotation
-                        }
-                        catch
-                        {
-                            ResetFireport();
-                        }
-                    }
-                    else
-                    {
-                        // ✅ Update fireport position AND rotation every frame
-                        try
-                        {
-                            FireportPosition = FireportTransform.UpdatePosition();
-                            FireportRotation = FireportTransform.GetRotation();
-
-                            // Sanity: if it jumps far away, reset so we reacquire with the new weapon.
-                            if (Vector3.Distance(FireportPosition.Value, _localPlayer.Position) > 100f)
-                            {
-                                ResetFireport();
-                            }
+                            FireportRotation = FireportRotation;
                         }
                         catch
                         {
@@ -159,17 +210,30 @@ namespace LoneEftDmaRadar.UI.Misc
         /// </summary>
         private static CachedHandsInfo GetHandsInfo(ulong handsController)
         {
-            var itemBase = Memory.ReadPtr(handsController + Offsets.ItemHandsController.Item, false);
-            var itemTemp = Memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
-            var itemIdPtr = Memory.ReadValue<MongoID>(itemTemp + Offsets.ItemTemplate._id, false);
-            var itemId = itemIdPtr.ReadString(64, false); // Use ReadString() method
-            
-            ArgumentOutOfRangeException.ThrowIfNotEqual(itemId.Length, 24, nameof(itemId));
-            
-            if (!TarkovDataManager.AllItems.TryGetValue(itemId, out var heldItem))
+            try
+            {
+                var itemBase = Memory.ReadPtr(handsController + Offsets.ItemHandsController.Item, false);
+                // Basic validation
+                if (itemBase == 0) return new(handsController);
+
+                var itemTemp = Memory.ReadPtr(itemBase + Offsets.LootItem.Template, false);
+                if (itemTemp == 0) return new(handsController);
+
+                var itemIdPtr = Memory.ReadValue<MongoID>(itemTemp + Offsets.ItemTemplate._id, false);
+                var itemId = itemIdPtr.ReadString(64, false);
+                
+                if (string.IsNullOrEmpty(itemId)) return new(handsController);
+                
+                if (!TarkovDataManager.AllItems.TryGetValue(itemId, out var heldItem))
+                    return new(handsController);
+                
+                return new(handsController, heldItem, itemBase, itemId);
+            }
+            catch
+            {
+                // Return basic info without item data on read failure (prevents crash loops)
                 return new(handsController);
-            
-            return new(handsController, heldItem, itemBase, itemId);
+            }
         }
 
         #region Magazine Info
@@ -180,10 +244,128 @@ namespace LoneEftDmaRadar.UI.Misc
         public sealed class MagazineManager
         {
             private readonly LocalPlayer _localPlayer;
+            private string _fireType;
+            private string _ammo;
 
+            /// <summary>
+            /// True if the MagazineManager is in a valid state for data output.
+            /// </summary>
+            public bool IsValid => MaxCount > 0;
+            /// <summary>
+            /// Current ammo count in Magazine.
+            /// </summary>
+            public int Count { get; private set; }
+            /// <summary>
+            /// Maximum ammo count in Magazine.
+            /// </summary>
+            public int MaxCount { get; private set; }
+            /// <summary>
+            /// Weapon Fire Mode & Ammo Type in a formatted string.
+            /// </summary>
+            public string WeaponInfo
+            {
+                get
+                {
+                    string result = "";
+                    string ft = _fireType;
+                    string ammo = _ammo;
+                    if (ft is not null)
+                        result += $"{ft}: ";
+                    if (ammo is not null)
+                        result += ammo;
+                    if (string.IsNullOrEmpty(result))
+                        return null;
+                    return result.Trim().TrimEnd(':');
+                }
+            }
+
+            /// <summary>
+            /// Constructor.
+            /// </summary>
+            /// <param name="player">Player to track magazine usage for.</param>
             public MagazineManager(LocalPlayer localPlayer)
             {
                 _localPlayer = localPlayer;
+            }
+
+            /// <summary>
+            /// Update Magazine Information for this instance.
+            /// </summary>
+            public void Update(CachedHandsInfo hands)
+            {
+                string ammoInChamber = null;
+                string fireType = null;
+                int maxCount = 0;
+                int currentCount = 0;
+                var fireModePtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.LootItemWeapon.FireMode);
+                var chambersPtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.LootItemWeapon.Chambers);
+                var magSlotPtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.LootItemWeapon._magSlotCache);
+                if (fireModePtr != 0x0)
+                {
+                    var fireMode = (EFireMode)Memory.ReadValue<byte>(fireModePtr + Offsets.FireModeComponent.FireMode);
+                    if (fireMode >= EFireMode.Auto && fireMode <= EFireMode.SemiAuto)
+                        fireType = fireMode.GetDescription();
+                }
+                if (chambersPtr != 0x0) // Single chamber, or for some shotguns, multiple chambers
+                {
+                    using var chambers = UnityArray<Chamber>.Create(chambersPtr);
+                    currentCount += chambers.Count(x => x.HasBullet());
+                    ammoInChamber = GetLoadedAmmoName(chambers.FirstOrDefault(x => x.HasBullet()));
+                    maxCount += chambers.Count;
+                }
+                if (magSlotPtr != 0x0)
+                {
+                    var magItem = Memory.ReadValue<ulong>(magSlotPtr + Offsets.Slot.ContainedItem);
+                    if (magItem != 0x0)
+                    {
+                        var magChambersPtr = Memory.ReadPtr(magItem + Offsets.LootItemMod.Slots);
+                        using var magChambers = UnityArray<Chamber>.Create(magChambersPtr);
+                        if (magChambers.Count > 0) // Revolvers, etc.
+                        {
+                            maxCount += magChambers.Count;
+                            currentCount += magChambers.Count(x => x.HasBullet());
+                            ammoInChamber = GetLoadedAmmoName(magChambers.FirstOrDefault(x => x.HasBullet()));
+                        }
+                        else // Regular magazines
+                        {
+                            var cartridges = Memory.ReadPtr(magItem + Offsets.MagazineItem.Cartridges);
+                            maxCount += Memory.ReadValue<int>(cartridges + Offsets.StackSlot.MaxCount);
+                            var magStackPtr = Memory.ReadPtr(cartridges + Offsets.StackSlot._items);
+                            using var magStack = UnityList<ulong>.Create(magStackPtr);
+                            foreach (var stack in magStack) // Each ammo type will be a separate stack
+                            {
+                                if (stack != 0x0)
+                                    currentCount += Memory.ReadValue<int>(stack + Offsets.MagazineClass.StackObjectsCount, false);
+                            }
+                        }
+                    }
+                }
+                _ammo = ammoInChamber;
+                _fireType = fireType;
+                Count = currentCount;
+                MaxCount = maxCount;
+            }
+
+            /// <summary>
+            /// Gets the name of the ammo round currently loaded in this chamber, otherwise NULL.
+            /// </summary>
+            /// <param name="chamber">Chamber to check.</param>
+            /// <returns>Short name of ammo in chamber, or null if no round loaded.</returns>
+            private static string GetLoadedAmmoName(Chamber chamber)
+            {
+                if (chamber != 0x0)
+                {
+                    var bulletItem = Memory.ReadValue<ulong>(chamber + Offsets.Slot.ContainedItem);
+                    if (bulletItem != 0x0)
+                    {
+                        var bulletTemp = Memory.ReadPtr(bulletItem + Offsets.LootItem.Template);
+                        var idPtr = Memory.ReadValue<MongoID>(bulletTemp + Offsets.ItemTemplate._id);
+                        string id = idPtr.ReadString();
+                        if (TarkovDataManager.AllItems.TryGetValue(id, out var bullet))
+                            return bullet?.ShortName;
+                    }
+                }
+                return null;
             }
 
             /// <summary>
@@ -193,56 +375,32 @@ namespace LoneEftDmaRadar.UI.Misc
             /// <returns>Ammo Template Ptr</returns>
             public static ulong GetAmmoTemplateFromWeapon(ulong lootItemBase)
             {
-                var chambersPtr = Memory.ReadValue<ulong>(lootItemBase + Offsets.LootItemWeapon.Chambers, false);
-                ulong firstRound = 0;
+                var chambersPtr = Memory.ReadValue<ulong>(lootItemBase + Offsets.LootItemWeapon.Chambers);
+                ulong firstRound;
                 UnityArray<Chamber> chambers = null;
                 UnityArray<Chamber> magChambers = null;
                 UnityList<ulong> magStack = null;
-
                 try
                 {
-                    if (chambersPtr != 0x0)
+                    if (chambersPtr != 0x0 && (chambers = UnityArray<Chamber>.Create(chambersPtr)).Count > 0) // Single chamber, or for some shotguns, multiple chambers
+                        firstRound = Memory.ReadPtr(chambers.First(x => x.HasBullet(true)) + Offsets.Slot.ContainedItem);
+                    else
                     {
-                        chambers = UnityArray<Chamber>.Create(chambersPtr, true);
-                        if (chambers.Count > 0)
+                        var magSlot = Memory.ReadPtr(lootItemBase + Offsets.LootItemWeapon._magSlotCache);
+                        var magItemPtr = Memory.ReadPtr(magSlot + Offsets.Slot.ContainedItem);
+                        var magChambersPtr = Memory.ReadPtr(magItemPtr + Offsets.LootItemMod.Slots);
+                        magChambers = UnityArray<Chamber>.Create(magChambersPtr);
+                        if (magChambers.Count > 0) // Revolvers, etc.
+                            firstRound = Memory.ReadPtr(magChambers.First(x => x.HasBullet(true)) + Offsets.Slot.ContainedItem);
+                        else // Regular magazines
                         {
-                            var chamberWithBullet = chambers.Span.ToArray().FirstOrDefault(x => x.HasBullet(true));
-                            if (chamberWithBullet._base != 0)
-                            {
-                                firstRound = Memory.ReadPtr(chamberWithBullet._base + Offsets.Slot.ContainedItem, false);
-                                return Memory.ReadPtr(firstRound + Offsets.LootItem.Template, false);
-                            }
+                            var cartridges = Memory.ReadPtr(magItemPtr + Offsets.MagazineItem.Cartridges);
+                            var magStackPtr = Memory.ReadPtr(cartridges + Offsets.StackSlot._items);
+                            magStack = UnityList<ulong>.Create(magStackPtr);
+                            firstRound = magStack[0];
                         }
                     }
-
-                    // Try magazine
-                    var magSlot = Memory.ReadPtr(lootItemBase + Offsets.LootItemWeapon._magSlotCache, false);
-                    var magItemPtr = Memory.ReadPtr(magSlot + Offsets.Slot.ContainedItem, false);
-                    var magChambersPtr = Memory.ReadPtr(magItemPtr + Offsets.LootItemMod.Slots, false);
-
-                    magChambers = UnityArray<Chamber>.Create(magChambersPtr, true);
-                    
-                    if (magChambers.Count > 0) // Revolvers, etc.
-                    {
-                        var chamberWithBullet = magChambers.Span.ToArray().FirstOrDefault(x => x.HasBullet(true));
-                        if (chamberWithBullet._base != 0)
-                        {
-                            firstRound = Memory.ReadPtr(chamberWithBullet._base + Offsets.Slot.ContainedItem, false);
-                        }
-                    }
-                    else // Regular magazines
-                    {
-                        var cartridges = Memory.ReadPtr(magItemPtr + Offsets.LootItemMagazine.Cartridges, false);
-                        var magStackPtr = Memory.ReadPtr(cartridges + Offsets.StackSlot._items, false);
-                        magStack = UnityList<ulong>.Create(magStackPtr, true);
-                        if (magStack.Count > 0)
-                            firstRound = magStack.Span[0];
-                    }
-
-                    if (firstRound != 0)
-                        return Memory.ReadPtr(firstRound + Offsets.LootItem.Template, false);
-
-                    return 0;
+                    return Memory.ReadPtr(firstRound + Offsets.LootItem.Template);
                 }
                 finally
                 {
@@ -256,9 +414,10 @@ namespace LoneEftDmaRadar.UI.Misc
             /// Wrapper defining a Chamber Structure.
             /// </summary>
             [StructLayout(LayoutKind.Sequential, Pack = 1)]
-            public readonly struct Chamber
+            private readonly struct Chamber
             {
-                public readonly ulong _base;
+                public static implicit operator ulong(Chamber x) => x._base;
+                private readonly ulong _base;
 
                 public readonly bool HasBullet(bool useCache = false)
                 {
@@ -266,6 +425,28 @@ namespace LoneEftDmaRadar.UI.Misc
                         return false;
                     return Memory.ReadValue<ulong>(_base + Offsets.Slot.ContainedItem, useCache) != 0x0;
                 }
+            }
+
+            private enum EFireMode : byte
+            {
+                // Token: 0x0400B0EE RID: 45294
+                [Description(nameof(Auto))]
+                Auto = 0,
+                // Token: 0x0400B0EF RID: 45295
+                [Description(nameof(Single))]
+                Single = 1,
+                // Token: 0x0400B0F0 RID: 45296
+                [Description(nameof(DbTap))]
+                DbTap = 2,
+                // Token: 0x0400B0F1 RID: 45297
+                [Description(nameof(Burst))]
+                Burst = 3,
+                // Token: 0x0400B0F2 RID: 45298
+                [Description(nameof(DbAction))]
+                DbAction = 4,
+                // Token: 0x0400B0F3 RID: 45299
+                [Description(nameof(SemiAuto))]
+                SemiAuto = 5
             }
         }
 
@@ -310,5 +491,16 @@ namespace LoneEftDmaRadar.UI.Misc
         }
 
         #endregion
+    }
+
+    public static class EnumExtension
+    {
+        public static string GetDescription(this Enum value)
+        {
+            var field = value.GetType().GetField(value.ToString());
+            if (field == null) return value.ToString();
+            var attribute = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
+            return attribute == null ? value.ToString() : attribute.Description;
+        }
     }
 }

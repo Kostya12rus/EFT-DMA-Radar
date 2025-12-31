@@ -158,6 +158,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         public override void OnRealtimeLoop(VmmScatter scatter)
         {
             base.OnRealtimeLoop(scatter);
+            FirearmManager?.OnRealtimeLoop(scatter);
 
             scatter.PrepareReadPtr(Base + Offsets.Player._handsController);
             scatter.PrepareReadPtr(Base + Offsets.Player._playerLookRaycastTransform);
@@ -166,6 +167,9 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             {
                 _ = s.ReadPtr(Base + Offsets.Player._handsController, out VmmSharpEx.VmmPointer hands);
                 HandsController = hands;
+                
+                // Update FirearmManager after hands controller is read
+                UpdateFirearmManager();
 
                 _ = s.ReadPtr(Base + Offsets.Player._playerLookRaycastTransform, out VmmSharpEx.VmmPointer transformPtr);
 

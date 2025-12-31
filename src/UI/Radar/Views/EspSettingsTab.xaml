@@ -536,6 +536,17 @@
                                               UsingAlphaChannel="True"
                                               ShowRecentColors="False"/>
                     </StackPanel>
+                    
+                    <WrapPanel Margin="0,8,0,0">
+                        <CheckBox Content="Local Player Aimline"
+                                  ToolTip="Show a red line from your weapon's fireport in the direction you're aiming."
+                                  IsChecked="{Binding EspLocalAimline, Mode=TwoWay}"
+                                  Margin="0,0,16,0" />
+                        <CheckBox Content="Local Player Ammo"
+                                  ToolTip="Show your current ammo count and weapon info on the ESP."
+                                  IsChecked="{Binding EspLocalAmmo, Mode=TwoWay}"
+                                  Margin="0,0,16,0" />
+                    </WrapPanel>
                 </StackPanel>
             </GroupBox>
 
