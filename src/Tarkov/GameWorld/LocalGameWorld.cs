@@ -163,6 +163,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 ct.ThrowIfCancellationRequested();
                 ResourceJanitor.Run();
                 Memory.ThrowIfProcessNotRunning();
+                TryApplyAntiAfkInMenu();
                 try
                 {
                     var instance = GetLocalGameWorld(ct);
@@ -185,6 +186,24 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 {
                     Thread.Sleep(1000);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Attempts to apply AntiAFK feature while in menu.
+        /// </summary>
+        private static void TryApplyAntiAfkInMenu()
+        {
+            try
+            {
+                if (!App.Config.MemWrites.Enabled || !App.Config.MemWrites.AntiAfkEnabled)
+                    return;
+                
+                AntiAfk.Instance.ApplyIfReady(null!);
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[AntiAfk Menu] Error: {ex.Message}");
             }
         }
 

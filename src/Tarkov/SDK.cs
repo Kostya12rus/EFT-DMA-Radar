@@ -40,6 +40,16 @@ namespace SDK
             public const uint EntryPoints = 0x40; // string
         }
 
+        public readonly partial struct EFTHardSettings
+        {
+			public const uint DecelerationSpeed = 0xc0; // Single
+			public const uint LOOT_RAYCAST_DISTANCE = 0x188; // Single
+			public const uint DOOR_RAYCAST_DISTANCE = 0x18c; // Single
+			public const uint STOP_AIMING_AT = 0x214; // Single
+			public const uint MOUSE_LOOK_HORIZONTAL_LIMIT = 0x340; // UnityEngine.Vector2
+			public const uint MOUSE_LOOK_VERTICAL_LIMIT = 0x348; // UnityEngine.Vector2
+        }
+
         public readonly partial struct SynchronizableObject
         {
             public const uint Type = 0x68; // System.Int32
@@ -445,6 +455,21 @@ namespace SDK
         public readonly partial struct MagazineClass //Class: EFT.InventoryLogic.Item
         {
             public const uint StackObjectsCount = 0x24; // int32_t
+        }
+
+        public readonly partial struct TarkovApplication // EFT.TarkovApplication
+        {
+            public const uint MenuOperation = 0x128; // System.Object
+        }
+
+        public readonly partial struct MenuOperation // EFT.MainMenuShowOperation
+        {
+            public const uint AfkMonitor = 0x38; // System.Object
+        }
+
+        public readonly partial struct AfkMonitor
+        {
+            public const uint Delay = 0x10; // _afkTimeout
         }
     }
 

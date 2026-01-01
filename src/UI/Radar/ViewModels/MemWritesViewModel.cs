@@ -1,8 +1,3 @@
-/*
- * Lone EFT DMA Radar
- * MIT License - Copyright (c) 2025 Lone DMA
- */
-
 using LoneEftDmaRadar.UI.Misc;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 using System.ComponentModel;
@@ -29,10 +24,6 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     var result = MessageBox.Show(
                         "???? FINAL WARNING ????\n\n" +
                         "Memory writes DIRECTLY MODIFY GAME MEMORY and are HIGHLY DETECTABLE.\n\n" +
-                        "This includes features like:\n" +
-                        "  ? No Recoil\n" +
-                        "  ? Infinite Stamina\n" +
-                        "  ? Other memory modifications\n\n" +
                         "Using memory writes significantly INCREASES your risk of detection and permanent account ban.\n\n" +
                         "?? USE ONLY ON ACCOUNTS YOU ARE WILLING TO LOSE! ??\n\n" +
                         "ARE YOU ABSOLUTELY SURE YOU WANT TO ENABLE MEMORY WRITES?",
@@ -126,6 +117,49 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             set
             {
                 App.Config.MemWrites.InfiniteStaminaEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // Extended Reach
+        public bool ExtendedReachEnabled
+        {
+            get => App.Config.MemWrites.ExtendedReach.Enabled;
+            set
+            {
+                App.Config.MemWrites.ExtendedReach.Enabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public float ExtendedReachDistance
+        {
+            get => App.Config.MemWrites.ExtendedReach.Distance;
+            set
+            {
+                App.Config.MemWrites.ExtendedReach.Distance = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // Mule Mode
+        public bool MuleModeEnabled
+        {
+            get => App.Config.MemWrites.MuleModeEnabled;
+            set
+            {
+                App.Config.MemWrites.MuleModeEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // Anti AFK
+        public bool AntiAfkEnabled
+        {
+            get => App.Config.MemWrites.AntiAfkEnabled;
+            set
+            {
+                App.Config.MemWrites.AntiAfkEnabled = value;
                 OnPropertyChanged();
             }
         }

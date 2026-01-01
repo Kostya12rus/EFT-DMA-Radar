@@ -1,8 +1,3 @@
-/*
- * Lone EFT DMA Radar
- * MIT License - Copyright (c) 2025 Lone DMA
- */
-
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using System;

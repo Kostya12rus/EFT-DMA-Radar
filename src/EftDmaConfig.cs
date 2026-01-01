@@ -939,7 +939,27 @@ namespace LoneEftDmaRadar
         public bool InfiniteStaminaEnabled { get; set; }
         public bool MemoryAimEnabled { get; set; }
         public Bones MemoryAimTargetBone { get; set; } = Bones.HumanHead;
+
+        [JsonPropertyName("extendedReach")]
+        [JsonInclude]
+        public ExtendedReachConfig ExtendedReach { get; private set; } = new();
+
+        public bool MuleModeEnabled { get; set; }
+        public bool AntiAfkEnabled { get; set; }
     }
+
+    /// <summary>
+    /// Extended Reach (Loot/Door Raycast) Config.
+    /// </summary>
+    public sealed class ExtendedReachConfig
+    {
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; }
+
+        [JsonPropertyName("distance")]
+        public float Distance { get; set; } = 2.0f; // Default conservative increase
+    }
+
 
     /// <summary>
     /// FilteredLoot Filter Config.

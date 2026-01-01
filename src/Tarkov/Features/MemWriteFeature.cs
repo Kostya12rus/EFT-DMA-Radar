@@ -4,6 +4,7 @@
  */
 
 using LoneEftDmaRadar.Tarkov.GameWorld.Player;
+using LoneEftDmaRadar.UI.Misc;
 using System;
 
 namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
