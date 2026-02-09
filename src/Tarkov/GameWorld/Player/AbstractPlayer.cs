@@ -682,16 +682,14 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         {
             try
             {
-                var newPlayer = AllocateInternal(playerBase);
+                // Only allocate if player doesn't already exist
+                var player = regPlayers.GetOrAdd(playerBase, addr => AllocateInternal(addr));
 
-                // Don't add players that failed to construct
-                if (newPlayer.Name?.StartsWith("ERROR") == true)
+                // If allocation failed, remove from dictionary so it can retry later
+                if (player.Name?.StartsWith("ERROR") == true)
                 {
-                    DebugLogger.LogDebug($"[Allocate] Skipping failed player allocation at 0x{playerBase:X}");
-                    return;
+                    regPlayers.TryRemove(playerBase, out _);
                 }
-
-                regPlayers.TryAdd(playerBase, newPlayer);
             }
             catch (Exception ex)
             {
