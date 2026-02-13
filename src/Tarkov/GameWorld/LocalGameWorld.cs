@@ -427,19 +427,22 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
         {
             try
             {
-                var players = _rgtPlayers
-                    .Where(x => x.IsActive && x.IsAlive && x is not BtrPlayer);
-                if (players.Any()) // at least 1 player
+                using var map = Memory.CreateScatterMap();
+                var round1 = map.AddRound();
+                var round2 = map.AddRound();
+                bool hasPlayers = false;
+
+                foreach (var player in _rgtPlayers)
                 {
-                    using var map = Memory.CreateScatterMap();
-                    var round1 = map.AddRound();
-                    var round2 = map.AddRound();
-                    foreach (var player in players)
+                    if (player.IsActive && player.IsAlive && player is not BtrPlayer)
                     {
+                        hasPlayers = true;
                         player.OnValidateTransforms(round1, round2);
                     }
-                    map.Execute(); // execute scatter read
                 }
+
+                if (hasPlayers)
+                    map.Execute();
             }
             catch (Exception ex)
             {
@@ -503,7 +506,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                 var btrController = Memory.ReadPtr(this + Offsets.GameWorld.BtrController);
                 var btrView = Memory.ReadPtr(btrController + Offsets.BtrController.BtrView);
                 var btrTurretView = Memory.ReadPtr(btrView + Offsets.BTRView.turret);
-                var btrOperator = Memory.ReadPtr(btrTurretView + Offsets.BTRTurretView.AttachedBot);
+                var btrOperator = Memory.ReadPtr(btrTurretView + Offsets.BTRTurretView._bot);
                 _rgtPlayers.TryAllocateBTR(btrView, btrOperator);
             }
             catch (Exception ex)

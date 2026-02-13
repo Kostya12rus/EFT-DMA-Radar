@@ -143,65 +143,77 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
         internal ObservedPlayer(ulong playerBase) : base(playerBase)
         {
-            var localPlayer = Memory.LocalPlayer;
-            ArgumentNullException.ThrowIfNull(localPlayer, nameof(localPlayer));
-
-            RaidId = Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.RaidId);
-            PlayerId = Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.Id);
-
-            ObservedPlayerController = Memory.ReadPtr(this + Offsets.ObservedPlayerView.ObservedPlayerController);
-            ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedPlayerController + Offsets.ObservedPlayerController.PlayerView), nameof(ObservedPlayerController));
-            InventoryControllerAddr = ObservedPlayerController + Offsets.ObservedPlayerController.InventoryController;
-            HandsControllerAddr = ObservedPlayerController + Offsets.ObservedPlayerController.HandsController;
-            ObservedHealthController = Memory.ReadPtr(ObservedPlayerController + Offsets.ObservedPlayerController.HealthController);
-            ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedHealthController + Offsets.ObservedHealthController._player), nameof(ObservedHealthController));
-            CorpseAddr = ObservedHealthController + Offsets.ObservedHealthController._playerCorpse;
-
-            MovementContext = GetMovementContext();
-            RotationAddress = ValidateRotationAddr(MovementContext + Offsets.ObservedPlayerStateContext.Rotation);
-            /// Setup Transform
-            var ti = Memory.ReadPtrChain(this, false, _transformInternalChain);
-            SkeletonRoot = new UnityTransform(ti);
-            var initialPos = SkeletonRoot.UpdatePosition();
-            SetupBones();
-            // Initialize cached position for fallback (in case skeleton updates fail later)
-            _cachedPosition = initialPos;
-
-            bool isAI = Memory.ReadValue<bool>(this + Offsets.ObservedPlayerView.IsAI);
-            IsHuman = !isAI;
-            // Get Group ID
-            GroupID = -1;
-            /// Determine Player Type
-            PlayerSide = (Enums.EPlayerSide)Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.Side);
-            if (!Enum.IsDefined(PlayerSide))
-                throw new ArgumentOutOfRangeException(nameof(PlayerSide));
-            if (IsScav)
+            try
             {
-                if (isAI)
+                var localPlayer = Memory.LocalPlayer;
+                ArgumentNullException.ThrowIfNull(localPlayer, nameof(localPlayer));
+
+                RaidId = Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.RaidId);
+                PlayerId = Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.Id);
+
+                ObservedPlayerController = Memory.ReadPtr(this + Offsets.ObservedPlayerView.ObservedPlayerController);
+                ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedPlayerController + Offsets.ObservedPlayerController.PlayerView), nameof(ObservedPlayerController));
+                InventoryControllerAddr = ObservedPlayerController + Offsets.ObservedPlayerController.InventoryController;
+                HandsControllerAddr = ObservedPlayerController + Offsets.ObservedPlayerController.HandsController;
+                ObservedHealthController = Memory.ReadPtr(ObservedPlayerController + Offsets.ObservedPlayerController.HealthController);
+                ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedHealthController + Offsets.ObservedHealthController._player), nameof(ObservedHealthController));
+                CorpseAddr = ObservedHealthController + Offsets.ObservedHealthController._playerCorpse;
+
+                MovementContext = GetMovementContext();
+                RotationAddress = ValidateRotationAddr(MovementContext + Offsets.ObservedPlayerStateContext.Rotation);
+
+                // Setup Transform
+                var ti = Memory.ReadPtrChain(this, false, _transformInternalChain);
+                SkeletonRoot = new UnityTransform(ti);
+                var initialPos = SkeletonRoot.UpdatePosition();
+                SetupBones();
+                _cachedPosition = initialPos;
+
+                bool isAI = Memory.ReadValue<bool>(this + Offsets.ObservedPlayerView.IsAI);
+                IsHuman = !isAI;
+                GroupID = -1;
+
+                // Determine Player Type
+                PlayerSide = (Enums.EPlayerSide)Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.Side);
+                if (!Enum.IsDefined(PlayerSide))
+                    throw new ArgumentOutOfRangeException(nameof(PlayerSide));
+
+                bool isTempTeammate = IsTempTeammate(this);
+                bool isSameGroup = (GroupID != -1 && GroupID == localPlayer.GroupID);
+
+                if (IsScav)
                 {
-                    var voicePtr = Memory.ReadPtr(this + Offsets.ObservedPlayerView.Voice);
-                    string voice = Memory.ReadUnityString(voicePtr);
-                    var role = GetAIRoleInfo(voice);
-                    Name = role.Name;
-                    Type = role.Type;
+                    if (isAI)
+                    {
+                        var voicePtr = Memory.ReadPtr(this + Offsets.ObservedPlayerView.Voice);
+                        string voice = Memory.ReadUnityString(voicePtr);
+                        var role = GetAIRoleInfo(voice);
+
+                        Name = role.Name;
+                        Type = role.Type;
+                    }
+                    else
+                    {
+                        Name = $"PScav{GetPlayerId()}";
+                        Type = isTempTeammate || isSameGroup ? PlayerType.Teammate : PlayerType.PScav;
+                    }
+                }
+                else if (IsPmc)
+                {
+                    Name = $"{PlayerSide.ToString().ToUpper()}{GetPlayerId()}";
+                    Type = isTempTeammate || isSameGroup ? PlayerType.Teammate : PlayerType.PMC;
                 }
                 else
-                {
-                    Name = $"PScav{GetPlayerId()}";
-                    Type = IsTempTeammate(this) || (GroupID != -1 && GroupID == localPlayer.GroupID) ?
-                        PlayerType.Teammate : PlayerType.PScav;
-                }
-            }
-            else if (IsPmc)
-            {
-                Name = $"{PlayerSide.ToString().ToUpper()}{GetPlayerId()}";
-                Type = IsTempTeammate(this) || (GroupID != -1 && GroupID == localPlayer.GroupID) ?
-                    PlayerType.Teammate : PlayerType.PMC;
-            }
-            else
-                throw new NotImplementedException(nameof(PlayerSide));
+                    throw new NotImplementedException(nameof(PlayerSide));
 
-            Equipment = new PlayerEquipment(this);
+                Equipment = new PlayerEquipment(this);
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogDebug($"[ObservedPlayer] Constructor failed: {ex.Message}");
+                Name = $"ERROR{PlayerId}";
+                Type = PlayerType.AIScav;
+            }
         }
 
         /// <summary>

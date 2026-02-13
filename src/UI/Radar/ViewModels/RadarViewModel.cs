@@ -764,17 +764,17 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                     {
                         AbstractPlayer.RemoveTempTeammate(player);
                         player.IsFocused = false;
-                        DebugLogger.LogDebug($"Removed {player.Name ?? "Unknown"} from temporary teammates (unfocused)");
+                        DebugLogger.LogDebug($"Removed {player.Name ?? "Unknown Player"} from temporary teammates (unfocused)");
                     }
                     else if (player.IsFocused)
                     {
                         AbstractPlayer.AddTempTeammate(player);
-                        DebugLogger.LogDebug($"Added {player.Name ?? "Unknown"} as temporary teammate");
+                        DebugLogger.LogDebug($"Added {player.Name ?? "Unknown Player"} as temporary teammate");
                     }
                     else
                     {
                         player.IsFocused = true;
-                        DebugLogger.LogDebug($"Focused on {player.Name ?? "Unknown"}");
+                        DebugLogger.LogDebug($"Focused on {player.Name ?? "Unknown Player"}");
                     }
                 }
             }

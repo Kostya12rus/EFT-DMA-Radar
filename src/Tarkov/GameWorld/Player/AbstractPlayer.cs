@@ -37,8 +37,10 @@ using LoneEftDmaRadar.UI.Radar.Maps;
 using LoneEftDmaRadar.UI.Radar.ViewModels;
 using LoneEftDmaRadar.UI.Skia;
 using LoneEftDmaRadar.Web.TarkovDev.Data;
+using System.Collections.Frozen;
 using VmmSharpEx.Scatter;
 using static LoneEftDmaRadar.Tarkov.Unity.Structures.UnityTransform;
+using static LoneEftDmaRadar.Tarkov.Unity.UnitySDK;
 
 namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 {
@@ -680,27 +682,35 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         {
             try
             {
-                _ = regPlayers.GetOrAdd(
-                    playerBase,
-                    addr => AllocateInternal(addr));
+                // Only allocate if player doesn't already exist
+                var player = regPlayers.GetOrAdd(playerBase, addr => AllocateInternal(addr));
+
+                // If allocation failed, remove from dictionary so it can retry later
+                if (player.Name?.StartsWith("ERROR") == true)
+                {
+                    regPlayers.TryRemove(playerBase, out _);
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // silently skip
+                DebugLogger.LogDebug($"[Allocate] EXCEPTION - PlayerBase: 0x{playerBase:X}, Error: {ex.Message}");
             }
         }
 
         private static AbstractPlayer AllocateInternal(ulong playerBase)
         {
-            AbstractPlayer player;
             var className = ObjectClass.ReadName(playerBase, 64);
             var isClientPlayer = className == "ClientPlayer" || className == "LocalPlayer";
 
+            AbstractPlayer player;
             if (isClientPlayer)
                 player = new ClientPlayer(playerBase);
             else
                 player = new ObservedPlayer(playerBase);
-            DebugLogger.LogDebug($"Player '{player.Name}' allocated.");
+
+            if (!player.Name?.StartsWith("ERROR") == true)
+                DebugLogger.LogDebug($"Player '{player.Name}' allocated | 0x{playerBase:X}");
+
             return player;
         }
 
@@ -804,7 +814,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             }
             catch (Exception ex)
             {
-                DebugLogger.LogDebug($"Failed to reset bone '{bone}' transform for Player '{Name ?? "Unknown"}': {ex}");
+                DebugLogger.LogDebug($"Failed to reset bone '{bone}' transform for Player '{Name ?? "Unknown Player"}': {ex}");
             }
         }
 
@@ -1219,7 +1229,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         /// <param name="round1">Index (round 1)</param>
         /// <param name="round2">Index (round 2)</param>
-        public void OnValidateTransforms(VmmScatter round1, VmmScatter round2)
+        public virtual void OnValidateTransforms(VmmScatter round1, VmmScatter round2)
         {
             round1.PrepareReadPtr(SkeletonRoot.TransformInternal + UnitySDK.UnityOffsets.TransformAccess_HierarchyOffset); // Bone Hierarchy
             round1.Completed += (sender, x1) =>
@@ -1292,6 +1302,30 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             public readonly PlayerType Type { get; init; }
         }
 
+        private static readonly FrozenDictionary<string, AIRole> _aiRolesByVoice = new Dictionary<string, AIRole>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BossSanitar"] = new() { Name = "Sanitar", Type = PlayerType.AIBoss },
+            ["BossBully"] = new() { Name = "Reshala", Type = PlayerType.AIBoss },
+            ["BossGluhar"] = new() { Name = "Gluhar", Type = PlayerType.AIBoss },
+            ["SectantPriest"] = new() { Name = "Priest", Type = PlayerType.AIBoss },
+            ["SectantWarrior"] = new() { Name = "Cultist", Type = PlayerType.AIRaider },
+            ["BossKilla"] = new() { Name = "Killa", Type = PlayerType.AIBoss },
+            ["BossTagilla"] = new() { Name = "Tagilla", Type = PlayerType.AIBoss },
+            ["Boss_Partizan"] = new() { Name = "Partisan", Type = PlayerType.AIBoss },
+            ["BossBigPipe"] = new() { Name = "Big Pipe", Type = PlayerType.AIBoss },
+            ["BossBirdEye"] = new() { Name = "Birdeye", Type = PlayerType.AIBoss },
+            ["BossKnight"] = new() { Name = "Knight", Type = PlayerType.AIBoss },
+            ["Arena_Guard_1"] = new() { Name = "Arena Guard", Type = PlayerType.AIScav },
+            ["Arena_Guard_2"] = new() { Name = "Arena Guard", Type = PlayerType.AIScav },
+            ["Boss_Kaban"] = new() { Name = "Kaban", Type = PlayerType.AIBoss },
+            ["Boss_Kollontay"] = new() { Name = "Kollontay", Type = PlayerType.AIBoss },
+            ["Boss_Sturman"] = new() { Name = "Shturman", Type = PlayerType.AIBoss },
+            ["Zombie_Generic"] = new() { Name = "Zombie", Type = PlayerType.AIScav },
+            ["BossZombieTagilla"] = new() { Name = "Zombie Tagilla", Type = PlayerType.AIBoss },
+            ["Zombie_Fast"] = new() { Name = "Zombie", Type = PlayerType.AIScav },
+            ["Zombie_Medium"] = new() { Name = "Zombie", Type = PlayerType.AIScav },
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Lookup AI Info based on Voice Line.
         /// </summary>
@@ -1299,179 +1333,29 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// <returns></returns>
         public static AIRole GetAIRoleInfo(string voiceLine)
         {
-            switch (voiceLine)
+            if (!_aiRolesByVoice.TryGetValue(voiceLine, out AIRole role))
             {
-                case "BossSanitar":
-                    return new AIRole
-                    {
-                        Name = "Sanitar",
-                        Type = PlayerType.AIBoss
-                    };
-                case "BossBully":
-                    return new AIRole
-                    {
-                        Name = "Reshala",
-                        Type = PlayerType.AIBoss
-                    };
-                case "BossGluhar":
-                    return new AIRole
-                    {
-                        Name = "Gluhar",
-                        Type = PlayerType.AIBoss
-                    };
-                case "SectantPriest":
-                    return new AIRole
-                    {
-                        Name = "Priest",
-                        Type = PlayerType.AIBoss
-                    };
-                case "SectantWarrior":
-                    return new AIRole
-                    {
-                        Name = "Cultist",
-                        Type = PlayerType.AIRaider
-                    };
-                case "BossKilla":
-                    return new AIRole
-                    {
-                        Name = "Killa",
-                        Type = PlayerType.AIBoss
-                    };
-                case "BossTagilla":
-                    return new AIRole
-                    {
-                        Name = "Tagilla",
-                        Type = PlayerType.AIBoss
-                    };
-                case "Boss_Partizan":
-                    return new AIRole
-                    {
-                        Name = "Partisan",
-                        Type = PlayerType.AIBoss
-                    };
-                case "BossBigPipe":
-                    return new AIRole
-                    {
-                        Name = "Big Pipe",
-                        Type = PlayerType.AIBoss
-                    };
-                case "BossBirdEye":
-                    return new AIRole
-                    {
-                        Name = "Birdeye",
-                        Type = PlayerType.AIBoss
-                    };
-                case "BossKnight":
-                    return new AIRole
-                    {
-                        Name = "Knight",
-                        Type = PlayerType.AIBoss
-                    };
-                case "Arena_Guard_1":
-                    return new AIRole
-                    {
-                        Name = "Arena Guard",
-                        Type = PlayerType.AIScav
-                    };
-                case "Arena_Guard_2":
-                    return new AIRole
-                    {
-                        Name = "Arena Guard",
-                        Type = PlayerType.AIScav
-                    };
-                case "Boss_Kaban":
-                    return new AIRole
-                    {
-                        Name = "Kaban",
-                        Type = PlayerType.AIBoss
-                    };
-                case "Boss_Kollontay":
-                    return new AIRole
-                    {
-                        Name = "Kollontay",
-                        Type = PlayerType.AIBoss
-                    };
-                case "Boss_Sturman":
-                    return new AIRole
-                    {
-                        Name = "Shturman",
-                        Type = PlayerType.AIBoss
-                    };
-                case "Zombie_Generic":
-                    return new AIRole
-                    {
-                        Name = "Zombie",
-                        Type = PlayerType.AIScav
-                    };
-                case "BossZombieTagilla":
-                    return new AIRole
-                    {
-                        Name = "Zombie Tagilla",
-                        Type = PlayerType.AIBoss
-                    };
-                case "Zombie_Fast":
-                    return new AIRole
-                    {
-                        Name = "Zombie",
-                        Type = PlayerType.AIScav
-                    };
-                case "Zombie_Medium":
-                    return new AIRole
-                    {
-                        Name = "Zombie",
-                        Type = PlayerType.AIScav
-                    };
-                default:
-                    break;
+                // Fallback pattern matching
+                role = voiceLine switch
+                {
+                    _ when voiceLine.Contains("scav", StringComparison.OrdinalIgnoreCase) => new() { Name = "Scav", Type = PlayerType.AIScav },
+                    _ when voiceLine.Contains("boss", StringComparison.OrdinalIgnoreCase) => new() { Name = "Boss", Type = PlayerType.AIBoss },
+                    _ when voiceLine.Contains("usec", StringComparison.OrdinalIgnoreCase) => new() { Name = "Usec", Type = PlayerType.AIRaider },
+                    _ when voiceLine.Contains("bear", StringComparison.OrdinalIgnoreCase) => new() { Name = "Bear", Type = PlayerType.AIRaider },
+                    _ when voiceLine.Contains("black_division", StringComparison.OrdinalIgnoreCase) => new() { Name = "BD", Type = PlayerType.AIRaider },
+                    _ when voiceLine.Contains("vsrf", StringComparison.OrdinalIgnoreCase) => new() { Name = "Vsrf", Type = PlayerType.AIRaider },
+                    _ when voiceLine.Contains("civilian", StringComparison.OrdinalIgnoreCase) => new() { Name = "Civ", Type = PlayerType.AIScav },
+                    _ => new() { Name = "AI", Type = PlayerType.AIScav }
+                };
+
+                // Log unknown voice lines (only if we hit the final fallback)
+                if (role.Name == "AI")
+                {
+                    DebugLogger.LogDebug($"Unknown Voice Line: {voiceLine}");
+                }
             }
-            if (voiceLine.Contains("scav", StringComparison.OrdinalIgnoreCase))
-                return new AIRole
-                {
-                    Name = "Scav",
-                    Type = PlayerType.AIScav
-                };
-            if (voiceLine.Contains("boss", StringComparison.OrdinalIgnoreCase))
-                return new AIRole
-                {
-                    Name = "Boss",
-                    Type = PlayerType.AIBoss
-                };
-            if (voiceLine.Contains("usec", StringComparison.OrdinalIgnoreCase))
-                return new AIRole
-                {
-                    Name = "Usec",
-                    Type = PlayerType.AIRaider
-                };
-            if (voiceLine.Contains("bear", StringComparison.OrdinalIgnoreCase))
-                return new AIRole
-                {
-                    Name = "Bear",
-                    Type = PlayerType.AIRaider
-                };
-            if (voiceLine.Contains("black_division", StringComparison.OrdinalIgnoreCase))
-                return new AIRole
-                {
-                    Name = "BD",
-                    Type = PlayerType.AIRaider
-                };
-            if (voiceLine.Contains("vsrf", StringComparison.OrdinalIgnoreCase))
-                return new AIRole
-                {
-                    Name = "Vsrf",
-                    Type = PlayerType.AIRaider
-                };
-            if (voiceLine.Contains("civilian", StringComparison.OrdinalIgnoreCase))
-                return new AIRole
-                {
-                    Name = "Civ",
-                    Type = PlayerType.AIScav
-                };
-            DebugLogger.LogDebug($"Unknown Voice Line: {voiceLine}");
-            return new AIRole
-            {
-                Name = "AI",
-                Type = PlayerType.AIScav
-            };
+
+            return role;
         }
 
         #endregion

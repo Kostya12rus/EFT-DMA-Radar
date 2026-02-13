@@ -132,7 +132,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
         {
             List<string> lines = new();
             var exfilName = Name;
-            exfilName ??= "unknown";
+            exfilName ??= "Unknown Exfil";
             lines.Add($"{exfilName} ({Status.ToString()})");
             Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams).DrawMouseoverText(canvas, string.Join("\n", lines));
         }

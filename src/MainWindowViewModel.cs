@@ -261,7 +261,7 @@ namespace LoneEftDmaRadar
                 {
                     AbstractPlayer.AddTempTeammate(player);
                     count++;
-                    DebugLogger.LogDebug($"Added {player.Name ?? "Unknown"} (dist: {distance:F1}m) as temporary teammate");
+                    DebugLogger.LogDebug($"Added {player.Name ?? "Unknown Player"} (dist: {distance:F1}m) as temporary teammate");
                 }
             }
 

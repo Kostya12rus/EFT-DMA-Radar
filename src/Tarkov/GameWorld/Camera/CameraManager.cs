@@ -37,7 +37,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Camera
 
         private static readonly Lock _viewportSync = new();
         public static Rectangle Viewport { get; private set; }
-        public static SKPoint ViewportCenter => new SKPoint(Viewport.Width / 2f, Viewport.Height / 2f);
+        public static SKPoint ViewportCenter => new(Viewport.Width / 2f, Viewport.Height / 2f);
         public static bool IsScoped { get; private set; }
         public static bool IsADS { get; private set; }
         public static bool IsInitialized { get; private set; } = false;

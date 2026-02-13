@@ -26,6 +26,7 @@ SOFTWARE.
  *
 */
 
+using LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers;
 using LoneEftDmaRadar.Tarkov.Unity.Collections;
 using LoneEftDmaRadar.Tarkov.Unity.Structures;
 
@@ -86,13 +87,42 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             GroupID = GetGroupNumber();
             MovementContext = GetMovementContext();
             RotationAddress = ValidateRotationAddr(MovementContext + Offsets.MovementContext._rotation);
-            /// Setup Transform
+
+            // Setup Transform
             var ti = Memory.ReadPtrChain(this, false, _transformInternalChain);
             SkeletonRoot = new UnityTransform(ti);
             var initialPos = SkeletonRoot.UpdatePosition();
             SetupBones();
-            // Initialize cached position for fallback (in case skeleton updates fail later)
             _cachedPosition = initialPos;
+
+            if (IsScav)
+            {
+                Name = $"Scav{GetPlayerId()}";
+                Type = PlayerType.AIScav;
+            }
+            else if (IsPmc)
+            {
+                Name = $"{PlayerSide.ToString().ToUpper()}{GetPlayerId()}";
+                Type = PlayerType.PMC;
+            }
+            else
+                throw new NotImplementedException(nameof(PlayerSide));
+        }
+
+        /// <summary>
+        /// Get the Player's ID.
+        /// </summary>
+        /// <returns>Player Id or 0 if failed.</returns>
+        private int GetPlayerId()
+        {
+            try
+            {
+                return Memory.ReadValue<int>(this + Offsets.ObservedPlayerView.Id);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         public int GetPoseLevel()
@@ -221,7 +251,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         private ulong GetMovementContext()
         {
             var movementContext = Memory.ReadPtr(this + Offsets.Player.MovementContext);
-            var player = Memory.ReadPtr(movementContext + Offsets.MovementContext.Player, false);
+            var player = Memory.ReadPtr(movementContext + Offsets.MovementContext._player, false);
             if (player != this)
                 throw new ArgumentOutOfRangeException(nameof(movementContext));
             return movementContext;

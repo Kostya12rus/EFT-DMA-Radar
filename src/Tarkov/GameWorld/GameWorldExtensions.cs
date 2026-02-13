@@ -36,7 +36,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                     Task.Run(() => ReadForward(firstObject, lastObject, cts.Token, ct)),
                     Task.Run(() => ReadBackward(lastObject, firstObject, cts.Token, ct))
                 };
-                while (tasks.Count > 1) // Shallow will never exit normally
+                while (tasks.Count > 1) // Shallow and Deep will never exit normally
                 {
                     var finished = Task.WhenAny(tasks).GetAwaiter().GetResult();
                     ct.ThrowIfCancellationRequested();

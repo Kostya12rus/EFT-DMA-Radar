@@ -99,7 +99,7 @@ namespace LoneEftDmaRadar.Web.WebRadar.Data
 
             return new WebRadarLoot
             {
-                Name = item.ShortName ?? item.Name ?? "Unknown",
+                Name = item.ShortName ?? item.Name ?? "Unknown Item",
                 Type = type,
                 Price = item.Price,
                 Position = item.Position

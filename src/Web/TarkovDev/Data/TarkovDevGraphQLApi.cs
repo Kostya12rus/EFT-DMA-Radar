@@ -72,9 +72,14 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
 
         public static async Task<string> GetTarkovDataAsync()
         {
-            var query = new Dictionary<string, string>
-            {
-                { "query",
+            var client = App.HttpClientFactory.CreateClient(nameof(TarkovDevGraphQLApi));
+            client.Timeout = TimeSpan.FromMinutes(2);
+
+            const string baseUrl = "https://api.tarkov.dev/graphql";
+
+            var queries = new[]
+                    {
+                // Maps
                 """
                 {
                     maps {
@@ -91,13 +96,14 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                         }
                         hazards {
                             hazardType
-                            position {
-                                x
-                                y
-                                z
-                            }
+                            position {x,y,z}
                         }
                     }
+                }
+                """,
+                // Items
+                """
+                {
                     items { 
                         id 
                         name 
@@ -105,25 +111,29 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                         width 
                         height 
                         sellFor { 
-                            vendor { 
-                                name 
-                            } 
+                            vendor { name } 
                             priceRUB 
                         } 
                         basePrice 
                         avg24hPrice 
-                        historicalPrices { 
-                            price 
-                        } 
-                        categories { 
-                            name 
-                        } 
+                        historicalPrices { price } 
+                        categories { name } 
                     }
+                }
+                """,
+                // Containers
+                """
+                {
                     lootContainers { 
                         id 
                         normalizedName 
                         name 
                     }
+                }
+                """,
+                // Tasks
+                """
+                {
                     tasks {
                       id
                       name
@@ -149,11 +159,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                               normalizedName
                               name
                             }
-                            position {
-                              y
-                              x
-                              z
-                            }
+                            position {y,x,z}
                           }
                           requiredKeys {
                             id
@@ -183,11 +189,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                               normalizedName
                               name
                             }
-                            position {
-                              y
-                              x
-                              z
-                            }
+                            position {y,x,z}
                           }
                           requiredKeys {
                             id
@@ -215,16 +217,7 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                               normalizedName
                               name
                             }
-                            position {
-                              y
-                              x
-                              z
-                            }
-                          }
-                          requiredKeys {
-                            id
-                            name
-                            shortName
+                            position {y,x,z}
                           }
                           questItem {
                             id
@@ -255,30 +248,49 @@ namespace LoneEftDmaRadar.Web.TarkovDev.Data
                               normalizedName
                               name
                             }
-                            position {
-                              y
-                              x
-                              z
-                            }
-                          }
-                          requiredKeys {
-                            id
-                            name
-                            shortName
+                            position {y,x,z}
                           }
                         }
                       }
                     }
                 }
                 """
-                }
             };
-            var client = App.HttpClientFactory.CreateClient(nameof(TarkovDevGraphQLApi));
-            using var response = await client.PostAsJsonAsync(
-                requestUri: "https://api.tarkov.dev/graphql",
-                value: query);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
+
+            // Execute all queries concurrently
+            var tasks = queries.Select(async q =>
+            {
+                using var response = await client.PostAsJsonAsync(baseUrl, new Dictionary<string, string> { { "query", q } });
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync();
+            });
+
+            var responses = await Task.WhenAll(tasks);
+
+            // Merge all responses into single JSON
+            using var stream = new MemoryStream();
+            using var writer = new Utf8JsonWriter(stream);
+            writer.WriteStartObject();
+            writer.WritePropertyName("data");
+            writer.WriteStartObject();
+
+            foreach (var response in responses)
+            {
+                using var doc = JsonDocument.Parse(response);
+                if (doc.RootElement.TryGetProperty("data", out var dataElement))
+                {
+                    foreach (var property in dataElement.EnumerateObject())
+                    {
+                        property.WriteTo(writer);
+                    }
+                }
+            }
+
+            writer.WriteEndObject();
+            writer.WriteEndObject();
+            writer.Flush();
+
+            return Encoding.UTF8.GetString(stream.ToArray());
         }
     }
 }

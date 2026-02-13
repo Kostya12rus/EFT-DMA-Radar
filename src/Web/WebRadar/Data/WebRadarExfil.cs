@@ -72,7 +72,7 @@ namespace LoneEftDmaRadar.Web.WebRadar.Data
 
             return new WebRadarExfil
             {
-                Name = exfil.Name ?? "Unknown",
+                Name = exfil.Name ?? "Unknown Exfil",
                 Status = exfil.Status switch
                 {
                     Exfil.EStatus.Open => WebExfilStatus.Open,

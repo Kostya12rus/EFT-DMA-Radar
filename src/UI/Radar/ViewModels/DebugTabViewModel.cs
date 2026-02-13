@@ -40,6 +40,8 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
                 }
             });
 
+            DebugLogger.Toggle();
+
             _timer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(100)
@@ -79,7 +81,7 @@ namespace LoneEftDmaRadar.UI.Radar.ViewModels
             }
         }
 
-        private string _inputManagerStatus = "Unknown";
+        private string _inputManagerStatus = "Unknown Input";
         public string InputManagerStatus
         {
             get => _inputManagerStatus;

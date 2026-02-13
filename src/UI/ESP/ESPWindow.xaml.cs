@@ -703,7 +703,7 @@ namespace LoneEftDmaRadar.UI.ESP
 
             foreach (var container in containers)
             {
-                var id = container.ID ?? "UNKNOWN";
+                var id = container.ID ?? "Unknown Container";
                 if (!(selectAll || selected.ContainsKey(id)))
                     continue;
 
@@ -1159,7 +1159,7 @@ namespace LoneEftDmaRadar.UI.ESP
              foreach (var c in containers)
              {
                   if (c.Position == Vector3.Zero) continue;
-                  var id = c.ID ?? "UNKNOWN";
+                  var id = c.ID ?? "Unknown Container";
                   if (!(selectAll || selected.ContainsKey(id))) continue;
                   if (hideSearched && c.Searched) continue;
                   
@@ -1607,7 +1607,7 @@ namespace LoneEftDmaRadar.UI.ESP
             if (!showName && !showDistance && !showHealth && !showGroup && !showWeapon)
                 return;
 
-            var name = showName ? GetPlayerDisplayName(player) ?? "Unknown" : null;
+            var name = showName ? GetPlayerDisplayName(player) ?? "Unknown Player" : null;
             var distanceText = showDistance ? $"{distance:F0}m" : null;
 
             string healthText = null;

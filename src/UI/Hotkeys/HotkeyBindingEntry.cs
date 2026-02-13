@@ -49,7 +49,7 @@ namespace LoneEftDmaRadar.UI.Hotkeys
 
         public HotkeyBindingEntry(HotkeyActionController controller, Win32VirtualKey? key)
         {
-            ActionName = controller?.Name ?? "Unknown";
+            ActionName = controller?.Name ?? "Unknown Action";
             Action = new HotkeyAction(ActionName);
             _key = key;
         }
