@@ -35,8 +35,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.VPK_GITHUB_TOKEN }}
         run: |
-          $year = (Get-Date -Format "yyyy")
-          $md   = (Get-Date -Format "MMdd")
+          $year = (Get-Date).Year
+          $month = (Get-Date).Month
+          $day = (Get-Date).Day
+          $md = "$month$day"
           $basePrefix = "$year.$md"
           Write-Host "Base prefix: $basePrefix"
 
