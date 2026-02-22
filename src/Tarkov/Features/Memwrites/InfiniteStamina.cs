@@ -92,8 +92,8 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                 return;
             }
 
-            var currentStamina = Memory.ReadValue<float>(staminaObj + Offsets.PhysicalValue.Current, false);
-            var currentOxygen  = Memory.ReadValue<float>(oxygenObj + Offsets.PhysicalValue.Current, false);
+            var currentStamina = Memory.ReadValue<float>(staminaObj + Offsets.EStimulatorBuffType.value__, false);
+            var currentOxygen  = Memory.ReadValue<float>(oxygenObj + Offsets.EStimulatorBuffType.value__, false);
 
             if (!ValidateStaminaValue(currentStamina) ||
                 !ValidateOxygenValue(currentOxygen))
@@ -104,7 +104,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
             // Mirror old logic: only queue writes when under threshold
             if (currentStamina < MAX_STAMINA * REFILL_THRESHOLD)
             {
-                writes.Add(staminaObj + Offsets.PhysicalValue.Current, MAX_STAMINA);
+                writes.Add(staminaObj + Offsets.EStimulatorBuffType.value__, MAX_STAMINA);
 
                 // Optional: if you want logs like the old ScatterWriteHandle callbacks:
                 // DebugLogger.LogDebug($"[InfiniteStamina] Stamina refilled: {currentStamina:F1} -> {MAX_STAMINA:F1}");
@@ -112,7 +112,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 
             if (currentOxygen < MAX_OXYGEN * REFILL_THRESHOLD)
             {
-                writes.Add(oxygenObj + Offsets.PhysicalValue.Current, MAX_OXYGEN);
+                writes.Add(oxygenObj + Offsets.EStimulatorBuffType.value__, MAX_OXYGEN);
 
                 // Optional logging:
                 // DebugLogger.LogDebug($"[InfiniteStamina] Oxygen refilled: {currentOxygen:F1} -> {MAX_OXYGEN:F1}");
@@ -205,11 +205,11 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                 if (!patchState.IsValidUserVA())
                     return;
 
-                var targetHash = Memory.ReadValue<int>(patchState + Offsets.MovementState.AnimatorStateHash, false);
+                var targetHash = Memory.ReadValue<int>(patchState + Offsets.BaseMovementState.AnimatorStateHash, false);
 
                 Memory.WriteValue(originalStateContainer + Offsets.PlayerStateContainer.StateFullNameHash, targetHash);
-                Memory.WriteValue(originalState + Offsets.MovementState.AnimatorStateHash, targetHash);
-                Memory.WriteValue(originalState + Offsets.MovementState.Name, INF_STAM_TARGET_STATE_NAME);
+                Memory.WriteValue(originalState + Offsets.BaseMovementState.AnimatorStateHash, targetHash);
+                Memory.WriteValue(originalState + Offsets.BaseMovementState.Name, INF_STAM_TARGET_STATE_NAME);
 
                 _bypassApplied = true;
             }
@@ -227,7 +227,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 
                 originalState = states
                     .FirstOrDefault(x =>
-                        Memory.ReadValue<byte>(x.Value + Offsets.MovementState.Name, false) ==
+                        Memory.ReadValue<byte>(x.Value + Offsets.BaseMovementState.Name, false) ==
                         INF_STAM_SOURCE_STATE_NAME)
                     .Value;
 
@@ -239,7 +239,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 
                 patchState = states
                     .First(x =>
-                        Memory.ReadValue<byte>(x.Value + Offsets.MovementState.Name, false) ==
+                        Memory.ReadValue<byte>(x.Value + Offsets.BaseMovementState.Name, false) ==
                         INF_STAM_TARGET_STATE_NAME)
                     .Value;
             }

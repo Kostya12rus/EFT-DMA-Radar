@@ -44,7 +44,6 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
         private readonly string _mapId;
         private readonly bool _isPMC;
         private ulong exfilArrayAddr;
-        private ulong secretExfilArrayAddr;
         private ulong entryPointPtr;
         private string entryPointName;
         private readonly LocalPlayer _localPlayer;
@@ -64,8 +63,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
             try
             {
                 var exfiltrationController = Memory.ReadPtr(_localGameWorld + Offsets.GameWorld.ExfiltrationController);
-                exfilArrayAddr = Memory.ReadPtr(exfiltrationController + (_isPMC ? Offsets.ExfiltrationController.ExfiltrationPoints : Offsets.ExfiltrationController.ScavExfiltrationPoints));
-                secretExfilArrayAddr = Memory.ReadPtr(exfiltrationController + Offsets.ExfiltrationController.SecretExfiltrationPoints);
+                exfilArrayAddr = Memory.ReadPtr(exfiltrationController + (_isPMC ? Offsets.ExfiltrationTimerSoundPlayer._exfiltrationPoint : Offsets.HandlerExfiltration._exfiltrationPoint));
 
                 if (_isPMC)
                 {
@@ -104,7 +102,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Exits
                 }
                 else
                 {
-                    var eligibleIdsAddr = Memory.ReadPtr(exfilAddr + Offsets.ExfiltrationPoint.EligibleIds, false);
+                    var eligibleIdsAddr = Memory.ReadPtr(exfilAddr + Offsets.ScavExfiltrationPoint.EligibleIds, false);
                     using var eligibleIdsList = UnityList<ulong>.Create(eligibleIdsAddr, false);
                     if (eligibleIdsList.Count > 0)
                     {

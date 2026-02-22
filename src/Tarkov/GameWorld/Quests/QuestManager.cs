@@ -61,10 +61,10 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                     try
                     {
                         //qDataEntry should be public class QuestStatusData : Object
-                        var qStatus = Memory.ReadValue<int>(qDataEntry + Offsets.QuestsData.Status);
+                        var qStatus = Memory.ReadValue<int>(qDataEntry + Offsets.QuestStatusData.Status);
                         if (qStatus != 2) // started
                             continue;
-                        var qId = Memory.ReadUnityString(Memory.ReadPtr(qDataEntry + Offsets.QuestsData.Id));
+                        var qId = Memory.ReadUnityString(Memory.ReadPtr(qDataEntry + Offsets.QuestStatusData.Id));
                         // qID should be Task ID
                         if (!TarkovDataManager.TaskData.TryGetValue(qId, out var task))
                             continue;
@@ -74,7 +74,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Quests
                             id => new QuestEntry(id));
                         if (App.Config.QuestHelper.BlacklistedQuests.ContainsKey(qId))
                             continue; // Log the quest but dont get any conditions
-                        using var completedHS = UnityHashSet<MongoID>.Create(Memory.ReadPtr(qDataEntry + Offsets.QuestsData.CompletedConditions), true);
+                        using var completedHS = UnityHashSet<MongoID>.Create(Memory.ReadPtr(qDataEntry + Offsets.QuestStatusData.CompletedConditions), true);
                         using var completedConditions = new PooledSet<string>(StringComparer.OrdinalIgnoreCase);
                         foreach (var c in completedHS)
                         {

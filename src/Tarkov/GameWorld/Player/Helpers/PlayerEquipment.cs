@@ -65,15 +65,15 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
                 try
                 {
                     var inventorycontroller = Memory.ReadPtr(_player.InventoryControllerAddr);
-                    var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController.Inventory);
-                    var equipment = Memory.ReadPtr(inventory + Offsets.Inventory.Equipment);
+                    var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController._Inventory_k__BackingField);
+                    var equipment = Memory.ReadPtr(inventory + Offsets.InventoryDescriptor._equipmentId);
                     var slotsPtr = Memory.ReadPtr(equipment + Offsets.InventoryEquipment._cachedSlots);
                     using var slotsArray = UnityArray<ulong>.Create(slotsPtr, true);
                     ArgumentOutOfRangeException.ThrowIfLessThan(slotsArray.Count, 1);
 
                     foreach (var slotPtr in slotsArray)
                     {
-                        var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot.ID);
+                        var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot._ID_k__BackingField);
                         var name = Memory.ReadUnityString(namePtr);
                         if (_skipSlots.Contains(name))
                             continue;
@@ -117,7 +117,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player.Helpers
                         {
                             continue; // skip pmc scabbard
                         }
-                        var containedItem = Memory.ReadPtr(slot.Value + Offsets.Slot.ContainedItem);
+                        var containedItem = Memory.ReadPtr(slot.Value + Offsets.Slot._ContainedItem_k__BackingField);
                         var inventorytemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
                         var mongoId = Memory.ReadValue<MongoID>(inventorytemplate + Offsets.ItemTemplate._id);
                         var id = mongoId.ReadString();
