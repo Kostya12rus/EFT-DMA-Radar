@@ -17,12 +17,14 @@ namespace SDK
             public const uint ExfiltrationController = 0x50; // EFT.Interactive.ExfiltrationController
         }
 
-        public readonly partial struct ExfiltrationController
+        public readonly partial struct ExfiltrationTimerSoundPlayer
         {
-            public const uint SecretExfilitrationController = 0x18; // EFT.Interactive.SecretExfiltrations.SecretExfilitranionController
-            public const uint ExfiltrationPoints = 0x20; // EFT.Interactive.ExfiltrationPoint[]
-            public const uint ScavExfiltrationPoints = 0x28; // EFT.Interactive.ScavExfiltrationPoint[]
-            public const uint SecretExfiltrationPoints = 0x30; // EFT.Interactive.SecretExfiltrations.SecretExfiltrationPoint[]
+            public const uint _exfiltrationPoint = 0x20;
+        }
+
+        public readonly partial struct HandlerExfiltration
+        {
+            public const uint _exfiltrationPoint = 0x28;
         }
 
         public readonly partial struct ExfiltrationPoint
@@ -30,24 +32,22 @@ namespace SDK
             public const uint _status = 0x58; // EFT.Interactive.EExfiltrationStatus
             public const uint Settings = 0x98; // EFT.Interactive.ExitTriggerSettings
             public const uint EligibleEntryPoints = 0xC0; // string[]
-            public const uint EligibleIds = 0xF8; // System.Collections.Generic.List<string>
+        }
+
+        public readonly partial struct ScavExfiltrationPoint
+        {
+            public const uint EligibleIds = 0xF8;
         }
 
         public readonly partial struct ExitTriggerSettings
         {
-            public const uint Id = 0x10; // string
             public const uint Name = 0x18; // string
-            public const uint EntryPoints = 0x40; // string
         }
 
         public readonly partial struct EFTHardSettings
         {
-			public const uint DecelerationSpeed = 0xc0; // Single
 			public const uint LOOT_RAYCAST_DISTANCE = 0x188; // Single
 			public const uint DOOR_RAYCAST_DISTANCE = 0x18c; // Single
-			public const uint STOP_AIMING_AT = 0x214; // Single
-			public const uint MOUSE_LOOK_HORIZONTAL_LIMIT = 0x340; // UnityEngine.Vector2
-			public const uint MOUSE_LOOK_VERTICAL_LIMIT = 0x348; // UnityEngine.Vector2
         }
 
         public readonly partial struct SynchronizableObject
@@ -57,7 +57,7 @@ namespace SDK
 
         public readonly partial struct SynchronizableObjectLogicProcessor
         {
-            public const uint _staticSynchronizableObject = 0x18; // System.Collections.Generic.List<SynchronizableObject>
+            public const uint _staticSynchronizableObjects = 0x18; // System.Collections.Generic.List<SynchronizableObject>
         }
 
         public readonly partial struct TripwireSynchronizableObject
@@ -68,7 +68,7 @@ namespace SDK
 
         public readonly partial struct BtrController
         {
-            public const uint BtrView = 0x50; // EFT.Vehicle.BTRView
+            public const uint LoadBTRView = 0xf89dd0; // EFT.Vehicle.BTRView
         }
 
         public readonly partial struct BTRView
@@ -98,7 +98,6 @@ namespace SDK
             public const uint PlayerId = 0x8F8; // Int32
             public const uint Profile = 0x900; // EFT.Profile
             public const uint ProceduralWeaponAnimation = 0x338; // EFT.Animations.ProceduralWeaponAnimation
-            public const uint _inventoryController = 0x978; // EFT.PlayerInventoryController update
             public const uint _handsController = 0x980; // EFT.PlayerHands update
             public const uint _playerLookRaycastTransform = 0xA10; // UnityEngine.Transform
         }
@@ -108,12 +107,10 @@ namespace SDK
             public const uint RaidId = 0x20; // Int32
             public const uint ObservedPlayerController = 0x28; // EFT.NextObservedPlayer.ObservedPlayerController
 			public const uint Voice = 0x40; // string
-            public const uint WorldTime = 0x68; // single
             public const uint Id = 0x7C; // int32_t
             public const uint GroupID = 0x80; // string
 			public const uint Side = 0x94; // EFT.EPlayerSide
 			public const uint IsAI = 0xA0; // bool
-            public const uint AccountId = 0xC0; // string
 			public const uint PlayerBody = 0xD8; // EFT.PlayerBody
         }
 
@@ -136,26 +133,25 @@ namespace SDK
             public const uint Rotation = 0x20; // UnityEngine.Vector2
         }
 
-          public readonly partial struct ObservedHealthController
+        public readonly partial struct ObservedPlayerHealthController
         {
-            public const uint HealthStatus = 0x10; // ETagStatus
-            public const uint _player = 0x18; // EFT.NextObservedPlayer.ObservedPlayerView
-            public const uint _playerCorpse = 0x20; // EFT.Interactive.ObservedCorpse
+            public const uint HealthStatus = 0x10;
+            public const uint _player = 0x18;
+            public const uint _playerCorpse = 0x20;
         }
 
         public readonly partial struct Profile // EFT, class: Profile
         {
             public const uint Id = 0x10; // String
-            public const uint AccountId = 0x18; // String
             public const uint Info = 0x48; // -.\uE9AD
             public const uint QuestsData = 0x98; // object
         }
 
-        public readonly partial struct QuestsData
+        public readonly partial struct QuestStatusData
         {
-            public const uint Id = 0x10; // string
-            public const uint Status = 0x1C; // object
-            public const uint CompletedConditions = 0x28; // object
+            public const uint Id = 0x10;
+            public const uint Status = 0x1C;
+            public const uint CompletedConditions = 0x28;
         }
 
         public readonly partial struct PlayerInfo // EFT, class: ProfileInfo
@@ -170,24 +166,17 @@ namespace SDK
         {
             public const uint _player = 0x48; // EFT.Player
             public const uint _rotation = 0xC8; // UnityEngine.Vector2
-            public const uint PlantState = 0x78; // EFT.BaseMovementState <PlantState> PlantState
             public const uint CurrentState = 0x1F0; // EFT.BaseMovementState <CurrentState>k__BackingField
             public const uint _states = 0x480; // System.Collections.Generic.Dictionary<Byte, BaseMovementState> <_states> _states
             public const uint _movementStates = 0x4b0; // -.IPlayerStateContainerBehaviour[] <_movementStates> _movementStates
-            public const uint _tilt = 0xb4; // Single <_tilt> _tilt
-            public const uint _physicalCondition = 0x198; // System.Int32 <_physicalCondition> _physicalCondition
-            public const uint _speedLimitIsDirty = 0x1b9; // Boolean <_speedLimitIsDirty> _speedLimitIsDirty
             public const uint StateSpeedLimit = 0x1bc; // Single <<StateSpeedLimit>k__BackingField> <StateSpeedLimit>k__BackingField
             public const uint StateSprintSpeedLimit = 0x1c0; // Single <<StateSprintSpeedLimit>k__BackingField> <StateSprintSpeedLimit>k__BackingField
-            public const uint _lookDirection = 0x3b8; // UnityEngine.Vector3  <_lookDirection> _lookDirection
         }
 
-        public readonly partial struct MovementState //Class: MovementState
+        public readonly partial struct BaseMovementState
         {
-            public const uint StickToGround = 0x54; // Boolean <StickToGround> StickToGround
-            public const uint PlantTime = 0x58; // Single <PlantTime> PlantTime
-            public const uint Name = 0x11; // System.Byte <Name> Name
-            public const uint AnimatorStateHash = 0x20; // Int32 <AnimatorStateName> AnimatorStateName
+            public const uint Name = 0x11;
+            public const uint AnimatorStateHash = 0x20;
         }
 
         public readonly partial struct PlayerStateContainer //Class: PlayerStateContainer
@@ -292,7 +281,9 @@ namespace SDK
         {
             public const uint Zooms = 0x1B8; // System.Single[][]
         }
+        
 
+        // couldn't find
         public readonly partial struct Physical //Class: .PhysicalBase
         {
             public const uint Stamina = 0x68; // -.\uE398 <Stamina> Stamina
@@ -311,86 +302,56 @@ namespace SDK
             public const uint IsOverweightA = 0x11C; // Boolean
             public const uint IsOverweightB = 0x11D; // Boolean
         }
+        // couldn't find
 
-        public readonly partial struct PhysicalValue //Class: .Stamina
+        public readonly partial struct EStimulatorBuffType
         {
-            public const uint Current = 0x10; // Single
+            public const uint value__ = 0x10;
         }
 
         public readonly partial struct BreathEffector //Class: EFT.Animations.BreathEffector
         {
-            public const uint Physical = 0x10; // System.Object
-            public const uint IsAiming = 0x18; // Boolean
-            public const uint _handsRotationSpring = 0x20; // System.Object
-            public const uint _shotEffector = 0x28; // System.Object
             public const uint Intensity = 0x30; // Single <Intensity> Intensity
-            public const uint _shakeIntensity = 0x34; // Single
-            public const uint XRandom = 0x38; // System.Object - Random generator for X sway
-            public const uint YRandom = 0x40; // System.Object - Random generator for Y sway
-            public const uint _breathIntensity = 0x48; // Single
-            public const uint _breathFrequency = 0x4C; // Single
-            public const uint TremorXRandom = 0x50; // System.Object
-            public const uint TremorYRandom = 0x58; // System.Object
-            public const uint TremorZRandom = 0x60; // System.Object
-            public const uint HipXRandom = 0x68; // System.Object
-            public const uint HipZRandom = 0x70; // System.Object
-            public const uint HipPenalty = 0x78; // Single
-            public const uint Curves = 0x80; // UnknownType
-            public const uint _processors = 0x88; // UnknownType
-            public const uint BreathParams = 0x90; // System.Object
-            public const uint TremorOn = 0x98; // Boolean
-            public const uint Fracture = 0x99; // Boolean
-            public const uint _cameraSensetivity = 0x9C; // Single
-            public const uint StiffUntill = 0xA0; // Single
-            public const uint EnergyLowerLimit = 0xA4; // Single
-            public const uint EnergyFractureLimit = 0xA8; // Single
-            public const uint AmplitudeGainPerShot = 0xAC; // Single
-            public const uint Delay = 0xB0; // Single
-            public const uint Overweight = 0xF8; // Single
-            public const uint OxygenLevel = 0x100; // GenericInst
-            public const uint StaminaLevel = 0x108; // GenericInst
         }
 
+        // couldn't find
         public readonly partial struct ShotEffector //Class: .ShotEffector
         {
             public const uint NewShotRecoil = 0x20; // EFT.Animations.NewRecoil.NewRecoilShotEffect <NewShotRecoil> NewShotRecoil
         }
+        // couldn't find
 
+        // couldn't find
         public readonly partial struct NewShotRecoil //Class: EFT.Animations.NewRecoil.NewRecoilShotEffect
         {
             public const uint IntensitySeparateFactors = 0x94; // UnityEngine.Vector3 <IntensitySeparateFactors> IntensitySeparateFactors
         }
+        // couldn't find
 
         public readonly partial struct ItemHandsController //Class: .ItemHandsController
         {
             public const uint Item = 0x70; // EFT.InventoryLogic.Item
         }
 
-        public readonly partial struct LootItemWeapon //Class: EFT.InventoryLogic.Weapon
+        public readonly partial struct Launcher
         {
-            public const uint FireMode = 0xa0; // EFT.InventoryLogic.FireModeComponent <FireMode> FireMode
-            public const uint Chambers = 0xb0; // EFT.InventoryLogic.Slot[] <<Chambers>k__BackingField> <Chambers>k__BackingField
-            public const uint _magSlotCache = 0xc8; // EFT.InventoryLogic.Slot <_magSlotCache> _magSlotCache
+            public const uint _Chambers_k__BackingField = 0xb0;
+        }
+
+        public readonly partial struct Weapon
+        {
+            public const uint FireMode = 0xa0;
+            public const uint _magSlotCache = 0xc8;
         }
 
         public readonly partial struct FireModeComponent //Class: EFT.InventoryLogic.FireModeComponent
         {
-            public const uint Item = 0x10; 
-            public const uint _template = 0x18;
-            public const uint OnChanged = 0x20;
             public const uint FireMode = 0x28;
         }
 
-        public readonly partial struct LootItemMagazine //Class: EFT.InventoryLogic.MagazineTemplate
+        public readonly partial struct Magazine
         {
-            public const uint Cartridges = 0x1a8; // EFT.InventoryLogic.StackSlot <Cartridges> Cartridges (on Template)
-            public const uint LoadUnloadModifier = 0x1b0; // Single <LoadUnloadModifier> LoadUnloadModifier
-        }
-
-        // Magazine Item (not template) offsets - used when reading from magSlot.ContainedItem
-        public readonly partial struct MagazineItem //Class: EFT.InventoryLogic.MagazineClass (Item instance)
-        {
-            public const uint Cartridges = 0xA8; // EFT.InventoryLogic.StackSlot - Cartridges on the Magazine Item itself
+            public const uint _Cartridges_k__BackingField = 0xa8;
         }
 
         public readonly partial struct StackSlot //Class: EFT.InventoryLogic.StackSlot
@@ -401,15 +362,14 @@ namespace SDK
 
         public readonly partial struct Slot //Class: EFT.InventoryLogic.Slot
         {
-            public const uint ContainedItem = 0x48; // EFT.InventoryLogic.Item
-            public const uint ID = 0x58; // String
-            public const uint Required = 0x18; // Boolean
+            public const uint Required = 0x18;
+            public const uint _ContainedItem_k__BackingField = 0x48; // EFT.InventoryLogic.Item
+            public const uint _ID_k__BackingField = 0x58; // String
         }
 
-        public readonly partial struct LootItemMod //Class: EFT.InventoryLogic.Mod
+        public readonly partial struct EquipmentBuildsScreen
         {
-            public const uint Grids = 0x78; // -.\uEE74[]
-            public const uint Slots = 0x80; // EFT.InventoryLogic.Slot[]
+            public const uint _slotsTab = 0x148;
         }
 
         public readonly partial struct ModTemplate //Class: EFT.InventoryLogic.ModTemplate
@@ -430,21 +390,25 @@ namespace SDK
             public const uint Velocity = 0x254; // Single <Velocity> Velocity
         }
 
-        public readonly partial struct ObservedMovementController //Class: EFT.NextObservedPlayer.ObservedPlayerMovementModel
+        public readonly partial struct ObservedPlayerMovementController
         {
-            public const uint ObservedPlayerStateContext = 0x98;
-            public const uint Rotation = 0x1c; // UnityEngine.Vector2 <HeadRotation> HeadRotation
-            public const uint Velocity = 0x30; // UnityEngine.Vector3 <Velocity> Velocity
+            public const uint _ObservedPlayerStateContext_k__BackingField = 0x98;
+        }
+
+        public readonly partial struct ObservedPlayerMovementModel
+        {
+            public const uint HeadRotation = 0x1c;
+            public const uint Velocity = 0x30;
         }
 
         public readonly partial struct InventoryController
         {
-            public const uint Inventory = 0x100; // EFT.InventoryLogic.Inventory
+            public const uint _Inventory_k__BackingField = 0x100;
         }
 
-        public readonly partial struct Inventory
+        public readonly partial struct InventoryDescriptor
         {
-            public const uint Equipment = 0x18; // EFT.InventoryLogic.InventoryEquipment
+            public const uint _equipmentId = 0x18;
         }
 
         public readonly partial struct InventoryEquipment
@@ -452,24 +416,24 @@ namespace SDK
             public const uint _cachedSlots = 0x90; // EFT.InventoryLogic.Slot[]
         }
 
-        public readonly partial struct MagazineClass //Class: EFT.InventoryLogic.Item
+        public readonly partial struct Item
         {
-            public const uint StackObjectsCount = 0x24; // int32_t
+            public const uint StackObjectsCount = 0x24;
         }
 
         public readonly partial struct TarkovApplication // EFT.TarkovApplication
         {
-            public const uint MenuOperation = 0x128; // System.Object
+            public const uint _menuOperation = 0x130; // System.Object
         }
 
-        public readonly partial struct MenuOperation // EFT.MainMenuShowOperation
+        public readonly partial struct MainMenuShowOperation
         {
-            public const uint AfkMonitor = 0x38; // System.Object
+            public const uint _afkMonitor = 0x38;
         }
 
         public readonly partial struct AfkMonitor
         {
-            public const uint Delay = 0x10; // _afkTimeout
+            public const uint _afkTimeout = 0x10; // _afkTimeout
         }
     }
 
@@ -543,24 +507,7 @@ namespace SDK
             Knight = 32768,
             BigPipe = 65536,
             BlackDivision = 131072,
-            VSRF = 262144
-        }
-
-        [Flags]
-        public enum EMemberCategory
-        {
-            Default = 0,
-            Developer = 1,
-            UniqueId = 2,
-            Trader = 4,
-            Group = 8,
-            System = 16,
-            ChatModerator = 32,
-            ChatModeratorWithPermanentBan = 64,
-            UnitTest = 128,
-            Sherpa = 256,
-            Emissary = 512,
-            Unheard = 1024,
+            VSRF = 262144,
         }
 
         public enum EExfiltrationStatus
@@ -589,20 +536,6 @@ namespace SDK
             Exploding = 3,
             Exploded = 4,
             Inert = 5,
-        }
-
-        public enum EQuestStatus
-        {
-            Locked = 0,
-            AvailableForStart = 1,
-            Started = 2,
-            AvailableForFinish = 3,
-            Success = 4,
-            Fail = 5,
-            FailRestartable = 6,
-            MarkedAsFailed = 7,
-            Expired = 8,
-            AvailableAfter = 9,
         }
     }
 }

@@ -297,9 +297,9 @@ namespace LoneEftDmaRadar.UI.Misc
                 string fireType = null;
                 int maxCount = 0;
                 int currentCount = 0;
-                var fireModePtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.LootItemWeapon.FireMode);
-                var chambersPtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.LootItemWeapon.Chambers);
-                var magSlotPtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.LootItemWeapon._magSlotCache);
+                var fireModePtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.Weapon.FireMode);
+                var chambersPtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.Launcher._Chambers_k__BackingField);
+                var magSlotPtr = Memory.ReadValue<ulong>(hands.ItemAddr + Offsets.Weapon._magSlotCache);
                 if (fireModePtr != 0x0)
                 {
                     var fireMode = (EFireMode)Memory.ReadValue<byte>(fireModePtr + Offsets.FireModeComponent.FireMode);
@@ -315,10 +315,10 @@ namespace LoneEftDmaRadar.UI.Misc
                 }
                 if (magSlotPtr != 0x0)
                 {
-                    var magItem = Memory.ReadValue<ulong>(magSlotPtr + Offsets.Slot.ContainedItem);
+                    var magItem = Memory.ReadValue<ulong>(magSlotPtr + Offsets.Slot._ContainedItem_k__BackingField);
                     if (magItem != 0x0)
                     {
-                        var magChambersPtr = Memory.ReadPtr(magItem + Offsets.LootItemMod.Slots);
+                        var magChambersPtr = Memory.ReadPtr(magItem + Offsets.EquipmentBuildsScreen._slotsTab);
                         using var magChambers = UnityArray<Chamber>.Create(magChambersPtr);
                         if (magChambers.Count > 0) // Revolvers, etc.
                         {
@@ -328,14 +328,14 @@ namespace LoneEftDmaRadar.UI.Misc
                         }
                         else // Regular magazines
                         {
-                            var cartridges = Memory.ReadPtr(magItem + Offsets.MagazineItem.Cartridges);
+                            var cartridges = Memory.ReadPtr(magItem + Offsets.Magazine._Cartridges_k__BackingField);
                             maxCount += Memory.ReadValue<int>(cartridges + Offsets.StackSlot.MaxCount);
                             var magStackPtr = Memory.ReadPtr(cartridges + Offsets.StackSlot._items);
                             using var magStack = UnityList<ulong>.Create(magStackPtr);
                             foreach (var stack in magStack) // Each ammo type will be a separate stack
                             {
                                 if (stack != 0x0)
-                                    currentCount += Memory.ReadValue<int>(stack + Offsets.MagazineClass.StackObjectsCount, false);
+                                    currentCount += Memory.ReadValue<int>(stack + Offsets.Item.StackObjectsCount, false);
                             }
                         }
                     }
@@ -355,7 +355,7 @@ namespace LoneEftDmaRadar.UI.Misc
             {
                 if (chamber != 0x0)
                 {
-                    var bulletItem = Memory.ReadValue<ulong>(chamber + Offsets.Slot.ContainedItem);
+                    var bulletItem = Memory.ReadValue<ulong>(chamber + Offsets.Slot._ContainedItem_k__BackingField);
                     if (bulletItem != 0x0)
                     {
                         var bulletTemp = Memory.ReadPtr(bulletItem + Offsets.LootItem.Template);
@@ -375,7 +375,7 @@ namespace LoneEftDmaRadar.UI.Misc
             /// <returns>Ammo Template Ptr</returns>
             public static ulong GetAmmoTemplateFromWeapon(ulong lootItemBase)
             {
-                var chambersPtr = Memory.ReadValue<ulong>(lootItemBase + Offsets.LootItemWeapon.Chambers);
+                var chambersPtr = Memory.ReadValue<ulong>(lootItemBase + Offsets.Launcher._Chambers_k__BackingField);
                 ulong firstRound;
                 UnityArray<Chamber> chambers = null;
                 UnityArray<Chamber> magChambers = null;
@@ -383,18 +383,18 @@ namespace LoneEftDmaRadar.UI.Misc
                 try
                 {
                     if (chambersPtr != 0x0 && (chambers = UnityArray<Chamber>.Create(chambersPtr)).Count > 0) // Single chamber, or for some shotguns, multiple chambers
-                        firstRound = Memory.ReadPtr(chambers.First(x => x.HasBullet(true)) + Offsets.Slot.ContainedItem);
+                        firstRound = Memory.ReadPtr(chambers.First(x => x.HasBullet(true)) + Offsets.Slot._ContainedItem_k__BackingField);
                     else
                     {
-                        var magSlot = Memory.ReadPtr(lootItemBase + Offsets.LootItemWeapon._magSlotCache);
-                        var magItemPtr = Memory.ReadPtr(magSlot + Offsets.Slot.ContainedItem);
-                        var magChambersPtr = Memory.ReadPtr(magItemPtr + Offsets.LootItemMod.Slots);
+                        var magSlot = Memory.ReadPtr(lootItemBase + Offsets.Weapon._magSlotCache);
+                        var magItemPtr = Memory.ReadPtr(magSlot + Offsets.Slot._ContainedItem_k__BackingField);
+                        var magChambersPtr = Memory.ReadPtr(magItemPtr + Offsets.EquipmentBuildsScreen._slotsTab);
                         magChambers = UnityArray<Chamber>.Create(magChambersPtr);
                         if (magChambers.Count > 0) // Revolvers, etc.
-                            firstRound = Memory.ReadPtr(magChambers.First(x => x.HasBullet(true)) + Offsets.Slot.ContainedItem);
+                            firstRound = Memory.ReadPtr(magChambers.First(x => x.HasBullet(true)) + Offsets.Slot._ContainedItem_k__BackingField);
                         else // Regular magazines
                         {
-                            var cartridges = Memory.ReadPtr(magItemPtr + Offsets.MagazineItem.Cartridges);
+                            var cartridges = Memory.ReadPtr(magItemPtr + Offsets.Magazine._Cartridges_k__BackingField);
                             var magStackPtr = Memory.ReadPtr(cartridges + Offsets.StackSlot._items);
                             magStack = UnityList<ulong>.Create(magStackPtr);
                             firstRound = magStack[0];
@@ -423,7 +423,7 @@ namespace LoneEftDmaRadar.UI.Misc
                 {
                     if (_base == 0x0)
                         return false;
-                    return Memory.ReadValue<ulong>(_base + Offsets.Slot.ContainedItem, useCache) != 0x0;
+                    return Memory.ReadValue<ulong>(_base + Offsets.Slot._ContainedItem_k__BackingField, useCache) != 0x0;
                 }
             }
 

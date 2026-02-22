@@ -110,14 +110,14 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
 
             if (!tarkovAppPtr.IsValidUserVA())
                 throw new Exception($"TarkovApplication not found in {size} components");
-            DebugLogger.LogDebug($"[AntiAfk] Reading MenuOperation from 0x{tarkovAppPtr:X} + 0x{Offsets.TarkovApplication.MenuOperation:X}");
-            var menuOp = Memory.ReadPtr(tarkovAppPtr + Offsets.TarkovApplication.MenuOperation);
+            DebugLogger.LogDebug($"[AntiAfk] Reading MenuOperation from 0x{tarkovAppPtr:X} + 0x{Offsets.TarkovApplication._menuOperation:X}");
+            var menuOp = Memory.ReadPtr(tarkovAppPtr + Offsets.TarkovApplication._menuOperation);
             if (!menuOp.IsValidUserVA())
-                throw new Exception($"MenuOperation is null (read from 0x{tarkovAppPtr + Offsets.TarkovApplication.MenuOperation:X})");
+                throw new Exception($"MenuOperation is null (read from 0x{tarkovAppPtr + Offsets.TarkovApplication._menuOperation:X})");
             DebugLogger.LogDebug($"[AntiAfk] MenuOperation at 0x{menuOp:X}");
 
-            DebugLogger.LogDebug($"[AntiAfk] Reading AfkMonitor from 0x{menuOp:X} + 0x{Offsets.MenuOperation.AfkMonitor:X}");
-            var afkMonitor = Memory.ReadPtr(menuOp + Offsets.MenuOperation.AfkMonitor);
+            DebugLogger.LogDebug($"[AntiAfk] Reading AfkMonitor from 0x{menuOp:X} + 0x{Offsets.MainMenuShowOperation._afkMonitor:X}");
+            var afkMonitor = Memory.ReadPtr(menuOp + Offsets.MainMenuShowOperation._afkMonitor);
             if (!afkMonitor.IsValidUserVA())
             {
                 DebugLogger.LogDebug($"[AntiAfk] AfkMonitor is null - may not be available in-raid (expected in menu only)");
@@ -125,8 +125,8 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                 return;
             }
             DebugLogger.LogDebug($"[AntiAfk] AfkMonitor at 0x{afkMonitor:X}");
-            DebugLogger.LogDebug($"[AntiAfk] Writing {AFK_DELAY}f to 0x{afkMonitor + Offsets.AfkMonitor.Delay:X}");
-            Memory.WriteValue(afkMonitor + Offsets.AfkMonitor.Delay, AFK_DELAY);
+            DebugLogger.LogDebug($"[AntiAfk] Writing {AFK_DELAY}f to 0x{afkMonitor + Offsets.AfkMonitor._afkTimeout:X}");
+            Memory.WriteValue(afkMonitor + Offsets.AfkMonitor._afkTimeout, AFK_DELAY);
         }
 
         public override void OnRaidStart()

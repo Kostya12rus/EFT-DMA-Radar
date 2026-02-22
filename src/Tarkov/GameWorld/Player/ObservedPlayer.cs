@@ -156,8 +156,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                 InventoryControllerAddr = ObservedPlayerController + Offsets.ObservedPlayerController.InventoryController;
                 HandsControllerAddr = ObservedPlayerController + Offsets.ObservedPlayerController.HandsController;
                 ObservedHealthController = Memory.ReadPtr(ObservedPlayerController + Offsets.ObservedPlayerController.HealthController);
-                ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedHealthController + Offsets.ObservedHealthController._player), nameof(ObservedHealthController));
-                CorpseAddr = ObservedHealthController + Offsets.ObservedHealthController._playerCorpse;
+                ArgumentOutOfRangeException.ThrowIfNotEqual(this, Memory.ReadValue<ulong>(ObservedHealthController + Offsets.ObservedPlayerHealthController._player), nameof(ObservedHealthController));
+                CorpseAddr = ObservedHealthController + Offsets.ObservedPlayerHealthController._playerCorpse;
 
                 MovementContext = GetMovementContext();
                 RotationAddress = ValidateRotationAddr(MovementContext + Offsets.ObservedPlayerStateContext.Rotation);
@@ -254,7 +254,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         /// </summary>
         private ulong GetMovementContext()
         {
-            var movementController = Memory.ReadPtrChain(ObservedPlayerController, true, Offsets.ObservedPlayerController.MovementController, Offsets.ObservedMovementController.ObservedPlayerStateContext);
+            var movementController = Memory.ReadPtrChain(ObservedPlayerController, true, Offsets.ObservedPlayerController.MovementController, Offsets.ObservedPlayerMovementController._ObservedPlayerStateContext_k__BackingField);
             return movementController;
         }
 
@@ -341,7 +341,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
         {
             try
             {
-                var tag = (Enums.ETagStatus)Memory.ReadValue<int>(ObservedHealthController + Offsets.ObservedHealthController.HealthStatus);
+                var tag = (Enums.ETagStatus)Memory.ReadValue<int>(ObservedHealthController + Offsets.ObservedPlayerHealthController.HealthStatus);
                 if ((tag & Enums.ETagStatus.Dying) == Enums.ETagStatus.Dying)
                     HealthStatus = Enums.ETagStatus.Dying;
                 else if ((tag & Enums.ETagStatus.BadlyInjured) == Enums.ETagStatus.BadlyInjured)
@@ -369,8 +369,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             try
             {
                 var inventorycontroller = Memory.ReadPtr(InventoryControllerAddr);
-                var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController.Inventory);
-                var equipment = Memory.ReadPtr(inventory + Offsets.Inventory.Equipment);
+                var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController._Inventory_k__BackingField);
+                var equipment = Memory.ReadPtr(inventory + Offsets.InventoryDescriptor._equipmentId);
                 var slotsPtr = Memory.ReadPtr(equipment + Offsets.InventoryEquipment._cachedSlots);
 
                 using var slotsArray = UnityArray<ulong>.Create(slotsPtr, true);
@@ -379,7 +379,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                 foreach (var slotPtr in slotsArray)
                 {
-                    var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot.ID);
+                    var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot._ID_k__BackingField);
                     if (namePtr == 0)
                         continue;
 
@@ -387,7 +387,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     if (slotName != "Backpack")
                         continue;
 
-                    var containedItem = Memory.ReadPtr(slotPtr + Offsets.Slot.ContainedItem);
+                    var containedItem = Memory.ReadPtr(slotPtr + Offsets.Slot._ContainedItem_k__BackingField);
                     if (containedItem == 0)
                         continue;
 
@@ -426,8 +426,8 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
             try
             {
                 var inventorycontroller = Memory.ReadPtr(InventoryControllerAddr);
-                var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController.Inventory);
-                var equipment = Memory.ReadPtr(inventory + Offsets.Inventory.Equipment);
+                var inventory = Memory.ReadPtr(inventorycontroller + Offsets.InventoryController._Inventory_k__BackingField);
+                var equipment = Memory.ReadPtr(inventory + Offsets.InventoryDescriptor._equipmentId);
                 var slotsPtr = Memory.ReadPtr(equipment + Offsets.InventoryEquipment._cachedSlots);
 
                 using var slotsArray = UnityArray<ulong>.Create(slotsPtr, true);
@@ -445,7 +445,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
 
                 foreach (var slotPtr in slotsArray)
                 {
-                    var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot.ID);
+                    var namePtr = Memory.ReadPtr(slotPtr + Offsets.Slot._ID_k__BackingField);
                     if (namePtr == 0)
                         continue;
 
@@ -455,7 +455,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld.Player
                     if (slotName != "FaceCover" && slotName != "Headwear")
                         continue;
 
-                    var containedItem = Memory.ReadPtr(slotPtr + Offsets.Slot.ContainedItem);
+                    var containedItem = Memory.ReadPtr(slotPtr + Offsets.Slot._ContainedItem_k__BackingField);
                     if (containedItem == 0)
                         continue;
 

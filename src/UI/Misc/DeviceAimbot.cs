@@ -646,7 +646,7 @@ private static float RadToDeg(float radians)
                     try
                     {
                         targetVelocity = Memory.ReadValue<Vector3>(
-                            target.MovementContext + Offsets.ObservedMovementController.Velocity,
+                            target.MovementContext + Offsets.ObservedPlayerMovementModel.Velocity,
                             false);
                     }
                     catch
@@ -776,7 +776,7 @@ private static float RadToDeg(float radians)
         {
             try
             {
-                var slotsPtr = Memory.ReadPtr(itemBase + Offsets.LootItemMod.Slots, false);
+                var slotsPtr = Memory.ReadPtr(itemBase + Offsets.EquipmentBuildsScreen._slotsTab, false);
                 using var slots = UnityArray<ulong>.Create(slotsPtr, true);
 
                 if (slots.Count > 100) // Sanity check
@@ -784,7 +784,7 @@ private static float RadToDeg(float radians)
 
                 foreach (var slot in slots.Span)
                 {
-                    var containedItem = Memory.ReadPtr(slot + Offsets.Slot.ContainedItem, false);
+                    var containedItem = Memory.ReadPtr(slot + Offsets.Slot._ContainedItem_k__BackingField, false);
                     if (containedItem == 0)
                         continue;
 

@@ -250,7 +250,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
         {
              try
             {
-                var parentSlots = Memory.ReadPtr(lootItemBase + Offsets.LootItemMod.Slots);
+                var parentSlots = Memory.ReadPtr(lootItemBase + Offsets.EquipmentBuildsScreen._slotsTab);
                 using var slots = UnityArray<ulong>.Create(parentSlots, false);
                 
                 if (slots != null)
@@ -259,7 +259,7 @@ namespace LoneEftDmaRadar.Tarkov.Features.MemWrites
                     {
                         try
                         {
-                            var containedItem = Memory.ReadPtr(slot + Offsets.Slot.ContainedItem);
+                            var containedItem = Memory.ReadPtr(slot + Offsets.Slot._ContainedItem_k__BackingField);
                             if (containedItem == 0) continue;
 
                             var itemTemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
