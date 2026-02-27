@@ -68,7 +68,7 @@ namespace SDK
 
         public readonly partial struct BtrController
         {
-            public const uint LoadBTRView = 0xf89dd0; // EFT.Vehicle.BTRView
+            public const uint _BtrView_k__BackingField = 0x50;
         }
 
         public readonly partial struct BTRView
