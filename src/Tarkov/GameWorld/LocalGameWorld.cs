@@ -504,7 +504,7 @@ namespace LoneEftDmaRadar.Tarkov.GameWorld
                     return;
 
                 var btrController = Memory.ReadPtr(this + Offsets.GameWorld.BtrController);
-                var btrView = Memory.ReadPtr(btrController + Offsets.BtrController.LoadBTRView);
+                var btrView = Memory.ReadPtr(btrController + Offsets.BtrController._BtrView_k__BackingField);
                 var btrTurretView = Memory.ReadPtr(btrView + Offsets.BTRView.turret);
                 var btrOperator = Memory.ReadPtr(btrTurretView + Offsets.BTRTurretView._bot);
                 _rgtPlayers.TryAllocateBTR(btrView, btrOperator);
